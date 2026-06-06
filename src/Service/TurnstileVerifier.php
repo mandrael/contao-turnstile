@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mandrael\ContaoTurnstileBundle\Service;
 
 use Contao\Config;
+use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -19,17 +20,26 @@ class TurnstileVerifier
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
         private readonly RequestStack $requestStack,
+        private readonly ContaoFramework $framework,
     ) {
     }
 
     public function getSiteKey(): string
     {
-        return trim((string) Config::get('turnstileSiteKey'));
+        return $this->configValue('turnstileSiteKey');
     }
 
     public function getSecretKey(): string
     {
-        return trim((string) Config::get('turnstileSecretKey'));
+        return $this->configValue('turnstileSecretKey');
+    }
+
+    private function configValue(string $key): string
+    {
+        // Zugriff ueber den Framework-Adapter statt statischem Config::get -> testbar/mockbar.
+        $this->framework->initialize();
+
+        return trim((string) $this->framework->getAdapter(Config::class)->get($key));
     }
 
     public function isConfigured(): bool

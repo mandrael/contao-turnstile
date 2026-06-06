@@ -11,3 +11,4 @@ services:
             $httpClient: '@http_client'
             $logger: '@monolog.logger.contao'
             $requestStack: '@request_stack'
+            $framework: '@contao.framework'
