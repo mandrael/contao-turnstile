@@ -1,5 +1,7 @@
 # Contao Cloudflare Turnstile
 
+<img src="logo.svg" alt="Contao Turnstile" width="88" align="right">
+
 Ersetzt das Standard-CAPTCHA von Contao (die Sicherheitsfrage) global durch
 [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/). Die Keys werden
 bequem im Contao-Backend unter **Einstellungen** eingetragen – keine YAML- oder
@@ -95,6 +97,13 @@ Feldtypen nebeneinander; dieses Bundle berührt ALTCHA nicht.
   ein **expliziter Funktionstest auf einer 5.7-Instanz steht noch aus**. Erst Contao 6.0
   (Entfernung der Legacy-Template-Engine) erfordert ein Upgrade dieses Bundles.
 
+## Markenrechtlicher Hinweis
+
+Cloudflare und Turnstile sind Marken der Cloudflare, Inc. Diese Erweiterung ist ein
+unabhängiges, quelloffenes Projekt und steht in keiner Verbindung zu Cloudflare, Inc.; sie wird
+von dieser weder unterstützt noch gesponsert. Das mitgelieferte Icon (`logo.svg`) ist eine eigene
+Grafik und nicht das Cloudflare-Logo.
+
 ## Lizenz
 
 MIT – siehe [LICENSE](LICENSE).
@@ -152,6 +161,12 @@ secret key is never logged.
 PHP 8.1+, Contao 4.13 LTS and 5.3+ (incl. 5.4–5.7), single code base. Checked against the Contao
 5.7 source and expected to be compatible; an explicit functional test on a 5.7 instance is still
 pending. Contao 6.0 (removal of the legacy template engine) will require a bundle upgrade.
+
+## Trademark notice
+
+Cloudflare and Turnstile are trademarks of Cloudflare, Inc. This extension is an independent,
+open-source project and is not affiliated with, endorsed or sponsored by Cloudflare, Inc. The
+bundled icon (`logo.svg`) is original artwork and is not the Cloudflare logo.
 
 ## License
 
