@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mandrael\ContaoTurnstileBundle\DependencyInjection;
 
+use Contao\CoreBundle\Routing\ResponseContext\Csp\CspHandler;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
@@ -21,5 +22,11 @@ class MandraelContaoTurnstileExtension extends Extension
         );
 
         $loader->load('services.yaml');
+
+        // CSP-Auto-Registrierung nur auf Contao 5.x: dort existiert die native CSP-API.
+        // Auf 4.13 bliebe die Referenz auf ResponseContextAccessor sonst beim Kompilieren haengen.
+        if (class_exists(CspHandler::class)) {
+            $loader->load('services_csp.yaml');
+        }
     }
 }

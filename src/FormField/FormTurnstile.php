@@ -7,6 +7,7 @@ namespace Mandrael\ContaoTurnstileBundle\FormField;
 use Contao\Config;
 use Contao\FormCaptcha;
 use Contao\System;
+use Mandrael\ContaoTurnstileBundle\Csp\CloudflareCspSourceRegistrar;
 use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
 
 /**
@@ -70,6 +71,20 @@ class FormTurnstile extends FormCaptcha
 
         // Markup kommt vollstaendig aus dem Template form_turnstile.
         return '';
+    }
+
+    public function parse($arrAttributes = null)
+    {
+        // Cloudflare-Host in die Seiten-CSP eintragen (nur Contao 5.x, Service nur dort registriert).
+        if (!$this->turnstileFallback) {
+            $container = System::getContainer();
+
+            if ($container->has(CloudflareCspSourceRegistrar::class)) {
+                $container->get(CloudflareCspSourceRegistrar::class)->register();
+            }
+        }
+
+        return parent::parse($arrAttributes);
     }
 
     private function getVerifier(): TurnstileVerifier

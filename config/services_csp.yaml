@@ -1,0 +1,9 @@
+services:
+    _defaults:
+        autoconfigure: true
+        autowire: true
+
+    # Nur auf Contao 5.x geladen (siehe Extension). Public, weil das Widget den Service
+    # per System::getContainer()->get(...) zieht.
+    Mandrael\ContaoTurnstileBundle\Csp\CloudflareCspSourceRegistrar:
+        public: true
