@@ -1,0 +1,38 @@
+{
+    "name": "mandrael/contao-turnstile",
+    "type": "contao-bundle",
+    "description": "Ersetzt das Standard-CAPTCHA von Contao global durch Cloudflare Turnstile. Die Keys werden im Contao-Backend eingetragen.",
+    "keywords": ["contao", "captcha", "cloudflare", "turnstile", "spam"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michael Gasperl"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "contao/core-bundle": "^4.13 || ^5.3",
+        "psr/log": "^1.0 || ^2.0 || ^3.0",
+        "symfony/config": "^5.4 || ^6.4 || ^7.0",
+        "symfony/dependency-injection": "^5.4 || ^6.4 || ^7.0",
+        "symfony/http-client": "^5.4 || ^6.4 || ^7.0",
+        "symfony/http-foundation": "^5.4 || ^6.4 || ^7.0",
+        "symfony/http-kernel": "^5.4 || ^6.4 || ^7.0"
+    },
+    "require-dev": {
+        "contao/manager-plugin": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mandrael\\ContaoTurnstileBundle\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "contao/manager-plugin": true
+        }
+    },
+    "extra": {
+        "contao-manager-plugin": "Mandrael\\ContaoTurnstileBundle\\ContaoManager\\Plugin"
+    }
+}

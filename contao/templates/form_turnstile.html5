@@ -1,0 +1,18 @@
+<?php $this->extend('form_row'); ?>
+
+<?php $this->block('field'); ?>
+
+  <?php if ($this->hasErrors()): ?>
+    <p class="error"><?= $this->getErrorAsString() ?></p>
+  <?php endif; ?>
+
+  <div class="cf-turnstile"
+       data-sitekey="<?= \Contao\StringUtil::specialchars($this->siteKey) ?>"
+       data-theme="<?= \Contao\StringUtil::specialchars($this->turnstileTheme) ?>"
+       data-size="<?= \Contao\StringUtil::specialchars($this->turnstileSize) ?>"
+       data-appearance="<?= \Contao\StringUtil::specialchars($this->turnstileAppearance) ?>"
+       data-response-field-name="cf-turnstile-response"></div>
+
+<?php $this->endblock(); ?>
+
+<?php $GLOBALS['TL_BODY']['cloudflare-turnstile-api'] = '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'; ?>

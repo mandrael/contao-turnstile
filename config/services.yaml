@@ -1,0 +1,13 @@
+services:
+    _defaults:
+        autoconfigure: true
+        autowire: true
+
+    # Public, weil das Widget (per "new" erzeugt) den Verifier ueber
+    # System::getContainer()->get(TurnstileVerifier::class) zieht.
+    Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier:
+        public: true
+        arguments:
+            $httpClient: '@http_client'
+            $logger: '@monolog.logger.contao'
+            $requestStack: '@request_stack'
