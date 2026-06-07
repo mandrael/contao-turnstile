@@ -5,3 +5,4 @@ composer.lock
 .phpunit.cache/
 .php-cs-fixer.cache
 HANDOVER-contao-turnstile.md
+status.md

@@ -93,9 +93,10 @@ Feldtypen nebeneinander; dieses Bundle berührt ALTCHA nicht.
 
 - **PHP:** 8.1+
 - **Contao:** 4.13 LTS sowie 5.3+ (inkl. 5.4, 5.5, 5.6, 5.7) – eine gemeinsame Codebasis.
-- Die Codebasis ist gegen die Contao-5.7-Quelle geprüft und aller Voraussicht nach kompatibel;
-  ein **expliziter Funktionstest auf einer 5.7-Instanz steht noch aus**. Erst Contao 6.0
-  (Entfernung der Legacy-Template-Engine) erfordert ein Upgrade dieses Bundles.
+- **Getestet** auf je einer echten Instanz: **Contao 4.13 / PHP 8.1**, **Contao 5.3 / PHP 8.3**
+  und **Contao 5.7 / PHP 8.4** – jeweils mit aktivem CAPTCHA-Override, Backend-Feldern und
+  korrektem Rendering bzw. Fallback. Erst Contao 6.0 (Entfernung der Legacy-Template-Engine)
+  erfordert ein Upgrade dieses Bundles.
 
 ## Markenrechtlicher Hinweis
 
@@ -158,9 +159,10 @@ secret key is never logged.
 
 ## Compatibility
 
-PHP 8.1+, Contao 4.13 LTS and 5.3+ (incl. 5.4–5.7), single code base. Checked against the Contao
-5.7 source and expected to be compatible; an explicit functional test on a 5.7 instance is still
-pending. Contao 6.0 (removal of the legacy template engine) will require a bundle upgrade.
+PHP 8.1+, Contao 4.13 LTS and 5.3+ (incl. 5.4–5.7), single code base. Tested on real instances:
+Contao 4.13 / PHP 8.1, Contao 5.3 / PHP 8.3 and Contao 5.7 / PHP 8.4 (captcha override active,
+back-end fields present, correct rendering and fallback). Contao 6.0 (removal of the legacy
+template engine) will require a bundle upgrade.
 
 ## Trademark notice
 
