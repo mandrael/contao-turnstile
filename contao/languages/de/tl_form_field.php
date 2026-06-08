@@ -1,12 +1,12 @@
 <?php
 
 $GLOBALS['TL_LANG']['tl_form_field']['turnstileField'] = [
-    'Cloudflare Turnstile',
-    'Überschreibt den globalen Aktivierungs-Modus für dieses Captcha-Feld – z. B. um ein Formular in der Fußzeile / auf jeder Seite gezielt auf die Standard-Sicherheitsfrage zu stellen.',
+    'Captcha-Schutz',
+    'Übernimmt die globale Auswahl oder legt den Captcha-Schutz für dieses Formular-Element fest.',
 ];
 
 $GLOBALS['TL_LANG']['tl_form_field']['turnstileFieldOptions'] = [
-    '' => 'Vorgabe (globaler Modus)',
-    'on' => 'Turnstile aktivieren',
-    'off' => 'Standard-Captcha (Turnstile aus)',
+    '' => 'Globale Einstellung übernehmen',
+    'on' => 'Turnstile',
+    'off' => 'Contao-Sicherheitsfrage',
 ];

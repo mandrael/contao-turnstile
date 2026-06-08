@@ -18,6 +18,10 @@ Keys, theme, size and appearance are entered in the **Contao back end** under *s
 
 ![Cloudflare Turnstile settings in the Contao back end](.github/screenshots/backend-settings.png)
 
+Each form element can override the **captcha protection** (use global setting / Turnstile / Contao security question):
+
+![Captcha protection per form element](.github/screenshots/per-field.png)
+
 The **Turnstile widget** replaces the default security question in the front-end form (shown here with Cloudflare test keys):
 
 ![Turnstile widget in a front-end form](.github/screenshots/frontend-widget.png)
@@ -44,16 +48,16 @@ and it becomes Turnstile automatically.
 With **no keys** configured, Contao falls back automatically and losslessly to the default
 security question.
 
-**Activation mode (global) + per-field control:** under *Settings → Cloudflare Turnstile* the
-**mode** decides where Turnstile applies:
+**Turnstile activation (global) + per-field control:** under *Settings → Cloudflare Turnstile* the
+**Turnstile activation** decides where Turnstile applies:
 
-- **All captcha fields (opt-out)** – default: active everywhere, can be turned off per field.
-- **Only selected fields (opt-in)** – only where enabled per field.
-- **Disabled** – the default security question everywhere (keys stay stored).
+- **Enable for all forms by default** – default: active everywhere, can be turned off per field.
+- **Enable only for selected forms** – only where chosen per field.
+- **Disable everywhere** – the Contao security question everywhere (keys stay stored).
 
-Each captcha field in the form generator additionally offers **Default / Enable Turnstile /
-Standard captcha** to override the global mode for that single field – handy e.g. for forms in the
-**footer / on every page**.
+Each captcha field in the form generator additionally offers **Captcha protection** with
+**Use global setting / Turnstile / Contao security question** to override the global default for that
+single field – handy e.g. for forms in the **footer / on every page**.
 
 ## Installation
 

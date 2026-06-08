@@ -13,8 +13,8 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSecretKey'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
-    'Activation mode',
-    'Controls where Turnstile applies. All captcha fields (opt-out): active everywhere, can be turned off per field. Only selected fields (opt-in): only where enabled per field. Disabled: the default security question everywhere (keys stay stored).',
+    'Turnstile activation',
+    'Defines whether Turnstile is active for forms by default or only used on selected form elements.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -33,9 +33,9 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
-    'optout' => 'All captcha fields (opt-out)',
-    'optin' => 'Only selected fields (opt-in)',
-    'off' => 'Disabled',
+    'optout' => 'Enable for all forms by default',
+    'optin' => 'Enable only for selected forms',
+    'off' => 'Disable everywhere',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

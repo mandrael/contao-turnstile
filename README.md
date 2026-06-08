@@ -19,6 +19,10 @@ Keys, Theme, Größe und Anzeige werden im **Contao-Backend** unter *Systemeinst
 
 ![Cloudflare-Turnstile-Einstellungen im Contao-Backend](.github/screenshots/backend-settings.png)
 
+Pro Formular-Element lässt sich der **Captcha-Schutz** überschreiben (globale Vorgabe / Turnstile / Contao-Sicherheitsfrage):
+
+![Captcha-Schutz pro Formular-Element](.github/screenshots/per-field.png)
+
 Das **Turnstile-Widget** ersetzt die Standard-Sicherheitsfrage im Frontend-Formular (hier mit Cloudflare-Testkeys):
 
 ![Turnstile-Widget in einem Frontend-Formular](.github/screenshots/frontend-widget.png)
@@ -45,16 +49,16 @@ ihm wie gewohnt ein Captcha-/Sicherheitsfrage-Feld hinzu – dieses ist dann aut
 Sind **keine Keys** hinterlegt, fällt Contao automatisch und verlustfrei auf die
 Standard-Sicherheitsfrage zurück.
 
-**Aktivierungs-Modus (global) + Per-Feld-Steuerung:** Unter *Einstellungen → Cloudflare Turnstile*
-legt der **Modus** fest, wo Turnstile greift:
+**Turnstile-Aktivierung (global) + Per-Feld-Steuerung:** Unter *Einstellungen → Cloudflare Turnstile*
+legt die **Turnstile-Aktivierung** fest, wo Turnstile greift:
 
-- **Alle Captcha-Felder (Opt-out)** – Standard: überall aktiv, pro Feld abwählbar.
-- **Nur ausgewählte Felder (Opt-in)** – nur dort, wo es pro Feld aktiviert wird.
-- **Deaktiviert** – überall die Standard-Sicherheitsfrage (Keys bleiben gespeichert).
+- **Standardmäßig für alle Formulare aktivieren** – Standard: überall aktiv, pro Feld abwählbar.
+- **Nur bei ausgewählten Formularen aktivieren** – nur dort, wo es pro Feld gewählt wird.
+- **Überall deaktivieren** – überall die Contao-Sicherheitsfrage (Keys bleiben gespeichert).
 
-Jedes Captcha-Feld im Formulargenerator hat zusätzlich die Auswahl **Vorgabe / Turnstile aktivieren /
-Standard-Captcha**, um den globalen Modus für dieses eine Feld zu überschreiben – praktisch z. B. für
-Formulare in der **Fußzeile / auf jeder Seite**.
+Jedes Captcha-Feld im Formulargenerator hat zusätzlich den **Captcha-Schutz** mit
+**Globale Einstellung übernehmen / Turnstile / Contao-Sicherheitsfrage**, um die globale Vorgabe für
+dieses eine Feld zu überschreiben – praktisch z. B. für Formulare in der **Fußzeile / auf jeder Seite**.
 
 ## Installation
 
