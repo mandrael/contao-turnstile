@@ -28,9 +28,9 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [
-    'auto' => 'Automatic (match page)',
     'light' => 'Light',
     'dark' => 'Dark',
+    'auto' => 'Automatic (match page)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSizeOptions'] = [

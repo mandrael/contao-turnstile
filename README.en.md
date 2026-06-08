@@ -12,6 +12,18 @@ A single code base for **Contao 4.13 LTS and Contao 5.3+** (incl. 5.4–5.7).
 
 ---
 
+## Screenshots
+
+Keys, theme, size and appearance are entered in the **Contao back end** under *system settings*:
+
+![Cloudflare Turnstile settings in the Contao back end](.github/screenshots/backend-settings.png)
+
+The **Turnstile widget** replaces the default security question in the front-end form (shown here with Cloudflare test keys):
+
+![Turnstile widget in a front-end form](.github/screenshots/frontend-widget.png)
+
+---
+
 ## How it works
 
 The bundle overrides the captcha field type (`$GLOBALS['TL_FFL']['captcha']`), so Turnstile
@@ -23,7 +35,7 @@ registry:
 | Form generator (form **with** a captcha field) | ✅ yes |
 | Member registration | ✅ yes |
 | Comments | ✅ yes |
-| Native newsletter subscription | ❌ no (see „Known limitations") |
+| Native newsletter subscription | ⚠️ version-dependent (see „Known limitations") |
 
 **Important:** the bundle replaces the captcha **where a captcha field already exists**. It does
 **not** add a captcha to forms that don't have one – add a captcha/security-question field as usual
@@ -32,13 +44,18 @@ and it becomes Turnstile automatically.
 With **no keys** configured, Contao falls back automatically and losslessly to the default
 security question.
 
+**Can be disabled per field:** the captcha field in the form generator has a **„Disable Cloudflare
+Turnstile"** option. When set, that specific field uses the default security question again – handy
+for forms in the **footer / on every page** where the Turnstile widget would be too much.
+
 ## Installation
 
 ```bash
 composer require mandrael/contao-turnstile
 ```
 
-Then clear the Contao cache (Contao Manager or `vendor/bin/contao-console cache:clear`).
+Then clear the Contao cache and update the database (the Contao Manager does both automatically;
+via CLI: `vendor/bin/contao-console cache:clear` and `vendor/bin/contao-console contao:migrate`).
 
 ## Setup
 
@@ -49,7 +66,8 @@ Then clear the Contao cache (Contao Manager or `vendor/bin/contao-console cache:
    (e.g. `example.com`, `www.example.com`, any subdomains). If a domain is missing, verification
    fails on that domain.
 3. In Contao under **Settings → Cloudflare Turnstile** enter the site key and secret key,
-   optionally choose theme/size/appearance.
+   optionally choose theme/size/appearance. The **theme** defaults to **light** (white) – switch to
+   **dark** only if desired, **auto** follows the browser colour scheme.
 
 ### Content Security Policy (CSP)
 
@@ -83,10 +101,11 @@ touch ALTCHA.
 
 ## Known limitations
 
-- **Native newsletter subscription:** the Contao newsletter module hardcodes its captcha in the
-  core (not via the field-type registry). The global override does **not** apply there – the native
-  newsletter subscription keeps showing the default security question (no loss of function).
-  Coverage is conceivable as a later extension.
+- **Native newsletter subscription:** version-dependent. Newer Contao 5 versions resolve the
+  newsletter captcha via the field-type registry (verified on 5.7) – there Turnstile applies
+  **automatically**. On **Contao 4.13 and 5.3** the captcha is hardcoded to `FormCaptcha` in the
+  core; there the default security question remains (no loss of function). The newsletter module
+  also has its own core option to disable the captcha.
 - **Non-native surfaces** (third-party newsletter iframes, chat widgets) are intentionally out of
   scope.
 

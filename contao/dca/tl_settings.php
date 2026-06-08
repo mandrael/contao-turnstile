@@ -23,9 +23,10 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSecretKey'] = [
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileTheme'] = [
     'inputType' => 'select',
-    'options' => ['auto', 'light', 'dark'],
+    'options' => ['light', 'dark', 'auto'],
     'reference' => &$GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'],
     'eval' => ['tl_class' => 'w50', 'includeBlankOption' => false],
+    'default' => 'light',
 ];
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSize'] = [

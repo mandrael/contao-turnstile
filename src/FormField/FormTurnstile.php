@@ -31,8 +31,11 @@ class FormTurnstile extends FormCaptcha
 
         $verifier = $this->getVerifier();
 
-        // Ohne hinterlegte Keys verlustfrei auf das Standard-CAPTCHA zurueckfallen.
-        if (!$verifier->isConfigured()) {
+        // Per Feld deaktiviert (Backend-Haekchen) oder ohne hinterlegte Keys verlustfrei auf das
+        // Standard-CAPTCHA zurueckfallen.
+        $disabledPerField = \is_array($arrAttributes) && !empty($arrAttributes['turnstileDisabled']);
+
+        if ($disabledPerField || !$verifier->isConfigured()) {
             $this->turnstileFallback = true;
             $this->strTemplate = 'form_captcha';
 
@@ -42,7 +45,7 @@ class FormTurnstile extends FormCaptcha
         // Werte landen via Widget::__set in arrConfiguration und sind im Template als
         // $this->siteKey usw. lesbar. Bewusst nicht-reservierte Namen (kein theme/size/class).
         $this->siteKey = $verifier->getSiteKey();
-        $this->turnstileTheme = $this->configValue('turnstileTheme', 'auto');
+        $this->turnstileTheme = $this->configValue('turnstileTheme', 'light');
         $this->turnstileSize = $this->configValue('turnstileSize', 'normal');
         $this->turnstileAppearance = $this->configValue('turnstileAppearance', 'always');
     }
