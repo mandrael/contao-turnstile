@@ -1,6 +1,8 @@
 <?php
 
+use Contao\Config;
 use Contao\CoreBundle\DataContainer\PaletteManipulator;
+use Contao\StringUtil;
 
 PaletteManipulator::create()
     ->addLegend('turnstile_legend', 'global_legend', PaletteManipulator::POSITION_AFTER)
@@ -20,6 +22,18 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSiteKey'] = [
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSecretKey'] = [
     'inputType' => 'text',
     'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'hideInput' => true, 'decodeEntities' => true, 'autocomplete' => 'new-password'],
+    // letzte 4 Zeichen des gespeicherten Secrets neben dem Label zeigen (Verifikation, ohne den Wert preiszugeben)
+    'xlabel' => [
+        static function (): string {
+            $secret = (string) Config::get('turnstileSecretKey');
+
+            if ('' === $secret) {
+                return '';
+            }
+
+            return '<span style="margin-left:.5em;color:#999;font-weight:400">(…' . StringUtil::specialchars(substr($secret, -4)) . ')</span>';
+        },
+    ],
 ];
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileMode'] = [
