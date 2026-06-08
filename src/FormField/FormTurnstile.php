@@ -56,9 +56,13 @@ class FormTurnstile extends FormCaptcha
         }
 
         $request = System::getContainer()->get('request_stack')->getCurrentRequest();
-        $token = null !== $request ? (string) $request->request->get('cf-turnstile-response', '') : '';
+        // Roh aus dem ParameterBag (nicht ueber Contao\Input): das opake CF-Token darf nicht durch
+        // die XSS-/Encoding-Schicht. all() ohne Schluessel wirft bei Array-Input kein BadRequest.
+        $value = null !== $request ? ($request->request->all()['cf-turnstile-response'] ?? null) : null;
+        $token = \is_string($value) ? $value : '';
 
         if (!$this->getVerifier()->validate($token)) {
+            $this->class = 'error';
             $this->addError($GLOBALS['TL_LANG']['ERR']['turnstile'] ?? 'Captcha validation failed.');
         }
     }

@@ -1,5 +1,13 @@
 <?php $this->extend('form_row'); ?>
 
+<?php $this->block('label'); ?>
+  <?php if ($this->label): ?>
+    <label for="ctrl_<?= $this->id ?>"<?php if ($this->class): ?> class="<?= $this->class ?>"<?php endif; ?>>
+      <span class="invisible"><?= $this->mandatoryField ?> </span><?= $this->label ?><span class="mandatory">*</span>
+    </label>
+  <?php endif; ?>
+<?php $this->endblock(); ?>
+
 <?php $this->block('field'); ?>
 
   <?php if ($this->hasErrors()): ?>
@@ -7,6 +15,7 @@
   <?php endif; ?>
 
   <div class="cf-turnstile"
+       id="ctrl_<?= $this->id ?>"
        data-sitekey="<?= \Contao\StringUtil::specialchars($this->siteKey) ?>"
        data-theme="<?= \Contao\StringUtil::specialchars($this->turnstileTheme) ?>"
        data-size="<?= \Contao\StringUtil::specialchars($this->turnstileSize) ?>"

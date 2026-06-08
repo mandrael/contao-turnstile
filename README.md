@@ -2,14 +2,14 @@
 
 <img src="logo.svg" alt="Contao Turnstile" width="88" align="right">
 
+**Deutsch** | [English](README.en.md)
+
 Ersetzt das Standard-CAPTCHA von Contao (die Sicherheitsfrage) global durch
 [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/). Die Keys werden
 bequem im Contao-Backend unter **Einstellungen** eingetragen – keine YAML- oder
 `.env`-Bearbeitung nötig.
 
 Eine einzige Codebasis für **Contao 4.13 LTS und Contao 5.3+** (inkl. 5.4–5.7).
-
-*(English version below.)*
 
 ---
 
@@ -69,7 +69,8 @@ Das Widget nutzt das offizielle, externe `api.js` und **kein** Inline-JavaScript
   **durchgelassen** (fail-open) und ein Fehler ins Contao-System-Log geschrieben. So legt ein
   Cloudflare-Ausfall nicht alle Formulare lahm.
 - **Ungültiges/gefälschtes Token** (`success: false`) → das Formular wird **blockiert**
-  (fail-closed).
+  (fail-closed). Dazu zählt auch ein falscher oder abgelaufener Site/Secret Key – dann blockieren
+  alle Formulare, bis die Keys korrigiert sind (eine entsprechende Warnung landet im System-Log).
 
 Secret Key und interne Daten werden niemals ins Log geschrieben.
 
@@ -108,68 +109,3 @@ Grafik und nicht das Cloudflare-Logo.
 ## Lizenz
 
 MIT – siehe [LICENSE](LICENSE).
-
----
-
-# Contao Cloudflare Turnstile (English)
-
-Globally replaces Contao's default CAPTCHA (the security question) with
-[Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/). Keys are entered in the
-Contao back end under **Settings** – no YAML or `.env` editing required. A single code base for
-**Contao 4.13 LTS and Contao 5.3+** (incl. 5.4–5.7).
-
-## How it works
-
-The bundle overrides the captcha field type (`$GLOBALS['TL_FFL']['captcha']`), so Turnstile
-replaces the security question everywhere Contao resolves a captcha through the field-type
-registry: form generator (forms **that contain a captcha field**), member registration and
-comments. It does **not** add a captcha to forms that don't have one – add a captcha field as
-usual and it becomes Turnstile automatically. With no keys configured, Contao falls back to the
-default security question.
-
-## Installation & setup
-
-```bash
-composer require mandrael/contao-turnstile
-```
-
-1. Create a Turnstile widget in the Cloudflare dashboard, copy **site key** and **secret key**.
-2. Add **all domains/hostnames** of the Contao site to the Turnstile widget – otherwise
-   verification fails on a missing domain.
-3. Enter both keys under **Settings → Cloudflare Turnstile** (optionally theme/size/appearance).
-
-### CSP
-
-If you run a Content Security Policy, allow `https://challenges.cloudflare.com` in both
-`script-src` and `frame-src`. The widget uses the external `api.js` with no inline JavaScript, so
-no nonce/`unsafe-inline` is needed.
-
-## Failure behaviour
-
-Network/timeout errors (Cloudflare unreachable, 5 s timeout) → submission is allowed (fail-open)
-and logged. Invalid/forged token (`success: false`) → submission is blocked (fail-closed). The
-secret key is never logged.
-
-## Known limitations
-
-- The native Contao **newsletter subscribe** module hardcodes its captcha and is therefore not
-  covered by the global override; it keeps showing the default security question.
-- Non-native surfaces (third-party newsletter iframes, chat widgets) are intentionally out of
-  scope.
-
-## Compatibility
-
-PHP 8.1+, Contao 4.13 LTS and 5.3+ (incl. 5.4–5.7), single code base. Tested on real instances:
-Contao 4.13 / PHP 8.1, Contao 5.3 / PHP 8.3 and Contao 5.7 / PHP 8.4 (captcha override active,
-back-end fields present, correct rendering and fallback). Contao 6.0 (removal of the legacy
-template engine) will require a bundle upgrade.
-
-## Trademark notice
-
-Cloudflare and Turnstile are trademarks of Cloudflare, Inc. This extension is an independent,
-open-source project and is not affiliated with, endorsed or sponsored by Cloudflare, Inc. The
-bundled icon (`logo.svg`) is original artwork and is not the Cloudflare logo.
-
-## License
-
-MIT – see [LICENSE](LICENSE).

@@ -16,11 +16,8 @@ class CloudflareCspSourceRegistrar
 {
     private const HOST = 'https://challenges.cloudflare.com';
 
-    private ResponseContextAccessor $responseContextAccessor;
-
-    public function __construct(ResponseContextAccessor $responseContextAccessor)
+    public function __construct(private readonly ResponseContextAccessor $responseContextAccessor)
     {
-        $this->responseContextAccessor = $responseContextAccessor;
     }
 
     public function register(): void

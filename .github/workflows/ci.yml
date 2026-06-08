@@ -21,7 +21,8 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-      - name: Syntax-Check (beweist PHP-8.1-Kompatibilitaet)
+      # php -l prueft nur die Syntax (Parse) je PHP-Version, keine API-Kompatibilitaet.
+      - name: PHP-Syntax-Check (php -l)
         run: |
           find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
           php -l contao/templates/form_turnstile.html5
