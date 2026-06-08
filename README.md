@@ -62,12 +62,21 @@ dieses eine Feld zu überschreiben – praktisch z. B. für Formulare in der **F
 
 ## Installation
 
+### A) Contao Manager (empfohlen)
+
+1. Im Contao Manager unter **Pakete** auf **Paket hinzufügen** klicken und nach `turnstile`
+   (bzw. `mandrael/contao-turnstile`) suchen.
+2. Mit **Hinzufügen** auswählen, dann **Änderungen übernehmen** – der Manager installiert die
+   Erweiterung per Composer.
+3. Danach die **Datenbank aktualisieren** (Manager-Schritt bestätigen) – legt das neue Feld an.
+
+### B) Terminal (ohne GUI)
+
 ```bash
 composer require mandrael/contao-turnstile
+vendor/bin/contao-console cache:clear
+vendor/bin/contao-console contao:migrate
 ```
-
-Anschließend den Contao-Cache leeren und die Datenbank aktualisieren (Contao-Manager erledigt beides
-automatisch; per CLI: `vendor/bin/contao-console cache:clear` und `vendor/bin/contao-console contao:migrate`).
 
 ## Einrichtung
 

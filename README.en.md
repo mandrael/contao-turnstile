@@ -61,12 +61,20 @@ single field – handy e.g. for forms in the **footer / on every page**.
 
 ## Installation
 
+### A) Contao Manager (recommended)
+
+1. In the Contao Manager under **Packages**, click **Add package** and search for `turnstile`
+   (or `mandrael/contao-turnstile`).
+2. **Add** it, then **Apply changes** – the Manager installs the extension via Composer.
+3. Afterwards **update the database** (confirm the Manager's migration step) – this creates the new field.
+
+### B) Terminal (without GUI)
+
 ```bash
 composer require mandrael/contao-turnstile
+vendor/bin/contao-console cache:clear
+vendor/bin/contao-console contao:migrate
 ```
-
-Then clear the Contao cache and update the database (the Contao Manager does both automatically;
-via CLI: `vendor/bin/contao-console cache:clear` and `vendor/bin/contao-console contao:migrate`).
 
 ## Setup
 
