@@ -47,7 +47,7 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSize'] = [
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAppearance'] = [
     'inputType' => 'select',
-    'options' => ['always', 'execute', 'interaction-only'],
+    'options' => ['always', 'interaction-only', 'execute'],
     'reference' => &$GLOBALS['TL_LANG']['tl_settings']['turnstileAppearanceOptions'],
     'eval' => ['tl_class' => 'w50', 'includeBlankOption' => false],
 ];

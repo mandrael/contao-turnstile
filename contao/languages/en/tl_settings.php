@@ -4,17 +4,17 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstile_legend'] = 'Cloudflare Turnstile';
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSiteKey'] = [
     'Site key',
-    'Public site key from the Cloudflare Turnstile dashboard. Important: the Turnstile widget on Cloudflare must list every domain (hostname) this Contao installation is reachable under, otherwise verification fails. If site key and secret key are empty, Contao automatically falls back to the default security question.',
+    'Public site key from the Cloudflare dashboard. Every domain of the installation must be listed in the Turnstile widget, otherwise verification fails.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSecretKey'] = [
     'Secret key',
-    'Secret key from the Cloudflare Turnstile dashboard. Used server-side only to verify the token.',
+    'Secret key from the Cloudflare dashboard. The server uses it to verify the token with Cloudflare; it is never sent to the browser.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
     'Turnstile activation',
-    'Defines whether Turnstile is active for forms by default or only used on selected form elements.',
+    'Whether Turnstile applies to all forms or only selected ones.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -28,8 +28,8 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSize'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
-    'Visibility',
-    'Controls when the widget becomes visible.',
+    'Widget display',
+    'When the widget becomes visible. “Show after form interaction” only works if the form is prepared for it.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
@@ -51,7 +51,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSizeOptions'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearanceOptions'] = [
-    'always' => 'Always visible',
-    'execute' => 'On execute',
-    'interaction-only' => 'Interaction only',
+    'always' => 'Always show',
+    'interaction-only' => 'Show only when interaction is required',
+    'execute' => 'Show after form interaction',
 ];

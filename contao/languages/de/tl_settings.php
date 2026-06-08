@@ -4,17 +4,17 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstile_legend'] = 'Cloudflare Turnstile';
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSiteKey'] = [
     'Site Key',
-    'Öffentlicher Site Key aus dem Cloudflare-Turnstile-Dashboard. Wichtig: Im Turnstile-Widget bei Cloudflare müssen alle Domains (Hostnames) eingetragen sein, unter denen diese Contao-Installation erreichbar ist – sonst schlägt die Überprüfung fehl. Sind Site Key und Secret Key leer, nutzt Contao automatisch wieder die Standard-Sicherheitsfrage.',
+    'Öffentlicher Site Key aus dem Cloudflare-Dashboard. Alle Domains der Installation müssen im Turnstile-Widget hinterlegt sein, sonst schlägt die Prüfung fehl.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSecretKey'] = [
     'Secret Key',
-    'Geheimer Schlüssel aus dem Cloudflare-Turnstile-Dashboard. Wird ausschließlich serverseitig zur Token-Überprüfung verwendet.',
+    'Geheimer Schlüssel aus dem Cloudflare-Dashboard. Der Server prüft damit das Token bei Cloudflare; er wird nie an den Browser ausgeliefert.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
     'Turnstile-Aktivierung',
-    'Legt fest, ob Turnstile standardmäßig für Formulare aktiv ist oder nur bei ausgewählten Formular-Elementen verwendet wird.',
+    'Gilt Turnstile für alle Formulare oder nur für ausgewählte.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -28,8 +28,8 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSize'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
-    'Anzeige',
-    'Legt fest, wann das Widget sichtbar wird.',
+    'Widget-Anzeige',
+    'Wann das Widget sichtbar wird. „Nach Formular-Interaktion anzeigen“ greift nur mit dafür vorbereitetem Formular.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
@@ -51,7 +51,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSizeOptions'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearanceOptions'] = [
-    'always' => 'Immer sichtbar',
-    'execute' => 'Bei Ausführung',
-    'interaction-only' => 'Nur bei Interaktion',
+    'always' => 'Immer anzeigen',
+    'interaction-only' => 'Nur bei erforderlicher Interaktion anzeigen',
+    'execute' => 'Nach Formular-Interaktion anzeigen',
 ];
