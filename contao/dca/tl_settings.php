@@ -21,7 +21,11 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSiteKey'] = [
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSecretKey'] = [
     'inputType' => 'text',
-    'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'hideInput' => true, 'decodeEntities' => true, 'autocomplete' => 'new-password'],
+    // Bewusst KEIN hideInput (type=password): Passwortmanager (Chrome u. a.) wuerden sonst Speichern/
+    // Autofill anbieten. Stattdessen type=text + visuelle Maskierung via -webkit-text-security (Chromium/
+    // WebKit; Firefox zeigt Klartext, der Wert steht ohnehin im value-Attribut). Macht das Feld fuer
+    // Passwortmanager unsichtbar.
+    'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'decodeEntities' => true, 'autocomplete' => 'off', 'style' => '-webkit-text-security:disc'],
     // letzte 4 Zeichen des gespeicherten Secrets neben dem Label zeigen (Verifikation, ohne den Wert preiszugeben)
     'xlabel' => [
         static function (): string {
