@@ -87,7 +87,8 @@ vendor/bin/contao-console contao:migrate
    Überprüfung auf dieser Domain fehl.
 3. In Contao unter **Einstellungen → Cloudflare Turnstile** Site Key und Secret Key eintragen,
    optional Erscheinungsbild/Größe/Anzeige wählen. Das **Erscheinungsbild** ist standardmäßig **Hell**
-   (weiß) – auf **Dunkel** nur bei Bedarf umstellen, **Auto** passt sich dem Browser-Farbmodus an.
+   (weiß) – auf **Dunkel** nur bei Bedarf umstellen, **Auto** passt sich dem System-Farbmodus an
+   (Hell-/Dunkelmodus des Geräts, nicht der Seite).
 
 ### Content Security Policy (CSP)
 

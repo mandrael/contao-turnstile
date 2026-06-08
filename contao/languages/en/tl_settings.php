@@ -41,7 +41,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [
     'light' => 'Light',
     'dark' => 'Dark',
-    'auto' => 'Automatic (match page)',
+    'auto' => 'Automatic (match system)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSizeOptions'] = [

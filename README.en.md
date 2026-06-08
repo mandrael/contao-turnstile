@@ -86,7 +86,8 @@ vendor/bin/contao-console contao:migrate
    fails on that domain.
 3. In Contao under **Settings → Cloudflare Turnstile** enter the site key and secret key,
    optionally choose theme/size/appearance. The **theme** defaults to **light** (white) – switch to
-   **dark** only if desired, **auto** follows the browser colour scheme.
+   **dark** only if desired, **auto** follows the system colour scheme (the device's light/dark mode,
+   not the page).
 
 ### Content Security Policy (CSP)
 

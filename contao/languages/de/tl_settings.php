@@ -41,7 +41,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [
     'light' => 'Hell',
     'dark' => 'Dunkel',
-    'auto' => 'Automatisch (an Seite anpassen)',
+    'auto' => 'Automatisch (an System anpassen)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSizeOptions'] = [
