@@ -14,12 +14,12 @@ PaletteManipulator::create()
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSiteKey'] = [
     'inputType' => 'text',
-    'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'decodeEntities' => true],
+    'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'decodeEntities' => true, 'autocomplete' => 'off'],
 ];
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSecretKey'] = [
     'inputType' => 'text',
-    'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'hideInput' => true, 'decodeEntities' => true],
+    'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'hideInput' => true, 'decodeEntities' => true, 'autocomplete' => 'new-password'],
 ];
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileMode'] = [
