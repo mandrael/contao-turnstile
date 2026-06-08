@@ -133,11 +133,34 @@ Feldtypen nebeneinander; dieses Bundle berührt ALTCHA nicht.
 ## Kompatibilität
 
 - **PHP:** 8.1+
-- **Contao:** 4.13 LTS sowie 5.3+ (inkl. 5.4, 5.5, 5.6, 5.7) – eine gemeinsame Codebasis.
+- **Contao:** drei aktuelle LTS-Versionen – **4.13 LTS, 5.3 LTS und 5.7 LTS** (inkl. der dazwischenliegenden 5.4–5.6) – aus einer gemeinsamen Codebasis.
 - **Getestet** auf je einer echten Instanz: **Contao 4.13 / PHP 8.1**, **Contao 5.3 / PHP 8.3**
   und **Contao 5.7 / PHP 8.4** – jeweils mit aktivem CAPTCHA-Override, Backend-Feldern und
   korrektem Rendering bzw. Fallback. Erst Contao 6.0 (Entfernung der Legacy-Template-Engine)
   erfordert ein Upgrade dieses Bundles.
+
+## Technische Qualitätsmerkmale
+
+**Robustheit**
+
+- **Automatische Token-Erneuerung:** Das Cloudflare-Widget bleibt im DOM eingebunden; Tokens werden bei Ablauf automatisch erneuert. So bleibt das Formular auch bei längerer Ausfülldauer und beim erneuten Absenden nach einem Validierungsfehler zuverlässig absendbar.
+- **Deklaratives Rendering ohne Inline-JavaScript:** Es wird ausschließlich das offizielle externe `api.js` von Cloudflare eingebunden. Das ist CSP-freundlich (keine `nonce`/`unsafe-inline` erforderlich); unter Contao 5 wird der Cloudflare-Host automatisch zur Content-Security-Policy hinzugefügt.
+- **Eindeutiger Template-Name:** Das Frontend-Template trägt einen eindeutigen Namen und kollidiert daher nicht mit Templates anderer Erweiterungen oder vorhandenen Projekt-Templates.
+- **Verlustfreier Konfigurations-Fallback:** Sind keine Keys hinterlegt, ist Turnstile global deaktiviert oder pro Feld abgewählt, verwendet das Feld automatisch die Standard-Sicherheitsfrage von Contao – kein Funktionsverlust.
+- **Differenziertes Fehlerverhalten:** *fail-open* ausschließlich bei Transport-/Timeout-Fehlern in der Kommunikation mit Cloudflare, *fail-closed* bei ungültigem Token. Der Secret Key wird zu keinem Zeitpunkt protokolliert.
+
+**Umgang mit den Schlüsseln**
+
+- **Secret bleibt serverseitig:** Der geheime Schlüssel wird ausschließlich serverseitig zur Prüfung verwendet und nicht an den Browser ausgeliefert.
+- **Triggert keine Passwortmanager:** Das Secret-Feld nutzt `type="text"` mit CSS-Maskierung (`-webkit-text-security`) statt `type="password"`. Dadurch erkennen Browser und Passwortmanager es nicht als Anmeldefeld und bieten weder Speichern noch automatisches Ausfüllen an – das Feld bleibt dabei optisch maskiert. Zur Kontrolle werden die letzten Zeichen des gespeicherten Secrets dezent eingeblendet.
+
+**Kompatibilität & Qualität**
+
+- **Drei aktuelle LTS-Versionen aus einer Codebasis:** Contao 4.13 LTS, 5.3 LTS und 5.7 LTS (inkl. der dazwischenliegenden 5.x-Releases), PHP 8.1+ – auf 4.13, 5.3 und 5.7 unter realen Bedingungen verifiziert.
+- **Rückstandsarme Installation und Deinstallation:** keine `runonce`-/Installationsskripte, keine Schreibzugriffe auf das Projekt-Dateisystem; Backend-Felder werden über die DCA bereitgestellt (und mit dem Bundle wieder entfernt), die Datenbankspalte über `contao:migrate`.
+- **Komfortable Schlüsselverwaltung** direkt im Backend – ohne YAML- oder `.env`-Bearbeitung.
+- **Feingranulare Steuerung:** globaler Aktivierungsmodus (überall / nur ausgewählte Formulare / aus) plus Überschreibung je Formular-Element.
+- **Getestet und gepflegt:** PHPUnit, PHPStan (Level 5), CI über PHP 8.1–8.4; MIT-Lizenz; fügt keinerlei Tracking hinzu.
 
 ## Markenrechtlicher Hinweis
 

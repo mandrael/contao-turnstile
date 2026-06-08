@@ -132,11 +132,34 @@ touch ALTCHA.
 ## Compatibility
 
 - **PHP:** 8.1+
-- **Contao:** 4.13 LTS and 5.3+ (incl. 5.4, 5.5, 5.6, 5.7) – a single shared code base.
+- **Contao:** three current LTS versions – **4.13 LTS, 5.3 LTS and 5.7 LTS** (incl. the intermediate 5.4–5.6) – from a single shared code base.
 - **Tested** on a real instance each: **Contao 4.13 / PHP 8.1**, **Contao 5.3 / PHP 8.3** and
   **Contao 5.7 / PHP 8.4** – each with the active CAPTCHA override, back-end fields and correct
   rendering and fallback. Only Contao 6.0 (removal of the legacy template engine) will require an
   upgrade of this bundle.
+
+## Technical quality features
+
+**Robustness**
+
+- **Automatic token refresh:** The Cloudflare widget stays in the DOM; tokens are refreshed automatically when they expire. The form therefore remains reliably submittable even when filled in slowly or resubmitted after a validation error.
+- **Declarative rendering, no inline JavaScript:** Only Cloudflare's official external `api.js` is loaded. This is CSP-friendly (no `nonce`/`unsafe-inline` required); on Contao 5 the Cloudflare host is added to the Content Security Policy automatically.
+- **Unique template name:** The front-end template uses a unique name and therefore does not collide with templates from other extensions or existing project templates.
+- **Lossless configuration fallback:** With no keys configured, Turnstile globally disabled, or deselected per field, the field automatically uses Contao's default security question – no loss of function.
+- **Differentiated failure behaviour:** *fail-open* only on transport/timeout errors when communicating with Cloudflare, *fail-closed* on an invalid token. The secret key is never written to the log.
+
+**Handling of the keys**
+
+- **Secret stays server-side:** The secret key is used solely on the server for verification and is never delivered to the browser.
+- **Does not trigger password managers:** The secret field uses `type="text"` with CSS masking (`-webkit-text-security`) instead of `type="password"`. Browsers and password managers therefore do not recognise it as a login field and offer neither saving nor autofill – while the field stays visually masked. The last characters of the stored secret are shown discreetly for verification.
+
+**Compatibility & quality**
+
+- **Three current LTS versions from one code base:** Contao 4.13 LTS, 5.3 LTS and 5.7 LTS (including the intermediate 5.x releases), PHP 8.1+ – verified under real conditions on 4.13, 5.3 and 5.7.
+- **Clean install and uninstall:** no `runonce`/install scripts, no writes to the project file system; back-end fields are provided via the DCA (and removed with the bundle), the database column via `contao:migrate`.
+- **Convenient key management** directly in the back end – no YAML or `.env` editing required.
+- **Fine-grained control:** global activation mode (everywhere / only selected forms / off) plus per-field override.
+- **Tested and maintained:** PHPUnit, PHPStan (level 5), CI across PHP 8.1–8.4; MIT license; adds no tracking whatsoever.
 
 ## Trademark notice
 
