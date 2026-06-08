@@ -3,11 +3,13 @@
 use Contao\CoreBundle\DataContainer\PaletteManipulator;
 
 PaletteManipulator::create()
-    ->addField('turnstileDisabled', 'placeholder', PaletteManipulator::POSITION_AFTER)
+    ->addField('turnstileField', 'placeholder', PaletteManipulator::POSITION_AFTER)
     ->applyToPalette('captcha', 'tl_form_field');
 
-$GLOBALS['TL_DCA']['tl_form_field']['fields']['turnstileDisabled'] = [
-    'inputType' => 'checkbox',
-    'eval' => ['tl_class' => 'w50 m12'],
-    'sql' => "char(1) NOT NULL default ''",
+$GLOBALS['TL_DCA']['tl_form_field']['fields']['turnstileField'] = [
+    'inputType' => 'select',
+    'options' => ['', 'on', 'off'],
+    'reference' => &$GLOBALS['TL_LANG']['tl_form_field']['turnstileFieldOptions'],
+    'eval' => ['tl_class' => 'w50', 'includeBlankOption' => false],
+    'sql' => "varchar(8) NOT NULL default ''",
 ];

@@ -12,6 +12,11 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSecretKey'] = [
     'Geheimer Schlüssel aus dem Cloudflare-Turnstile-Dashboard. Wird ausschließlich serverseitig zur Token-Überprüfung verwendet.',
 ];
 
+$GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
+    'Aktivierungs-Modus',
+    'Steuert, wo Turnstile greift. Alle Captcha-Felder (Opt-out): überall aktiv, pro Feld abwählbar. Nur ausgewählte Felder (Opt-in): nur dort, wo es pro Feld aktiviert wird. Deaktiviert: überall die Standard-Sicherheitsfrage (Keys bleiben gespeichert).',
+];
+
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
     'Erscheinungsbild',
     'Farbschema des Turnstile-Widgets.',
@@ -25,6 +30,12 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSize'] = [
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
     'Anzeige',
     'Legt fest, wann das Widget sichtbar wird.',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
+    'optout' => 'Alle Captcha-Felder (Opt-out)',
+    'optin' => 'Nur ausgewählte Felder (Opt-in)',
+    'off' => 'Deaktiviert',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

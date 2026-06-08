@@ -44,9 +44,16 @@ and it becomes Turnstile automatically.
 With **no keys** configured, Contao falls back automatically and losslessly to the default
 security question.
 
-**Can be disabled per field:** the captcha field in the form generator has a **„Disable Cloudflare
-Turnstile"** option. When set, that specific field uses the default security question again – handy
-for forms in the **footer / on every page** where the Turnstile widget would be too much.
+**Activation mode (global) + per-field control:** under *Settings → Cloudflare Turnstile* the
+**mode** decides where Turnstile applies:
+
+- **All captcha fields (opt-out)** – default: active everywhere, can be turned off per field.
+- **Only selected fields (opt-in)** – only where enabled per field.
+- **Disabled** – the default security question everywhere (keys stay stored).
+
+Each captcha field in the form generator additionally offers **Default / Enable Turnstile /
+Standard captcha** to override the global mode for that single field – handy e.g. for forms in the
+**footer / on every page**.
 
 ## Installation
 

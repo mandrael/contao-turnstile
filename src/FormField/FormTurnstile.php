@@ -31,11 +31,9 @@ class FormTurnstile extends FormCaptcha
 
         $verifier = $this->getVerifier();
 
-        // Per Feld deaktiviert (Backend-Haekchen) oder ohne hinterlegte Keys verlustfrei auf das
+        // Ohne Keys, global deaktiviert oder pro Feld abgewaehlt: verlustfrei auf das
         // Standard-CAPTCHA zurueckfallen.
-        $disabledPerField = \is_array($arrAttributes) && !empty($arrAttributes['turnstileDisabled']);
-
-        if ($disabledPerField || !$verifier->isConfigured()) {
+        if (!$verifier->isConfigured() || !$this->turnstileApplies($arrAttributes)) {
             $this->turnstileFallback = true;
             $this->strTemplate = 'form_captcha';
 
@@ -48,6 +46,26 @@ class FormTurnstile extends FormCaptcha
         $this->turnstileTheme = $this->configValue('turnstileTheme', 'light');
         $this->turnstileSize = $this->configValue('turnstileSize', 'normal');
         $this->turnstileAppearance = $this->configValue('turnstileAppearance', 'always');
+    }
+
+    /**
+     * Globaler Modus + Per-Feld-Override (Vorgabe/an/aus). 'off' ist die globale Notbremse.
+     */
+    private function turnstileApplies($arrAttributes): bool
+    {
+        $mode = $this->configValue('turnstileMode', 'optout');
+
+        if ('off' === $mode) {
+            return false;
+        }
+
+        $field = \is_array($arrAttributes) ? (string) ($arrAttributes['turnstileField'] ?? '') : '';
+
+        return match ($field) {
+            'on' => true,
+            'off' => false,
+            default => 'optout' === $mode,
+        };
     }
 
     public function validate()

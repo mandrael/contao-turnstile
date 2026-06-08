@@ -6,6 +6,7 @@ PaletteManipulator::create()
     ->addLegend('turnstile_legend', 'global_legend', PaletteManipulator::POSITION_AFTER)
     ->addField('turnstileSiteKey', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileSecretKey', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
+    ->addField('turnstileMode', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileTheme', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileSize', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileAppearance', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
@@ -19,6 +20,14 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSiteKey'] = [
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSecretKey'] = [
     'inputType' => 'text',
     'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'hideInput' => true, 'decodeEntities' => true],
+];
+
+$GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileMode'] = [
+    'inputType' => 'select',
+    'options' => ['optout', 'optin', 'off'],
+    'reference' => &$GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'],
+    'eval' => ['tl_class' => 'w50 clr', 'includeBlankOption' => false],
+    'default' => 'optout',
 ];
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileTheme'] = [

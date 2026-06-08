@@ -12,6 +12,11 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSecretKey'] = [
     'Secret key from the Cloudflare Turnstile dashboard. Used server-side only to verify the token.',
 ];
 
+$GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
+    'Activation mode',
+    'Controls where Turnstile applies. All captcha fields (opt-out): active everywhere, can be turned off per field. Only selected fields (opt-in): only where enabled per field. Disabled: the default security question everywhere (keys stay stored).',
+];
+
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
     'Appearance theme',
     'Colour scheme of the Turnstile widget.',
@@ -25,6 +30,12 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSize'] = [
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
     'Visibility',
     'Controls when the widget becomes visible.',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
+    'optout' => 'All captcha fields (opt-out)',
+    'optin' => 'Only selected fields (opt-in)',
+    'off' => 'Disabled',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

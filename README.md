@@ -45,9 +45,16 @@ ihm wie gewohnt ein Captcha-/Sicherheitsfrage-Feld hinzu – dieses ist dann aut
 Sind **keine Keys** hinterlegt, fällt Contao automatisch und verlustfrei auf die
 Standard-Sicherheitsfrage zurück.
 
-**Pro Feld abschaltbar:** Das Captcha-Feld im Formulargenerator hat die Option **„Cloudflare
-Turnstile deaktivieren"**. Ist sie gesetzt, nutzt genau dieses Feld wieder die Standard-Sicherheits­frage –
-praktisch für Formulare in der **Fußzeile / auf jeder Seite**, wo das Turnstile-Widget zu viel wäre.
+**Aktivierungs-Modus (global) + Per-Feld-Steuerung:** Unter *Einstellungen → Cloudflare Turnstile*
+legt der **Modus** fest, wo Turnstile greift:
+
+- **Alle Captcha-Felder (Opt-out)** – Standard: überall aktiv, pro Feld abwählbar.
+- **Nur ausgewählte Felder (Opt-in)** – nur dort, wo es pro Feld aktiviert wird.
+- **Deaktiviert** – überall die Standard-Sicherheitsfrage (Keys bleiben gespeichert).
+
+Jedes Captcha-Feld im Formulargenerator hat zusätzlich die Auswahl **Vorgabe / Turnstile aktivieren /
+Standard-Captcha**, um den globalen Modus für dieses eine Feld zu überschreiben – praktisch z. B. für
+Formulare in der **Fußzeile / auf jeder Seite**.
 
 ## Installation
 
