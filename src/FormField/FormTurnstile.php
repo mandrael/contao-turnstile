@@ -21,7 +21,7 @@ use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
  */
 class FormTurnstile extends FormCaptcha
 {
-    protected $strTemplate = 'form_turnstile';
+    protected $strTemplate = 'form_mandrael_turnstile';
 
     private bool $turnstileFallback = false;
 
@@ -94,7 +94,7 @@ class FormTurnstile extends FormCaptcha
             return parent::generate();
         }
 
-        // Markup kommt vollstaendig aus dem Template form_turnstile.
+        // Markup kommt vollstaendig aus dem Template form_mandrael_turnstile.
         return '';
     }
 

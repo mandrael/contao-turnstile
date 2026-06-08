@@ -25,7 +25,7 @@ jobs:
       - name: PHP-Syntax-Check (php -l)
         run: |
           find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
-          php -l contao/templates/form_turnstile.html5
+          php -l contao/templates/form_mandrael_turnstile.html5
 
   tests:
     name: Tests & statische Analyse
