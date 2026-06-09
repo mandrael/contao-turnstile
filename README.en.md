@@ -126,8 +126,6 @@ touch ALTCHA.
   **automatically**. On **Contao 4.13 and 5.3** the captcha is hardcoded to `FormCaptcha` in the
   core; there the default security question remains (no loss of function). The newsletter module
   also has its own core option to disable the captcha.
-- **Non-native surfaces** (third-party newsletter iframes, chat widgets) are intentionally out of
-  scope.
 
 ## Compatibility
 

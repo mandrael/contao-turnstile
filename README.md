@@ -15,7 +15,7 @@ Eine einzige Codebasis für die drei Contao-LTS-Versionen **4.13, 5.3 und 5.7** 
 
 ## Screenshots
 
-Keys, Theme, Größe und Anzeige werden im **Contao-Backend** unter *Systemeinstellungen* eingetragen:
+Keys, Erscheinungsbild, Größe und Widget-Anzeige werden im **Contao-Backend** unter *Systemeinstellungen* eingetragen:
 
 ![Cloudflare-Turnstile-Einstellungen im Contao-Backend](.github/screenshots/backend-settings.png)
 
@@ -86,7 +86,7 @@ vendor/bin/contao-console contao:migrate
    (z. B. `example.com`, `www.example.com`, ggf. Subdomains). Fehlt eine Domain, schlägt die
    Überprüfung auf dieser Domain fehl.
 3. In Contao unter **Einstellungen → Cloudflare Turnstile** Site Key und Secret Key eintragen,
-   optional Erscheinungsbild/Größe/Anzeige wählen. Das **Erscheinungsbild** ist standardmäßig **Hell**
+   optional Erscheinungsbild/Größe/Widget-Anzeige wählen. Das **Erscheinungsbild** ist standardmäßig **Hell**
    (weiß) – auf **Dunkel** nur bei Bedarf umstellen, **Auto** passt sich dem System-Farbmodus an
    (Hell-/Dunkelmodus des Geräts, nicht der Seite).
 
@@ -127,8 +127,6 @@ Feldtypen nebeneinander; dieses Bundle berührt ALTCHA nicht.
   **automatisch** mit. Auf **Contao 4.13 und 5.3** ist das Captcha im Core fest auf `FormCaptcha`
   verdrahtet; dort bleibt die Standard-Sicherheitsfrage (kein Funktionsverlust). Das Newsletter-Modul
   hat zudem eine eigene Core-Option „Captcha deaktivieren".
-- **Nicht-native Flächen** (Newsletter-iframes externer Dienste, Chat-Widgets) sind bewusst nicht
-  im Umfang.
 
 ## Kompatibilität
 
