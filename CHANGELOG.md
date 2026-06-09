@@ -19,7 +19,7 @@ Erste öffentliche Version.
 - Konfigurierbares Erscheinungsbild (hell / dunkel / automatisch), Größe und Widget-Anzeige.
 - Deklaratives Widget-Rendering über das offizielle `api.js` von Cloudflare, ohne
   Inline-JavaScript; automatische Eintragung in die Content-Security-Policy unter Contao 5.
-- Verlustfreier Rückfall auf die Standard-Sicherheitsfrage von Contao, wenn keine Keys
+- Verlustfreier Fallback auf die Standard-Sicherheitsfrage von Contao, wenn keine Keys
   hinterlegt oder Turnstile deaktiviert ist.
 - Differenziertes Fehlerverhalten: fail-open bei Transport-/Timeout-Fehlern, fail-closed bei
   ungültigem Token; der Secret Key wird nie ins Log geschrieben.
