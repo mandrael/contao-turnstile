@@ -5,9 +5,9 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
-## [0.5.0]
+## [0.5.0] - 2026-06-09
 
-Erste öffentliche Version. (Datum wird beim Taggen ergänzt.)
+Erste öffentliche Version.
 
 ### Hinzugefügt
 - Ersetzt das Standard-CAPTCHA von Contao (Sicherheitsfrage) durch Cloudflare Turnstile;
