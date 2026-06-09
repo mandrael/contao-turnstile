@@ -8,7 +8,7 @@ Globally replaces Contao's default CAPTCHA (the security question) with
 [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/). Keys are entered in the
 Contao back end under **Settings** – no YAML or `.env` editing required.
 
-A single code base for **Contao 4.13 LTS and Contao 5.3+** (incl. 5.4–5.7).
+A single code base for the three Contao LTS versions **4.13, 5.3 and 5.7** (incl. 5.4–5.6).
 
 ---
 

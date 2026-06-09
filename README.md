@@ -9,7 +9,7 @@ Ersetzt das Standard-CAPTCHA von Contao (die Sicherheitsfrage) global durch
 bequem im Contao-Backend unter **Einstellungen** eingetragen – keine YAML- oder
 `.env`-Bearbeitung nötig.
 
-Eine einzige Codebasis für **Contao 4.13 LTS und Contao 5.3+** (inkl. 5.4–5.7).
+Eine einzige Codebasis für die drei Contao-LTS-Versionen **4.13, 5.3 und 5.7** (inkl. 5.4–5.6).
 
 ---
 
