@@ -132,7 +132,7 @@ touch ALTCHA.
 ## Compatibility
 
 - **PHP:** 8.1+
-- **Contao:** three current LTS versions – **4.13 LTS, 5.3 LTS and 5.7 LTS** (incl. the intermediate 5.4–5.6) – from a single shared code base.
+- **Contao:** three LTS versions – **4.13 LTS, 5.3 LTS and 5.7 LTS** (incl. the intermediate 5.4–5.6) – from a single shared code base.
 - **Tested** on a real instance each: **Contao 4.13 / PHP 8.1**, **Contao 5.3 / PHP 8.3** and
   **Contao 5.7 / PHP 8.4** – each with the active CAPTCHA override, back-end fields and correct
   rendering and fallback. Only Contao 6.0 (removal of the legacy template engine) will require an
@@ -155,7 +155,7 @@ touch ALTCHA.
 
 **Compatibility & quality**
 
-- **Three current LTS versions from one code base:** Contao 4.13 LTS, 5.3 LTS and 5.7 LTS (including the intermediate 5.x releases), PHP 8.1+ – verified under real conditions on 4.13, 5.3 and 5.7.
+- **Three Contao LTS versions from one code base:** Contao 4.13 LTS, 5.3 LTS and 5.7 LTS (including the intermediate 5.x releases), PHP 8.1+ – verified under real conditions on 4.13, 5.3 and 5.7.
 - **Clean install and uninstall:** no `runonce`/install scripts, no writes to the project file system; back-end fields are provided via the DCA (and removed with the bundle), the database column via `contao:migrate`.
 - **Convenient key management** directly in the back end – no YAML or `.env` editing required.
 - **Fine-grained control:** global activation mode (everywhere / only selected forms / off) plus per-field override.

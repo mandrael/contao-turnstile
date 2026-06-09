@@ -133,7 +133,7 @@ Feldtypen nebeneinander; dieses Bundle berührt ALTCHA nicht.
 ## Kompatibilität
 
 - **PHP:** 8.1+
-- **Contao:** drei aktuelle LTS-Versionen – **4.13 LTS, 5.3 LTS und 5.7 LTS** (inkl. der dazwischenliegenden 5.4–5.6) – aus einer gemeinsamen Codebasis.
+- **Contao:** drei LTS-Versionen – **4.13 LTS, 5.3 LTS und 5.7 LTS** (inkl. der dazwischenliegenden 5.4–5.6) – aus einer gemeinsamen Codebasis.
 - **Getestet** auf je einer echten Instanz: **Contao 4.13 / PHP 8.1**, **Contao 5.3 / PHP 8.3**
   und **Contao 5.7 / PHP 8.4** – jeweils mit aktivem CAPTCHA-Override, Backend-Feldern und
   korrektem Rendering bzw. Fallback. Erst Contao 6.0 (Entfernung der Legacy-Template-Engine)
@@ -156,7 +156,7 @@ Feldtypen nebeneinander; dieses Bundle berührt ALTCHA nicht.
 
 **Kompatibilität & Qualität**
 
-- **Drei aktuelle LTS-Versionen aus einer Codebasis:** Contao 4.13 LTS, 5.3 LTS und 5.7 LTS (inkl. der dazwischenliegenden 5.x-Releases), PHP 8.1+ – auf 4.13, 5.3 und 5.7 unter realen Bedingungen verifiziert.
+- **Drei Contao-LTS-Versionen aus einer Codebasis:** Contao 4.13 LTS, 5.3 LTS und 5.7 LTS (inkl. der dazwischenliegenden 5.x-Releases), PHP 8.1+ – auf 4.13, 5.3 und 5.7 unter realen Bedingungen verifiziert.
 - **Rückstandsarme Installation und Deinstallation:** keine `runonce`-/Installationsskripte, keine Schreibzugriffe auf das Projekt-Dateisystem; Backend-Felder werden über die DCA bereitgestellt (und mit dem Bundle wieder entfernt), die Datenbankspalte über `contao:migrate`.
 - **Komfortable Schlüsselverwaltung** direkt im Backend – ohne YAML- oder `.env`-Bearbeitung.
 - **Feingranulare Steuerung:** globaler Aktivierungsmodus (überall / nur ausgewählte Formulare / aus) plus Überschreibung je Formular-Element.

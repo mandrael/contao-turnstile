@@ -12,7 +12,7 @@ Erste öffentliche Version. (Datum wird beim Taggen ergänzt.)
 ### Hinzugefügt
 - Ersetzt das Standard-CAPTCHA von Contao (Sicherheitsfrage) durch Cloudflare Turnstile;
   Site Key und Secret Key werden im Contao-Backend eingetragen (keine YAML-/`.env`-Bearbeitung).
-- Eine gemeinsame Codebasis für die drei aktuellen Contao-LTS-Versionen (4.13, 5.3, 5.7)
+- Eine gemeinsame Codebasis für die drei Contao-LTS-Versionen (4.13, 5.3, 5.7)
   inklusive der dazwischenliegenden 5.x-Releases; PHP 8.1+.
 - Globaler Aktivierungsmodus (überall / nur ausgewählte Formulare / aus) plus Überschreibung
   je Formular-Element.
