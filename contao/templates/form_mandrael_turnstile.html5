@@ -20,7 +20,7 @@
        data-theme="<?= \Contao\StringUtil::specialchars($this->turnstileTheme) ?>"
        data-size="<?= \Contao\StringUtil::specialchars($this->turnstileSize) ?>"
        data-appearance="<?= \Contao\StringUtil::specialchars($this->turnstileAppearance) ?>"
-       data-response-field-name="cf-turnstile-response"></div>
+       data-response-field-name="cf-turnstile-response-<?= $this->id ?>"></div>
 
 <?php $this->endblock(); ?>
 

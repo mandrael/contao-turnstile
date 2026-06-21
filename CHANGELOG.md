@@ -5,6 +5,19 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
+## [0.5.1] - 2026-06-21
+
+### Behoben
+- Mehrere Turnstile-Captchas innerhalb desselben Formulars verwendeten denselben
+  Antwort-Feldnamen (`cf-turnstile-response`) und überschrieben sich beim Absenden
+  gegenseitig. Der Feldname ist jetzt pro Widget-Instanz eindeutig (analog zum
+  Standard-CAPTCHA von Contao), sodass jedes Feld unabhängig geprüft wird.
+
+### Intern
+- Testabdeckung ausgebaut: die Aktivierungs-Matrix (globaler Modus × Überschreibung
+  je Formular-Element), die Token-Auslesung des Frontend-Widgets sowie die
+  Konfigurations- und `remoteip`-Pfade der Server-Verifikation.
+
 ## [0.5.0] - 2026-06-09
 
 Erste öffentliche Version.
