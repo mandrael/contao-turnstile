@@ -20,8 +20,6 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 
 ## [0.5.0] - 2026-06-09
 
-Erste öffentliche Version.
-
 ### Hinzugefügt
 - Ersetzt das Standard-CAPTCHA von Contao (Sicherheitsfrage) durch Cloudflare Turnstile;
   Site Key und Secret Key werden im Contao-Backend eingetragen (keine YAML-/`.env`-Bearbeitung).
