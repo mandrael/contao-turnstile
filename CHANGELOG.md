@@ -5,6 +5,13 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Behoben
+- **Backend-Dark-Mode:** Der Secret-Key-Hinweis (letzte 4 Zeichen) nutzt die
+  Contao-Klasse `tl_gray` statt einer festen Farbe (`#999`) und schaltet im
+  Contao-5-Dark-Mode mit.
+
 ## [0.5.1] - 2026-06-21
 
 ### Behoben

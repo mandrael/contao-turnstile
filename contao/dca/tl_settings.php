@@ -35,7 +35,7 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSecretKey'] = [
                 return '';
             }
 
-            return '<span style="margin-left:.5em;color:#999;font-weight:400">(…' . StringUtil::specialchars(substr($secret, -4)) . ')</span>';
+            return '<span class="tl_gray" style="margin-left:.5em;font-weight:400">(…' . StringUtil::specialchars(substr($secret, -4)) . ')</span>';
         },
     ],
 ];
