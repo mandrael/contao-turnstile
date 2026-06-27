@@ -32,6 +32,11 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
     'When the widget becomes visible. “Show after form interaction” only works if the form is prepared for it.',
 ];
 
+$GLOBALS['TL_LANG']['tl_settings']['turnstileSendRemoteIp'] = [
+    'Send visitor IP to Cloudflare',
+    'Sends the visitor IP to Cloudflare for verification (default). Behind NAT/VPN/iCloud Private Relay turning it off may help; Cloudflare does not validate the IP strictly. Hygiene option, not a guaranteed Safari fix.',
+];
+
 $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
     'optout' => 'Enable for all forms by default',
     'optin' => 'Enable only for selected forms',

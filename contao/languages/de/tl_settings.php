@@ -32,6 +32,11 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
     'Wann das Widget sichtbar wird. „Nach Formular-Interaktion anzeigen“ greift nur mit dafür vorbereitetem Formular.',
 ];
 
+$GLOBALS['TL_LANG']['tl_settings']['turnstileSendRemoteIp'] = [
+    'Besucher-IP an Cloudflare senden',
+    'Sendet die Besucher-IP zur Prüfung an Cloudflare (Standard). Hinter NAT/VPN/iCloud Private Relay kann Abschalten helfen; Cloudflare prüft die IP nicht strikt. Hygiene-Option, kein garantierter Safari-Fix.',
+];
+
 $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
     'optout' => 'Standardmäßig für alle Formulare aktivieren',
     'optin' => 'Nur bei ausgewählten Formularen aktivieren',

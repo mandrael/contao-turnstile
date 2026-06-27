@@ -77,13 +77,14 @@ class FormTurnstile extends FormCaptcha
         }
 
         $request = System::getContainer()->get('request_stack')->getCurrentRequest();
-        // Feldname pro Widget-Instanz eindeutig (analog Core-Captcha: captcha_<id>), sonst teilen
-        // sich mehrere Turnstile-Felder eines Formulars denselben POST-Schluessel und PHP behaelt
-        // nur den letzten Wert. Muss mit data-response-field-name im Template uebereinstimmen.
-        $fieldName = 'cf-turnstile-response-'.$this->id;
         // Roh aus dem ParameterBag (nicht ueber Contao\Input): das opake CF-Token darf nicht durch
         // die XSS-/Encoding-Schicht. all() ohne Schluessel wirft bei Array-Input kein BadRequest.
-        $value = null !== $request ? ($request->request->all()[$fieldName] ?? null) : null;
+        $post = null !== $request ? $request->request->all() : [];
+        // Feldname pro Widget-Instanz eindeutig (analog Core-Captcha: captcha_<id>), sonst teilen sich
+        // mehrere Turnstile-Felder eines Formulars denselben POST-Schluessel und PHP behaelt nur den
+        // letzten Wert. Faellt auf den Cloudflare-Default cf-turnstile-response zurueck, falls ein
+        // Template-Override das -<id>-Suffix verliert – sonst braeche das Feld still.
+        $value = $post['cf-turnstile-response-'.$this->id] ?? $post['cf-turnstile-response'] ?? null;
         $token = \is_string($value) ? $value : '';
 
         if (!$this->getVerifier()->validate($token)) {

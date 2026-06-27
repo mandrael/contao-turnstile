@@ -12,6 +12,7 @@ PaletteManipulator::create()
     ->addField('turnstileTheme', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileSize', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileAppearance', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
+    ->addField('turnstileSendRemoteIp', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->applyToPalette('default', 'tl_settings');
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSiteKey'] = [
@@ -68,4 +69,10 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAppearance'] = [
     'options' => ['always', 'interaction-only', 'execute'],
     'reference' => &$GLOBALS['TL_LANG']['tl_settings']['turnstileAppearanceOptions'],
     'eval' => ['tl_class' => 'w50', 'includeBlankOption' => false],
+];
+
+$GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSendRemoteIp'] = [
+    'inputType' => 'checkbox',
+    'eval' => ['tl_class' => 'w50 clr m12'],
+    'default' => true,
 ];

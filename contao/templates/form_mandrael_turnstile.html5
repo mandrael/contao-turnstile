@@ -22,6 +22,11 @@
        data-appearance="<?= \Contao\StringUtil::specialchars($this->turnstileAppearance) ?>"
        data-response-field-name="cf-turnstile-response-<?= $this->id ?>"></div>
 
+  <?php // Graceful Degradation ohne JS. Leer-Uebersetzung (MSC.turnstileNoscript = '') blendet ihn aus. ?>
+  <?php if ($strTurnstileNoscript = ($GLOBALS['TL_LANG']['MSC']['turnstileNoscript'] ?? '')): ?>
+    <noscript><p class="error"><?= $strTurnstileNoscript ?></p></noscript>
+  <?php endif; ?>
+
 <?php $this->endblock(); ?>
 
 <?php $GLOBALS['TL_BODY']['cloudflare-turnstile-api'] = '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'; ?>

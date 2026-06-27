@@ -49,9 +49,29 @@ class TurnstileVerifier
         return '' !== $this->getSiteKey() && '' !== $this->getSecretKey();
     }
 
+    /**
+     * Default an (rueckwaertskompatibel): nur ein explizit leerer Wert (Checkbox abgewaehlt) schaltet
+     * remoteip ab; ungesetzt (frische Installation) sendet weiterhin. Hinter NAT/VPN/iCloud Private
+     * Relay kann Abschalten sinnvoll sein – CF validiert remoteip nicht strikt (kein IP-Mismatch-Code).
+     */
+    private function sendRemoteIp(): bool
+    {
+        $this->framework->initialize();
+
+        return '' !== (string) ($this->framework->getAdapter(Config::class)->get('turnstileSendRemoteIp') ?? '1');
+    }
+
     public function validate(?string $token): bool
     {
         if (null === $token || '' === $token) {
+            // Hier wird ein stiller Totalausfall sichtbar: kommt gar kein Token an (kaputter
+            // Template-Override/Feldname, JS aus), genau EIN Hinweis. Abgelehnte Tokens (Bot-
+            // Replays) bleiben weiter still, um keine Log-Flut zu erzeugen. Nie das Secret loggen.
+            $this->logger->info(
+                'Cloudflare Turnstile: kein Token im Request – Template/Feldname prüfen.',
+                ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
+            );
+
             return false;
         }
 
@@ -60,10 +80,12 @@ class TurnstileVerifier
             'response' => $token,
         ];
 
-        $clientIp = $this->requestStack->getCurrentRequest()?->getClientIp();
+        if ($this->sendRemoteIp()) {
+            $clientIp = $this->requestStack->getCurrentRequest()?->getClientIp();
 
-        if (null !== $clientIp) {
-            $payload['remoteip'] = $clientIp;
+            if (null !== $clientIp) {
+                $payload['remoteip'] = $clientIp;
+            }
         }
 
         try {

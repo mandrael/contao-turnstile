@@ -40,6 +40,34 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertFalse($verifier->validate(null));
     }
 
+    public function testEmptyTokenLogsHint(): void
+    {
+        // Fehlendes Token (kaputter Feldname/Template, JS aus) -> genau ein diagnostischer Hinweis.
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('info');
+
+        $this->assertFalse($this->createVerifier(new MockHttpClient(), logger: $logger)->validate(''));
+    }
+
+    public function testRemoteIpCanBeDisabled(): void
+    {
+        $captured = null;
+        $client = new MockHttpClient(static function (string $method, string $url, array $options) use (&$captured): MockResponse {
+            $captured = $options['body'];
+
+            return new MockResponse((string) json_encode(['success' => true]));
+        });
+
+        $requestStack = new RequestStack();
+        $requestStack->push(new Request([], [], [], [], [], ['REMOTE_ADDR' => '203.0.113.5']));
+
+        $config = ['turnstileSiteKey' => 'site-key', 'turnstileSecretKey' => 'secret-key', 'turnstileSendRemoteIp' => ''];
+        $this->assertTrue($this->createVerifier($client, $config, requestStack: $requestStack)->validate('a-token'));
+
+        $body = \is_string($captured) ? $captured : http_build_query((array) $captured);
+        $this->assertStringNotContainsString('remoteip', $body);
+    }
+
     public function testTransportErrorFailsOpen(): void
     {
         $client = new MockHttpClient(static function (): MockResponse {

@@ -69,6 +69,18 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertFalse($widget->hasErrors());
     }
 
+    public function testValidateFallsBackToDefaultFieldName(): void
+    {
+        // Template-Override ohne -<id>-Suffix: Cloudflare-Default cf-turnstile-response wird gelesen.
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->expects(self::once())->method('validate')->with('a-token')->willReturn(true);
+
+        $widget = $this->createWidget('42', ['cf-turnstile-response' => 'a-token'], $verifier);
+        $widget->validate();
+
+        self::assertFalse($widget->hasErrors());
+    }
+
     public function testValidateIgnoresForeignInstanceToken(): void
     {
         // Token eines ANDEREN Turnstile-Felds im selben Formular darf das eigene nicht erfuellen.

@@ -7,6 +7,18 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 
 ## [Unreleased]
 
+### Hinzugefügt
+- **Robusterer Feldname:** Kommt das Antwort-Token unter dem Cloudflare-Standardnamen
+  `cf-turnstile-response` (ohne `-<id>`-Suffix) an – etwa durch einen Template-Override –,
+  wird es jetzt zusätzlich akzeptiert, statt das Feld still zu blockieren.
+- **Diagnose bei fehlendem Token:** Trifft gar kein Token ein (kaputter Template-/Feldname,
+  deaktiviertes JavaScript), wird genau ein Hinweis ins Contao-System-Log geschrieben. Ein
+  flächiger Ausfall ist damit binnen Minuten sichtbar; abgelehnte Tokens bleiben weiterhin still.
+- **Option „Besucher-IP an Cloudflare senden"** (Standard: an, unverändertes Verhalten). Hinter
+  NAT/VPN/iCloud Private Relay lässt sich das Senden der `remoteip` nun abschalten.
+- **`<noscript>`-Hinweis** im Widget-Template (übersetzbar via `MSC.turnstileNoscript`,
+  per Leer-Übersetzung abschaltbar) – erspart Integratoren den fehleranfälligen Template-Override.
+
 ### Behoben
 - **Backend-Dark-Mode:** Der Secret-Key-Hinweis (letzte 4 Zeichen) nutzt die
   Contao-Klasse `tl_gray` statt einer festen Farbe (`#999`) und schaltet im
