@@ -87,10 +87,24 @@ class FormTurnstile extends FormCaptcha
         $value = $post['cf-turnstile-response-'.$this->id] ?? $post['cf-turnstile-response'] ?? null;
         $token = \is_string($value) ? $value : '';
 
-        if (!$this->getVerifier()->validate($token)) {
-            $this->class = 'error';
-            $this->addError($GLOBALS['TL_LANG']['ERR']['turnstile'] ?? 'Captcha validation failed.');
+        if ($this->getVerifier()->validate($token)) {
+            return;
         }
+
+        // 'soft' = Bruecke: fehlgeschlagene Pruefung NICHT blocken, aber jede durchgelassene
+        // Submission protokollieren (Kategorie ohne Token/PII), damit die Site Privacy-Browser-
+        // Fehlalarme von Bots unterscheiden kann. Default 'hard' = bisheriges Verhalten (blocken).
+        // Logging laeuft ueber den Verifier (dort ist der Contao-Logger per DI injiziert –
+        // monolog.logger.contao ist nicht public, also nicht ueber den Container abrufbar).
+        // Der Missing-Token-Warn feuert davon unabhaengig im Verifier, auch im soft-Modus.
+        if ('soft' === $this->configValue('turnstileBlocking', 'hard')) {
+            $this->getVerifier()->logSoftPass('' === $token ? 'missing-token' : 'verification-failed');
+
+            return;
+        }
+
+        $this->class = 'error';
+        $this->addError($GLOBALS['TL_LANG']['ERR']['turnstile'] ?? 'Captcha validation failed.');
     }
 
     public function generate()

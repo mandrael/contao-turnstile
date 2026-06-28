@@ -40,11 +40,12 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertFalse($verifier->validate(null));
     }
 
-    public function testEmptyTokenLogsHint(): void
+    public function testEmptyTokenLogsWarning(): void
     {
-        // Fehlendes Token (kaputter Feldname/Template, JS aus) -> genau ein diagnostischer Hinweis.
+        // Fehlendes Token (kaputter Feldname/Template, JS aus) -> genau eine diagnostische Warnung,
+        // damit ein flaechiger Ausfall im Prod-Log auffaellt.
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('info');
+        $logger->expects($this->once())->method('warning');
 
         $this->assertFalse($this->createVerifier(new MockHttpClient(), logger: $logger)->validate(''));
     }
@@ -66,6 +67,15 @@ class TurnstileVerifierTest extends ContaoTestCase
 
         $body = \is_string($captured) ? $captured : http_build_query((array) $captured);
         $this->assertStringNotContainsString('remoteip', $body);
+    }
+
+    public function testLogSoftPassLogsInfoWithCategory(): void
+    {
+        // soft-Modus: durchgelassene Submission wird auf info protokolliert, Kategorie ohne Token/PII.
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('info')->with($this->stringContains('missing-token'));
+
+        $this->createVerifier(new MockHttpClient(), logger: $logger)->logSoftPass('missing-token');
     }
 
     public function testTransportErrorFailsOpen(): void

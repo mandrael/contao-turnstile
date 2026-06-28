@@ -104,6 +104,37 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertTrue($widget->hasErrors());
     }
 
+    public function testSoftModeInvalidTokenPassesWithoutError(): void
+    {
+        // 'soft' = Bruecke: fehlgeschlagene Pruefung wird durchgelassen + protokolliert, nicht geblockt.
+        $GLOBALS['TL_CONFIG']['turnstileBlocking'] = 'soft';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logSoftPass')->with('verification-failed');
+
+        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier);
+        $widget->validate();
+
+        self::assertFalse($widget->hasErrors());
+    }
+
+    public function testSoftModeMissingTokenPassesAndLogsCategory(): void
+    {
+        // Fehlendes Token im soft-Modus: kein Error, aber protokolliert (Kategorie missing-token).
+        // Die eigentliche Missing-Token-WARNUNG kommt aus dem Verifier (hier gemockt, separat getestet).
+        $GLOBALS['TL_CONFIG']['turnstileBlocking'] = 'soft';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->with('')->willReturn(false);
+        $verifier->expects(self::once())->method('logSoftPass')->with('missing-token');
+
+        $widget = $this->createWidget('42', [], $verifier);
+        $widget->validate();
+
+        self::assertFalse($widget->hasErrors());
+    }
+
     /**
      * @param array<string, mixed> $post
      */

@@ -17,6 +17,11 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
     'Whether Turnstile applies to all forms or only selected ones.',
 ];
 
+$GLOBALS['TL_LANG']['tl_settings']['turnstileBlocking'] = [
+    'Behaviour on failed verification',
+    'Hard blocks submission when Turnstile verification fails (default). Soft lets the submission through anyway and logs it – a transitional bridge only (e.g. for privacy-browser false positives); it also opens the gate to bots. See UPGRADE.md.',
+];
+
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
     'Appearance theme',
     'Colour scheme of the Turnstile widget.',
@@ -41,6 +46,11 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
     'optout' => 'Enable for all forms by default',
     'optin' => 'Enable only for selected forms',
     'off' => 'Disable everywhere',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileBlockingOptions'] = [
+    'hard' => 'Hard – block submission on failure',
+    'soft' => 'Soft – allow submission anyway (bridge)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

@@ -61,13 +61,29 @@ class TurnstileVerifier
         return '' !== (string) ($this->framework->getAdapter(Config::class)->get('turnstileSendRemoteIp') ?? '1');
     }
 
+    /**
+     * soft-Modus (Bruecke): protokolliert eine durchgelassene, aber fehlgeschlagene Submission auf
+     * Level info, damit die Site die Menge (Privacy-Browser-Fehlalarme vs. Bots) per Log auswerten
+     * kann. Liegt hier, weil der Logger via DI injiziert ist (FormTurnstile kann monolog.logger.contao
+     * nicht ueber den Container holen – nicht public). $category ist 'missing-token' oder
+     * 'verification-failed'; nie Token/Secret/PII loggen.
+     */
+    public function logSoftPass(string $category): void
+    {
+        $this->logger->info(
+            'Cloudflare Turnstile soft-pass: Verifikation fehlgeschlagen, Absenden trotzdem erlaubt ('.$category.').',
+            ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
+        );
+    }
+
     public function validate(?string $token): bool
     {
         if (null === $token || '' === $token) {
             // Hier wird ein stiller Totalausfall sichtbar: kommt gar kein Token an (kaputter
-            // Template-Override/Feldname, JS aus), genau EIN Hinweis. Abgelehnte Tokens (Bot-
-            // Replays) bleiben weiter still, um keine Log-Flut zu erzeugen. Nie das Secret loggen.
-            $this->logger->info(
+            // Template-Override/Feldname, JS aus), genau EINE Warnung – bewusst warning (nicht info),
+            // damit ein flaechiger Ausfall im Prod-Log auffaellt. Abgelehnte Tokens (Bot-Replays)
+            // bleiben weiter still, um keine Log-Flut zu erzeugen. Nie das Secret loggen.
+            $this->logger->warning(
                 'Cloudflare Turnstile: kein Token im Request – Template/Feldname prüfen.',
                 ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
             );

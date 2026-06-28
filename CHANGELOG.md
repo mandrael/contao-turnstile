@@ -12,8 +12,13 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   `cf-turnstile-response` (ohne `-<id>`-Suffix) an – etwa durch einen Template-Override –,
   wird es jetzt zusätzlich akzeptiert, statt das Feld still zu blockieren.
 - **Diagnose bei fehlendem Token:** Trifft gar kein Token ein (kaputter Template-/Feldname,
-  deaktiviertes JavaScript), wird genau ein Hinweis ins Contao-System-Log geschrieben. Ein
+  deaktiviertes JavaScript), wird genau eine Warnung ins Contao-System-Log geschrieben. Ein
   flächiger Ausfall ist damit binnen Minuten sichtbar; abgelehnte Tokens bleiben weiterhin still.
+- **Nicht-blockierender „weicher" Modus** (Einstellung „Verhalten bei fehlgeschlagener Prüfung",
+  Standard: hart/blockierend). Im weichen Modus wird ein fehlgeschlagenes oder fehlendes Token
+  nicht abgewiesen, sondern durchgelassen und protokolliert (Kategorie `missing-token` bzw.
+  `verification-failed`, ohne Token/PII) – als Übergangs-Brücke, etwa bei Privacy-Browser-Fehlalarmen
+  (Safari/iCloud Private Relay/ITP). Tradeoff siehe `UPGRADE.md`.
 - **Option „Besucher-IP an Cloudflare senden"** (Standard: an, unverändertes Verhalten). Hinter
   NAT/VPN/iCloud Private Relay lässt sich das Senden der `remoteip` nun abschalten.
 - **`<noscript>`-Hinweis** im Widget-Template (übersetzbar via `MSC.turnstileNoscript`,
