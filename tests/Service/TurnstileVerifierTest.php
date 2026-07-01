@@ -71,7 +71,7 @@ class TurnstileVerifierTest extends ContaoTestCase
 
     public function testLogSoftPassLogsInfoWithCategory(): void
     {
-        // soft-Modus: durchgelassene Submission wird auf info protokolliert, Kategorie ohne Token/PII.
+        // Fallback 'filter': durchgelassene Submission wird auf info protokolliert, Kategorie ohne Token/PII.
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('info')->with($this->stringContains('missing-token'));
 

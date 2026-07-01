@@ -22,6 +22,14 @@
        data-appearance="<?= \Contao\StringUtil::specialchars($this->turnstileAppearance) ?>"
        data-response-field-name="cf-turnstile-response-<?= $this->id ?>"></div>
 
+  <?php // Sekundaerfilter fuer den filter-Modus: Honeypot (Mensch sieht/befuellt das Feld nie) + ?>
+  <?php // signierter Render-Zeitstempel (Timing). 'hidden' statt Inline-Style = CSP-sauber. ?>
+  <div hidden>
+    <label for="ctrl_<?= $this->id ?>_hp">Do not fill in this field</label>
+    <input type="text" name="cf-turnstile-hp-<?= $this->id ?>" id="ctrl_<?= $this->id ?>_hp" value="" tabindex="-1" autocomplete="off">
+  </div>
+  <input type="hidden" name="cf-turnstile-ts-<?= $this->id ?>" value="<?= \Contao\StringUtil::specialchars($this->turnstileTiming) ?>">
+
   <?php // Graceful Degradation ohne JS. Leer-Uebersetzung (MSC.turnstileNoscript = '') blendet ihn aus. ?>
   <?php if ($strTurnstileNoscript = ($GLOBALS['TL_LANG']['MSC']['turnstileNoscript'] ?? '')): ?>
     <noscript><p class="error"><?= $strTurnstileNoscript ?></p></noscript>

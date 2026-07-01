@@ -104,10 +104,10 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertTrue($widget->hasErrors());
     }
 
-    public function testSoftModeInvalidTokenPassesWithoutError(): void
+    public function testFilterModeInvalidTokenPassesWithoutError(): void
     {
-        // 'soft' = Bruecke: fehlgeschlagene Pruefung wird durchgelassen + protokolliert, nicht geblockt.
-        $GLOBALS['TL_CONFIG']['turnstileBlocking'] = 'soft';
+        // 'filter' = Fallback: fehlgeschlagene Pruefung wird durchgelassen + protokolliert, nicht geblockt.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
@@ -119,11 +119,11 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertFalse($widget->hasErrors());
     }
 
-    public function testSoftModeMissingTokenPassesAndLogsCategory(): void
+    public function testFilterModeMissingTokenPassesAndLogsCategory(): void
     {
-        // Fehlendes Token im soft-Modus: kein Error, aber protokolliert (Kategorie missing-token).
+        // Fehlendes Token im filter-Modus: kein Error, aber protokolliert (Kategorie missing-token).
         // Die eigentliche Missing-Token-WARNUNG kommt aus dem Verifier (hier gemockt, separat getestet).
-        $GLOBALS['TL_CONFIG']['turnstileBlocking'] = 'soft';
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->with('')->willReturn(false);
@@ -133,6 +133,146 @@ class FormTurnstileTest extends ContaoTestCase
         $widget->validate();
 
         self::assertFalse($widget->hasErrors());
+    }
+
+    public function testFilterModeHoneypotFilledBlocks(): void
+    {
+        // Befuellter Honeypot ist ein eindeutiges Bot-Signal: trotz filter-Modus blocken, nicht durchlassen.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logSoftPass');
+
+        $widget = $this->createWidget('42', [
+            'cf-turnstile-response-42' => 'bad-token',
+            'cf-turnstile-hp-42' => 'ich bin ein bot',
+        ], $verifier);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testFilterModeTooFastSubmissionBlocks(): void
+    {
+        // Gueltig signierter, aber unmenschlich frischer Zeitstempel: blocken.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logSoftPass');
+
+        $widget = $this->createWidget('42', [
+            'cf-turnstile-response-42' => 'bad-token',
+            'cf-turnstile-ts-42' => self::signTime(time()),
+        ], $verifier);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testFilterModePassesWhenSlowEnoughAndHoneypotEmpty(): void
+    {
+        // Langsam genug ausgefuellt + Honeypot leer: mehrdeutiger Rest -> durchlassen + protokollieren.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logSoftPass')->with('verification-failed');
+
+        $widget = $this->createWidget('42', [
+            'cf-turnstile-response-42' => 'bad-token',
+            'cf-turnstile-ts-42' => self::signTime(time() - 30),
+        ], $verifier);
+        $widget->validate();
+
+        self::assertFalse($widget->hasErrors());
+    }
+
+    public function testFilterModeForgedTimingIsIgnored(): void
+    {
+        // Ungueltige Signatur (z. B. Cache/Template-Override/Faelschung): Timing greift NICHT (fail-open),
+        // Honeypot leer -> durchlassen + protokollieren. Kein Fehlalarm durch kaputte Zeitstempel.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logSoftPass')->with('verification-failed');
+
+        $widget = $this->createWidget('42', [
+            'cf-turnstile-response-42' => 'bad-token',
+            'cf-turnstile-ts-42' => time().'.deadbeefdeadbeef',
+        ], $verifier);
+        $widget->validate();
+
+        self::assertFalse($widget->hasErrors());
+    }
+
+    public function testBlockIsDefaultWhenFailureModeUnset(): void
+    {
+        // Ohne gesetzte Einstellung gilt 'block': fehlgeschlagene Pruefung wird abgewiesen.
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logSoftPass');
+
+        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testUnknownFailureModeBlocks(): void
+    {
+        // Unbekannter Wert faellt auf 'block' zurueck (sichere Vorgabe), nie still durchlassen.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'bogus';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logSoftPass');
+
+        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testBlockModeExplicitlyBlocks(): void
+    {
+        // Explizit gesetzter Standardwert 'block' weist ab (nicht nur der ungesetzte Default).
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'block';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logSoftPass');
+
+        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testFilterModeHoneypotArrayBlocks(): void
+    {
+        // Manipuliertes Honeypot-Feld als Array (Nicht-String) gilt als Bot-Signal -> blocken.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logSoftPass');
+
+        $widget = $this->createWidget('42', [
+            'cf-turnstile-response-42' => 'bad-token',
+            'cf-turnstile-hp-42' => ['x'],
+        ], $verifier);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    private static function signTime(int $time): string
+    {
+        // Muss bitgenau zu FormTurnstile::signTime() passen (Format pinnen).
+        return $time.'.'.substr(hash_hmac('sha256', (string) $time, 'test-secret'), 0, 16);
     }
 
     /**
@@ -149,6 +289,7 @@ class FormTurnstileTest extends ContaoTestCase
         $requestStack->push(new Request([], $post));
 
         $container = new Container();
+        $container->setParameter('kernel.secret', 'test-secret');
         $container->set('request_stack', $requestStack);
         $container->set(TurnstileVerifier::class, $verifier);
         System::setContainer($container);

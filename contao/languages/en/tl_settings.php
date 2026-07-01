@@ -17,9 +17,9 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
     'Whether Turnstile applies to all forms or only selected ones.',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileBlocking'] = [
-    'Behaviour on failed verification',
-    'Hard blocks submission when Turnstile verification fails (default). Soft lets the submission through anyway and logs it – a transitional bridge only (e.g. for privacy-browser false positives); it also opens the gate to bots. See UPGRADE.md.',
+$GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
+    'Behaviour when the Turnstile check fails',
+    'Turnstile can produce false positives (firewalls, Safari, special configurations). By default the form is then hard-rejected. The fallback mode mitigates such cases.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -48,9 +48,9 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
     'off' => 'Disable everywhere',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileBlockingOptions'] = [
-    'hard' => 'Hard – block submission on failure',
-    'soft' => 'Soft – allow submission anyway (bridge)',
+$GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
+    'block' => 'Block: prevent form submission (default)',
+    'filter' => 'Fallback: honeypot & timing check (let the rest through, log it)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

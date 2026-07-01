@@ -17,9 +17,9 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
     'Gilt Turnstile für alle Formulare oder nur für ausgewählte.',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileBlocking'] = [
-    'Verhalten bei fehlgeschlagener Prüfung',
-    'Hart blockiert das Absenden bei fehlgeschlagener Turnstile-Prüfung (Standard). Weich lässt das Absenden trotzdem durch und protokolliert es – nur als Übergangs-Brücke (z. B. bei Privacy-Browser-Fehlalarmen), öffnet die Schranke aber auch für Bots. Siehe UPGRADE.md.',
+$GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
+    'Verhalten, wenn Turnstile-Prüfung fehlschlägt',
+    'Turnstile kann False-Positives haben (Firewalls, Safari, spezielle Konfigurationen). Standard ist, dass das Formular dann hart abgewiesen wird. Deswegen gibt es einen Fallback-Modus, der solche Fälle mitigiert.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -48,9 +48,9 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
     'off' => 'Überall deaktivieren',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileBlockingOptions'] = [
-    'hard' => 'Hart – Absenden bei Fehlschlag blockieren',
-    'soft' => 'Weich – Absenden trotzdem erlauben (Brücke)',
+$GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
+    'block' => 'Blockieren: Formular-Absenden wird verhindert (Standard)',
+    'filter' => 'Fallback: Honeypot & Zeitprüfung (Rest durchlassen, protokollieren)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

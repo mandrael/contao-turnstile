@@ -62,7 +62,7 @@ class TurnstileVerifier
     }
 
     /**
-     * soft-Modus (Bruecke): protokolliert eine durchgelassene, aber fehlgeschlagene Submission auf
+     * Fallback 'filter' (Bruecke): protokolliert eine durchgelassene, aber fehlgeschlagene Submission auf
      * Level info, damit die Site die Menge (Privacy-Browser-Fehlalarme vs. Bots) per Log auswerten
      * kann. Liegt hier, weil der Logger via DI injiziert ist (FormTurnstile kann monolog.logger.contao
      * nicht ueber den Container holen – nicht public). $category ist 'missing-token' oder

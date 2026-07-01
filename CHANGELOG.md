@@ -5,7 +5,7 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [0.6.0] - 2026-07-01
 
 ### Hinzugefügt
 - **Robusterer Feldname:** Kommt das Antwort-Token unter dem Cloudflare-Standardnamen
@@ -14,11 +14,18 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 - **Diagnose bei fehlendem Token:** Trifft gar kein Token ein (kaputter Template-/Feldname,
   deaktiviertes JavaScript), wird genau eine Warnung ins Contao-System-Log geschrieben. Ein
   flächiger Ausfall ist damit binnen Minuten sichtbar; abgelehnte Tokens bleiben weiterhin still.
-- **Nicht-blockierender „weicher" Modus** (Einstellung „Verhalten bei fehlgeschlagener Prüfung",
-  Standard: hart/blockierend). Im weichen Modus wird ein fehlgeschlagenes oder fehlendes Token
-  nicht abgewiesen, sondern durchgelassen und protokolliert (Kategorie `missing-token` bzw.
-  `verification-failed`, ohne Token/PII) – als Übergangs-Brücke, etwa bei Privacy-Browser-Fehlalarmen
-  (Safari/iCloud Private Relay/ITP). Tradeoff siehe `UPGRADE.md`.
+- **Fallback-Modus bei fehlgeschlagener Prüfung** (Einstellung „Verhalten, wenn Turnstile-Prüfung
+  fehlschlägt", Werte `block`/`filter`, Standard `block` = blockierend). Im **Fallback** (`filter`)
+  wird ein fehlgeschlagenes oder fehlendes Token nicht abgewiesen, sondern – nach einem Sekundärfilter –
+  durchgelassen und protokolliert (Kategorie `missing-token` bzw. `verification-failed`, ohne
+  Token/PII). Brücke gegen Turnstile-False-Positives (Firewalls, Safari/iCloud Private Relay/ITP).
+  Tradeoff siehe `UPGRADE.md`.
+- **Eingebauter Sekundärfilter für den Fallback:** Vor dem Durchlassen läuft ein zweistufiger
+  Bot-Filter – **Honeypot** (verstecktes Feld; befüllt → blockiert) und **Timing** (signierter
+  Render-Zeitstempel; Absenden in unter 3 s → blockiert). Ohne Konfiguration, ohne Reibung für echte
+  Nutzer. So werden offensichtliche Bots auch im Fallback geblockt, während Turnstile-Fehlalarme
+  (Privacy-Browser) weiter durchkommen. Fehlt/bricht der Zeitstempel (Cache/Template-Override),
+  greift der Honeypot allein – kein Fehlalarm-Risiko.
 - **Option „Besucher-IP an Cloudflare senden"** (Standard: an, unverändertes Verhalten). Hinter
   NAT/VPN/iCloud Private Relay lässt sich das Senden der `remoteip` nun abschalten.
 - **`<noscript>`-Hinweis** im Widget-Template (übersetzbar via `MSC.turnstileNoscript`,
