@@ -5,6 +5,23 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
+## [0.7.0] - UNRELEASED
+
+### Hinzugefügt
+- **Fallback-Stufe „ALTCHA" (Proof of Work)** als dritter Wert der Einstellung „Verhalten, wenn
+  Turnstile-Prüfung fehlschlägt" (`turnstileFailureMode = altcha`). Schlägt Turnstile fehl und greift
+  der Honeypot/Timing-Filter nicht, muss der Browser eine lokale SHA-256-Rechenaufgabe gelöst haben –
+  ein serverseitig verifizierter Zweitbeweis statt bloßem Durchlassen. Kein externer Dienst, keine
+  Cookies, keine Datenbank, kein Cron. Der Proof of Work wird selbst gerechnet (unabhängig von Contaos
+  internem, ab 5.4 verfügbarem ALTCHA) und verhält sich damit auf 4.13 und 5.x identisch.
+- Die Rechenaufgabe läuft **headless** im Hintergrund (Web Worker) und schreibt die Lösung in ein
+  verstecktes Feld – **kein sichtbares Widget, kein Blockieren des Absendens im Browser.** Fällt die
+  Berechnung oder der Challenge-Abruf aus, bleibt das Feld leer und allein der Server entscheidet; wer
+  Turnstile besteht, wird nie beeinträchtigt.
+- Diagnostische Log-Kategorien für den ALTCHA-Fallback (`altcha-empty` = fehlende Lösung, meist
+  kaputtes JavaScript/kein Secure Context; `altcha-invalid` = ungültige/abgelaufene/wiederverwendete
+  Lösung), damit sich Betriebsstörung und Angriff im Contao-System-Log unterscheiden lassen.
+
 ## [0.6.0] - 2026-07-01
 
 ### Hinzugefügt

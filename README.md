@@ -118,7 +118,12 @@ Secret Key und interne Daten werden niemals ins Log geschrieben.
 Contao bringt seit 5.4/5.5 mit ALTCHA ein eigenes, Proof-of-Work-basiertes Captcha mit. Turnstile
 ist eine Cloudflare-gestützte Alternative (Risiko-Signale statt reiner Rechenarbeit im Browser)
 und für Betreiber sinnvoll, die ohnehin Cloudflare nutzen. Beide existieren als getrennte
-Feldtypen nebeneinander; dieses Bundle berührt ALTCHA nicht.
+Feldtypen nebeneinander; Contaos **eigenen** ALTCHA-Feldtyp berührt dieses Bundle nicht.
+
+Seit **0.7.0** kann Turnstile bei einer fehlgeschlagenen Prüfung optional auf eine **selbst gerechnete**
+ALTCHA-Proof-of-Work-Aufgabe als Fallback zurückgreifen (`turnstileFailureMode = altcha`) – unabhängig
+von Contaos internem, ab 5.4 verfügbarem ALTCHA und daher auf 4.13 wie 5.x identisch. Details siehe
+[`UPGRADE.md`](UPGRADE.md).
 
 ## Bekannte Grenzen
 

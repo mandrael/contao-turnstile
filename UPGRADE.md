@@ -1,5 +1,35 @@
 # Upgrade
 
+## 0.6.0 → 0.7.0
+
+Additiv und rückwärtskompatibel. **Keine DB-Migration nötig.** Bestandsinstallationen verhalten sich
+ohne Änderung unverändert; `altcha` ist ein opt-in-Wert des bestehenden Failure-Modus.
+
+### Neue Fallback-Stufe: ALTCHA (`turnstileFailureMode = altcha`)
+
+Dritter Wert der Einstellung „Verhalten, wenn Turnstile-Prüfung fehlschlägt", nach `block` und `filter`.
+Schlägt Turnstile fehl und greift der Honeypot/Timing-Sekundärfilter nicht, verlangt das Bundle einen
+**Proof of Work**: der Browser löst im Hintergrund eine lokale SHA-256-Rechenaufgabe, deren Lösung der
+Server prüft (Signatur + Ablauf + Einmaligkeit). Ein echter Zweitbeweis statt bloßem Durchlassen – ohne
+externen Dienst, ohne Cookies, ohne Datenbank, ohne Cron.
+
+- **Headless, kein Client-Blocking:** Die Rechenaufgabe läuft unsichtbar in einem Web Worker; die Lösung
+  landet in einem versteckten Feld. Fällt der Challenge-Abruf oder die Berechnung aus, bleibt das Feld
+  leer und der Server entscheidet – **wer Turnstile besteht, kann immer absenden.** Nur Turnstile-Versager
+  ohne gültige Lösung werden abgewiesen.
+- **Secure Context nötig:** Die Rechenaufgabe braucht die Web-Crypto-API, also HTTPS (oder `localhost`).
+  Auf unsicherem Kontext degradiert der `altcha`-Modus automatisch zum `filter`-Verhalten (durchlassen +
+  protokollieren), statt echte Besucher hart abzuweisen.
+- **Content-Security-Policy:** Unter Contao 5 trägt das Bundle `script-src`/`worker-src`/`connect-src 'self'`
+  automatisch ein, sofern die Seite eine CSP nutzt. Contao 4.13 hat keine CSP-API – dort ergänzt ein
+  Integrator mit eigener CSP diese Quellen selbst (gleiche Bringschuld wie beim Turnstile-Host).
+- **Nicht-Managed-Setup:** Läuft Contao ohne Manager-Plugin (das Bundle in einer eigenen Symfony-App),
+  wird die Challenge-Route nicht registriert; der `altcha`-Modus fällt dann für Turnstile-Versager auf
+  `block` zurück (kein Fehler, kein Crash).
+
+Der Failure-Modus bleibt global (kein Per-Feld-Override). `altcha` ersetzt `filter` nicht, sondern erweitert
+es: Honeypot und Timing laufen weiterhin **vor** der Rechenaufgabe.
+
 ## 0.5.x → 0.6.0
 
 Additiv und rückwärtskompatibel. Bestandsinstallationen verhalten sich ohne Änderung

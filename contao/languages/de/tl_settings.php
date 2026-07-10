@@ -51,6 +51,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
     'block' => 'Blockieren: Formular-Absenden wird verhindert (Standard)',
     'filter' => 'Fallback: Honeypot & Zeitprüfung (Rest durchlassen, protokollieren)',
+    'altcha' => 'Fallback: Honeypot/Zeitprüfung, danach ALTCHA-Rechenaufgabe (Proof of Work)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

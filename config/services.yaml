@@ -12,3 +12,15 @@ services:
             $logger: '@monolog.logger.contao'
             $requestStack: '@request_stack'
             $framework: '@contao.framework'
+
+    # Public wie der TurnstileVerifier: das Widget zieht ihn per System::getContainer()->get(...).
+    # Replay-Store ueber den PSR-6-App-Cache, kein eigener Cache-Pool noetig.
+    Mandrael\ContaoTurnstileBundle\Service\AltchaVerifier:
+        public: true
+        arguments:
+            $secret: '%kernel.secret%'
+            $cache: '@cache.app'
+
+    # Plain invokable Controller (kein AbstractController); per Service-ID als _controller aufgerufen.
+    Mandrael\ContaoTurnstileBundle\Controller\AltchaChallengeController:
+        public: true

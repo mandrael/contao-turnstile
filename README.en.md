@@ -117,7 +117,12 @@ The secret key and internal data are never written to the log.
 Since 5.4/5.5 Contao ships ALTCHA, its own proof-of-work captcha. Turnstile is a Cloudflare-backed
 alternative (risk signals instead of pure in-browser computation) and makes sense for operators
 already using Cloudflare. Both exist side by side as separate field types; this bundle does not
-touch ALTCHA.
+touch Contao's **own** ALTCHA field type.
+
+As of **0.7.0**, when a Turnstile check fails, the bundle can optionally fall back to a
+**self-computed** ALTCHA proof-of-work challenge (`turnstileFailureMode = altcha`) – independent of
+Contao's internal ALTCHA (available from 5.4) and therefore identical on 4.13 and 5.x. See
+[`UPGRADE.md`](UPGRADE.md) for details.
 
 ## Known limitations
 

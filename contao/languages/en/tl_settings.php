@@ -51,6 +51,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
     'block' => 'Block: prevent form submission (default)',
     'filter' => 'Fallback: honeypot & timing check (let the rest through, log it)',
+    'altcha' => 'Fallback: honeypot/timing, then an ALTCHA proof-of-work challenge',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

@@ -8,6 +8,7 @@ use Contao\System;
 use Contao\TestCase\ContaoTestCase;
 use Contao\Widget;
 use Mandrael\ContaoTurnstileBundle\FormField\FormTurnstile;
+use Mandrael\ContaoTurnstileBundle\Service\AltchaVerifier;
 use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\DependencyInjection\Container;
@@ -269,10 +270,130 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertTrue($widget->hasErrors());
     }
 
+    public function testAltchaModeValidSolutionPasses(): void
+    {
+        // 'altcha': Turnstile schlaegt fehl, aber der PoW-Zweitbeweis ist gueltig -> durchlassen + Pass loggen.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logAltchaPass');
+        $verifier->expects(self::never())->method('logAltchaBlock');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::once())->method('validate')->with('a-payload')->willReturn(true);
+
+        $widget = $this->createAltchaWidget('42', ['altcha-42' => 'a-payload'], $verifier, $altcha);
+        $widget->validate();
+
+        self::assertFalse($widget->hasErrors());
+    }
+
+    public function testAltchaModeInvalidSolutionBlocks(): void
+    {
+        // Gefuelltes, aber ungueltiges Payload = Angriff/Replay -> blocken, Kategorie altcha-invalid.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-invalid');
+        $verifier->expects(self::never())->method('logAltchaPass');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::once())->method('validate')->with('bad')->willReturn(false);
+
+        $widget = $this->createAltchaWidget('42', ['altcha-42' => 'bad'], $verifier, $altcha);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testAltchaModeEmptyFieldBlocksAndLogsEmpty(): void
+    {
+        // Leeres Feld = JS/Endpoint kaputt -> blocken, Kategorie altcha-empty; der Verifier wird nicht bemueht.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-empty');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::never())->method('validate');
+
+        $widget = $this->createAltchaWidget('42', [], $verifier, $altcha);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testAltchaModeHoneypotBlocksBeforePow(): void
+    {
+        // Billiger Filter zuerst: befuellter Honeypot blockt, der PoW-Verifier wird gar nicht erst gerufen.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logAltchaPass');
+        $verifier->expects(self::never())->method('logAltchaBlock');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::never())->method('validate');
+
+        $widget = $this->createAltchaWidget('42', [
+            'altcha-42' => 'a-payload',
+            'cf-turnstile-hp-42' => 'ich bin ein bot',
+        ], $verifier, $altcha);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testAltchaModeInsecureContextDegradesToLogPass(): void
+    {
+        // Unsicherer Kontext (kein Web Crypto -> altchaActive=false): wie filter durchlassen + protokollieren,
+        // nicht hart blocken. Der PoW-Verifier wird nicht bemueht.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logSoftPass')->with('altcha-insecure-context');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::never())->method('validate');
+
+        $widget = $this->createAltchaWidget('42', [], $verifier, $altcha, false);
+        $widget->validate();
+
+        self::assertFalse($widget->hasErrors());
+    }
+
     private static function signTime(int $time): string
     {
         // Muss bitgenau zu FormTurnstile::signTime() passen (Format pinnen).
         return $time.'.'.substr(hash_hmac('sha256', (string) $time, 'test-secret'), 0, 16);
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     */
+    private function createAltchaWidget(string $id, array $post, TurnstileVerifier $verifier, AltchaVerifier $altcha, bool $altchaActive = true): FormTurnstile
+    {
+        $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
+
+        (new \ReflectionProperty(Widget::class, 'strId'))->setValue($widget, $id);
+        (new \ReflectionProperty(FormTurnstile::class, 'altchaActive'))->setValue($widget, $altchaActive);
+
+        $requestStack = new RequestStack();
+        $requestStack->push(new Request([], $post));
+
+        $container = new Container();
+        $container->setParameter('kernel.secret', 'test-secret');
+        $container->set('request_stack', $requestStack);
+        $container->set(TurnstileVerifier::class, $verifier);
+        $container->set(AltchaVerifier::class, $altcha);
+        System::setContainer($container);
+
+        return $widget;
     }
 
     /**

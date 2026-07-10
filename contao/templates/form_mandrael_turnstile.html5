@@ -30,6 +30,20 @@
   </div>
   <input type="hidden" name="cf-turnstile-ts-<?= $this->id ?>" value="<?= \Contao\StringUtil::specialchars($this->turnstileTiming) ?>">
 
+  <?php // ALTCHA-Proof-of-Work-Fallback: nur im altcha-Modus (Secure Context). Headless statt Widget – ?>
+  <?php // kein required-Feld, das Submits blocken koennte. Der Solver schreibt die Loesung ins Hidden-Field; ?>
+  <?php // scheitert er, bleibt es leer und der Server entscheidet (Turnstile-Besteher sind nie betroffen). ?>
+  <?php if ($this->turnstileAltchaUrl): ?>
+    <input type="hidden" name="altcha-<?= $this->id ?>" value=""
+           data-mandrael-altcha
+           data-challengeurl="<?= \Contao\StringUtil::specialchars($this->turnstileAltchaUrl) ?>"
+           data-workerurl="<?= $this->asset('altcha/worker.js', 'mandrael_contao_turnstile') ?>">
+    <?php $GLOBALS['TL_BODY']['mandrael-altcha'] = sprintf(
+        '<script src="%s" defer></script>',
+        $this->asset('altcha/mandrael-altcha.js', 'mandrael_contao_turnstile')
+    ); ?>
+  <?php endif; ?>
+
   <?php // Graceful Degradation ohne JS. Leer-Uebersetzung (MSC.turnstileNoscript = '') blendet ihn aus. ?>
   <?php if ($strTurnstileNoscript = ($GLOBALS['TL_LANG']['MSC']['turnstileNoscript'] ?? '')): ?>
     <noscript><p class="error"><?= $strTurnstileNoscript ?></p></noscript>

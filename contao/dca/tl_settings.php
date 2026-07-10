@@ -52,7 +52,7 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileMode'] = [
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileFailureMode'] = [
     'inputType' => 'select',
-    'options' => ['block', 'filter'],
+    'options' => ['block', 'filter', 'altcha'],
     'reference' => &$GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'],
     'eval' => ['tl_class' => 'w50', 'includeBlankOption' => false],
     'default' => 'block',

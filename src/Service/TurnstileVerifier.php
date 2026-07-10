@@ -76,6 +76,31 @@ class TurnstileVerifier
         );
     }
 
+    /**
+     * ALTCHA-Fallback: bestandener Proof-of-Work-Zweitbeweis (kein „fehlgeschlagen"-Wortlaut, weil der
+     * Client den PoW nachweislich geloest hat).
+     */
+    public function logAltchaPass(): void
+    {
+        $this->logger->info(
+            'Cloudflare Turnstile ALTCHA-Fallback: Proof-of-Work gelöst, Absenden erlaubt.',
+            ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
+        );
+    }
+
+    /**
+     * ALTCHA-Fallback blockiert. $category trennt „altcha-empty" (leeres Feld -> JS/Endpoint kaputt)
+     * von „altcha-invalid" (gefuelltes, aber ungueltiges/abgelaufenes/Replay-Payload -> Angriff) –
+     * im Prod-Log der Unterschied zwischen Betriebsstoerung und Angriff. Nie Payload/PII loggen.
+     */
+    public function logAltchaBlock(string $category): void
+    {
+        $this->logger->info(
+            'Cloudflare Turnstile ALTCHA-Fallback blockiert ('.$category.').',
+            ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
+        );
+    }
+
     public function validate(?string $token): bool
     {
         if (null === $token || '' === $token) {

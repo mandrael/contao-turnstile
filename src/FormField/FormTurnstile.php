@@ -8,6 +8,7 @@ use Contao\Config;
 use Contao\FormCaptcha;
 use Contao\System;
 use Mandrael\ContaoTurnstileBundle\Csp\CloudflareCspSourceRegistrar;
+use Mandrael\ContaoTurnstileBundle\Service\AltchaVerifier;
 use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
 
 /**
@@ -19,6 +20,7 @@ use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
  * @property string $turnstileSize
  * @property string $turnstileAppearance
  * @property string $turnstileTiming
+ * @property string $turnstileAltchaUrl
  */
 class FormTurnstile extends FormCaptcha
 {
@@ -29,6 +31,9 @@ class FormTurnstile extends FormCaptcha
     protected $strTemplate = 'form_mandrael_turnstile';
 
     private bool $fallbackToCaptcha = false;
+
+    // 'altcha'-Modus aktiv UND Secure Context (Web Crypto verfuegbar). Steuert Template-Render + Validate.
+    private bool $altchaActive = false;
 
     public function __construct($arrAttributes = null)
     {
@@ -53,6 +58,15 @@ class FormTurnstile extends FormCaptcha
         $this->turnstileAppearance = $this->configValue('turnstileAppearance', 'always');
         // Signierter Render-Zeitstempel fuer den Timing-Check (Sekundaerfilter im filter-Modus).
         $this->turnstileTiming = $this->signTime(time());
+
+        // ALTCHA-Fallback nur im Modus 'altcha' UND im Secure Context (Web Crypto). Sonst kann der
+        // Client kein Token erzeugen -> spaeter zu Filter-Verhalten degradieren statt hart blocken.
+        $this->turnstileAltchaUrl = '';
+
+        if ('altcha' === $this->configValue('turnstileFailureMode', 'block') && $this->isSecureContext()) {
+            $this->altchaActive = true;
+            $this->turnstileAltchaUrl = (string) System::getContainer()->get('router')->generate('mandrael_turnstile_altcha');
+        }
     }
 
     /**
@@ -110,8 +124,16 @@ class FormTurnstile extends FormCaptcha
      */
     private function applyFallback(array $post, string $token): void
     {
-        if ('filter' === $this->configValue('turnstileFailureMode', 'block')) {
+        $mode = $this->configValue('turnstileFailureMode', 'block');
+
+        if ('filter' === $mode) {
             $this->applyFilterFallback($post, $token);
+
+            return;
+        }
+
+        if ('altcha' === $mode) {
+            $this->applyAltchaFallback($post);
 
             return;
         }
@@ -138,6 +160,40 @@ class FormTurnstile extends FormCaptcha
         }
 
         $this->getVerifier()->logSoftPass('' === $token ? 'missing-token' : 'verification-failed');
+    }
+
+    /**
+     * Fallback 'altcha': billiger Filter zuerst (Honeypot/Timing), dann der ALTCHA-Proof-of-Work als
+     * Zweitbeweis. Ohne gueltige Loesung wird blockiert. Im unsicheren Kontext (kein Web Crypto)
+     * degradieren wir zu Filter-Verhalten (log+pass), damit echte Besucher nicht hart abgewiesen werden.
+     *
+     * @param array<string, mixed> $post
+     */
+    private function applyAltchaFallback(array $post): void
+    {
+        if ($this->honeypotTripped($post) || $this->submittedTooFast($post)) {
+            $this->blockWithError();
+
+            return;
+        }
+
+        if (!$this->altchaActive) {
+            $this->getVerifier()->logSoftPass('altcha-insecure-context');
+
+            return;
+        }
+
+        $payload = \is_string($post['altcha-'.$this->id] ?? null) ? $post['altcha-'.$this->id] : '';
+
+        if ('' !== $payload && $this->getAltchaVerifier()->validate($payload)) {
+            $this->getVerifier()->logAltchaPass();
+
+            return;
+        }
+
+        // Diagnose: leeres Feld = JS/Endpoint kaputt; gefuellt-aber-ungueltig = Angriff/Replay.
+        $this->getVerifier()->logAltchaBlock('' === $payload ? 'altcha-empty' : 'altcha-invalid');
+        $this->blockWithError();
     }
 
     private function blockWithError(): void
@@ -215,7 +271,12 @@ class FormTurnstile extends FormCaptcha
             $container = System::getContainer();
 
             if ($container->has(CloudflareCspSourceRegistrar::class)) {
-                $container->get(CloudflareCspSourceRegistrar::class)->register();
+                $registrar = $container->get(CloudflareCspSourceRegistrar::class);
+                $registrar->register();
+
+                if ($this->altchaActive) {
+                    $registrar->registerAltcha();
+                }
             }
         }
 
@@ -225,6 +286,32 @@ class FormTurnstile extends FormCaptcha
     private function getVerifier(): TurnstileVerifier
     {
         return System::getContainer()->get(TurnstileVerifier::class);
+    }
+
+    private function getAltchaVerifier(): AltchaVerifier
+    {
+        return System::getContainer()->get(AltchaVerifier::class);
+    }
+
+    /**
+     * Web Crypto (ALTCHA-PoW) braucht einen Secure Context: HTTPS oder localhost. Ohne Request
+     * (CLI/ESI) als unsicher behandeln – degradieren statt werfen.
+     */
+    private function isSecureContext(): bool
+    {
+        $request = System::getContainer()->get('request_stack')->getCurrentRequest();
+
+        if (null === $request) {
+            return false;
+        }
+
+        if ($request->isSecure()) {
+            return true;
+        }
+
+        $host = $request->getHost();
+
+        return \in_array($host, ['127.0.0.1', 'localhost'], true) || str_ends_with($host, '.localhost');
     }
 
     private function configValue(string $key, string $default): string
