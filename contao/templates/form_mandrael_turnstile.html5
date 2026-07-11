@@ -37,10 +37,10 @@
     <input type="hidden" name="altcha-<?= $this->id ?>" value=""
            data-mandrael-altcha
            data-challengeurl="<?= \Contao\StringUtil::specialchars($this->turnstileAltchaUrl) ?>"
-           data-workerurl="<?= $this->asset('altcha/worker.js', 'mandrael_contao_turnstile') ?>">
+           data-workerurl="<?= \Contao\StringUtil::specialchars($this->turnstileWorkerUrl) ?>">
     <?php $GLOBALS['TL_BODY']['mandrael-altcha'] = sprintf(
         '<script src="%s" defer></script>',
-        $this->asset('altcha/mandrael-altcha.js', 'mandrael_contao_turnstile')
+        \Contao\StringUtil::specialchars($this->turnstileSolverUrl)
     ); ?>
   <?php endif; ?>
 

@@ -395,6 +395,34 @@ class FormTurnstileTest extends ContaoTestCase
         return (string) (new \ReflectionMethod($widget, 'altchaChallengeUrl'))->invoke($widget);
     }
 
+    public function testAssetUrlDegradesWhenPackageMissing(): void
+    {
+        // Nicht registriertes Asset-Package -> getUrl() wirft -> '' (kein Crash), altcha degradiert.
+        $packages = $this->createMock(\Symfony\Component\Asset\Packages::class);
+        $packages->method('getUrl')->willThrowException(new \InvalidArgumentException());
+
+        self::assertSame('', $this->invokeAssetUrl($packages));
+    }
+
+    public function testAssetUrlReturnsUrl(): void
+    {
+        $packages = $this->createMock(\Symfony\Component\Asset\Packages::class);
+        $packages->method('getUrl')->willReturn('/bundles/mandraelcontaoturnstile/altcha/worker.js');
+
+        self::assertSame('/bundles/mandraelcontaoturnstile/altcha/worker.js', $this->invokeAssetUrl($packages));
+    }
+
+    private function invokeAssetUrl(object $packages): string
+    {
+        $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
+
+        $container = new Container();
+        $container->set('assets.packages', $packages);
+        System::setContainer($container);
+
+        return (string) (new \ReflectionMethod($widget, 'assetUrl'))->invoke($widget, 'altcha/worker.js');
+    }
+
     private static function signTime(int $time): string
     {
         // Muss bitgenau zu FormTurnstile::signTime() passen (Format pinnen).

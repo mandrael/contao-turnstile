@@ -21,6 +21,8 @@ use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
  * @property string $turnstileAppearance
  * @property string $turnstileTiming
  * @property string $turnstileAltchaUrl
+ * @property string $turnstileWorkerUrl
+ * @property string $turnstileSolverUrl
  */
 class FormTurnstile extends FormCaptcha
 {
@@ -64,9 +66,20 @@ class FormTurnstile extends FormCaptcha
         $this->turnstileAltchaUrl = '';
 
         if ('altcha' === $this->configValue('turnstileFailureMode', 'block') && $this->isSecureContext()) {
-            // Leere URL (fehlende Route ohne Manager-Plugin) -> altcha inaktiv, degradiert zu Filter.
-            $this->turnstileAltchaUrl = $this->altchaChallengeUrl();
-            $this->altchaActive = '' !== $this->turnstileAltchaUrl;
+            // Route + Asset-URLs hier in PHP aufloesen (NICHT via $this->asset() im Template: dort ist
+            // $this auf Contao 4.13 die Widget-Instanz ohne asset()-Methode). Loest eine der drei URLs
+            // nicht auf (fehlende Route/Asset-Package ohne Manager-Plugin), bleibt altcha inaktiv und
+            // degradiert zu Filter-Verhalten – statt das Formular zu crashen.
+            $challengeUrl = $this->altchaChallengeUrl();
+            $workerUrl = $this->assetUrl('altcha/worker.js');
+            $solverUrl = $this->assetUrl('altcha/mandrael-altcha.js');
+
+            if ('' !== $challengeUrl && '' !== $workerUrl && '' !== $solverUrl) {
+                $this->turnstileAltchaUrl = $challengeUrl;
+                $this->turnstileWorkerUrl = $workerUrl;
+                $this->turnstileSolverUrl = $solverUrl;
+                $this->altchaActive = true;
+            }
         }
     }
 
@@ -79,6 +92,20 @@ class FormTurnstile extends FormCaptcha
     {
         try {
             return (string) System::getContainer()->get('router')->generate('mandrael_turnstile_altcha');
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    /**
+     * Loest ein Bundle-Asset ueber den Symfony-Assets-Service auf (identisch zu Template::asset(), aber
+     * in PHP statt im Widget-Template – siehe Konstruktor-Kommentar). Package = 'mandrael_contao_turnstile'
+     * -> URL bundles/mandraelcontaoturnstile/<path>. Bei fehlendem Package '' zurueck (degradiert).
+     */
+    private function assetUrl(string $path): string
+    {
+        try {
+            return (string) System::getContainer()->get('assets.packages')->getUrl($path, 'mandrael_contao_turnstile');
         } catch (\Throwable) {
             return '';
         }
