@@ -6,14 +6,37 @@
 (function () {
   'use strict';
 
+  // Pro Input eine Generation-ID: bei einem Re-Solve (pageshow/Intervall) gewinnt nur der juengste Lauf,
+  // ein ueberholter Worker schreibt seine (evtl. schon veraltete) Loesung nicht mehr ins Feld.
+  var generation = new WeakMap();
+
   function solve(input) {
+    var gen = (generation.get(input) || 0) + 1;
+    generation.set(input, gen);
+    input.value = '';   // alten/verbrauchten Proof sofort entfernen, bis die frische Loesung vorliegt
+
     fetch(input.dataset.challengeurl, { credentials: 'same-origin' })
-      .then(function (response) { return response.json(); })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('challenge request failed');
+        }
+        return response.json();
+      })
       .then(function (challenge) {
+        if (generation.get(input) !== gen) {
+          return;   // ueberholt (neuer Re-Solve gestartet) -> abbrechen
+        }
+        if (!challenge || !challenge.challenge || typeof challenge.maxnumber !== 'number') {
+          throw new Error('invalid challenge');   // Fehlerbody (WAF/Maintenance) -> keinen Worker starten
+        }
+
         var worker = new Worker(input.dataset.workerurl);
+        var stop = function () {
+          try { worker.terminate(); } catch (e) { /* egal */ }
+        };
 
         worker.onmessage = function (event) {
-          if (event.data && typeof event.data.number === 'number') {
+          if (generation.get(input) === gen && event.data && typeof event.data.number === 'number') {
             input.value = btoa(JSON.stringify({
               algorithm: challenge.algorithm,
               challenge: challenge.challenge,
@@ -22,8 +45,11 @@
               signature: challenge.signature
             }));
           }
-          worker.terminate();
+          stop();
         };
+        // Wirft der PoW (Web Crypto im Worker doch nicht verfuegbar), Worker beenden statt liegen lassen.
+        worker.onerror = stop;
+        worker.onmessageerror = stop;
 
         worker.postMessage({
           type: 'work',
@@ -49,8 +75,7 @@
     }
   });
 
-  // Lange offene Formulare: die Loesung vor Ablauf der serverseitigen Expiry (3600 s) erneuern, damit ein
-  // spaeter Absender mit Turnstile-Fehlschlag keinen abgelaufenen Proof mitschickt. Feuert bei kurzen
-  // Sitzungen nie.
+  // Lange offene Formulare: die Loesung vor Ablauf der serverseitigen Expiry (3600 s) erneuern. Feuert bei
+  // kurzen Sitzungen nie.
   setInterval(solveAll, 45 * 60 * 1000);
 })();

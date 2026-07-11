@@ -101,6 +101,17 @@ frame-src  https://challenges.cloudflare.com;
 The widget uses the official external `api.js` and **no** inline JavaScript – no
 `nonce`/`unsafe-inline` is required.
 
+The **ALTCHA fallback** (`turnstileFailureMode = altcha`, from 0.7.0) adds same-origin sources:
+
+```
+script-src  'self';
+worker-src  'self';
+connect-src 'self';
+```
+
+On Contao 5 the bundle adds these automatically in `altcha` mode; on Contao 4.13 (no CSP API) an
+integrator with a strict CSP of their own adds them manually.
+
 ## Failure behaviour
 
 - **Network/timeout errors** (Cloudflare unreachable, 5 s timeout) → the submission is **allowed**

@@ -354,7 +354,8 @@ class FormTurnstile extends FormCaptcha
 
         $host = $request->getHost();
 
-        return \in_array($host, ['127.0.0.1', '::1', 'localhost'], true) || str_ends_with($host, '.localhost');
+        // Symfony Request::getHost() liefert IPv6-Loopback in RFC-Klammern ('[::1]'), nie nacktes '::1'.
+        return \in_array($host, ['127.0.0.1', '[::1]', 'localhost'], true) || str_ends_with($host, '.localhost');
     }
 
     private function configValue(string $key, string $default): string

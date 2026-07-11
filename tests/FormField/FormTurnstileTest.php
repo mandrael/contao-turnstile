@@ -423,6 +423,33 @@ class FormTurnstileTest extends ContaoTestCase
         return (string) (new \ReflectionMethod($widget, 'assetUrl'))->invoke($widget, 'altcha/worker.js');
     }
 
+    public function testIsSecureContextRecognisesLoopbackHosts(): void
+    {
+        // Request::getHost() liefert IPv6-Loopback in Klammern ('[::1]') – der frühere nackte '::1'-Eintrag
+        // matchte nie. HTTPS-los, aber Loopback = Secure Context.
+        self::assertTrue($this->invokeIsSecureContext(Request::create('http://[::1]:8000/')));
+        self::assertTrue($this->invokeIsSecureContext(Request::create('http://127.0.0.1/')));
+        self::assertTrue($this->invokeIsSecureContext(Request::create('http://app.localhost/')));
+        // Echte Domain ohne HTTPS ist kein Secure Context.
+        self::assertFalse($this->invokeIsSecureContext(Request::create('http://example.com/')));
+        // Echte Domain MIT HTTPS schon.
+        self::assertTrue($this->invokeIsSecureContext(Request::create('https://example.com/')));
+    }
+
+    private function invokeIsSecureContext(Request $request): bool
+    {
+        $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
+
+        $stack = new RequestStack();
+        $stack->push($request);
+
+        $container = new Container();
+        $container->set('request_stack', $stack);
+        System::setContainer($container);
+
+        return (bool) (new \ReflectionMethod($widget, 'isSecureContext'))->invoke($widget);
+    }
+
     private static function signTime(int $time): string
     {
         // Muss bitgenau zu FormTurnstile::signTime() passen (Format pinnen).

@@ -102,6 +102,17 @@ frame-src  https://challenges.cloudflare.com;
 Das Widget nutzt das offizielle, externe `api.js` und **kein** Inline-JavaScript – eine
 `nonce`/`unsafe-inline` ist nicht erforderlich.
 
+Im **ALTCHA-Fallback** (`turnstileFailureMode = altcha`, ab 0.7.0) kommen same-origin-Quellen dazu:
+
+```
+script-src  'self';
+worker-src  'self';
+connect-src 'self';
+```
+
+Unter Contao 5 trägt das Bundle diese im `altcha`-Modus automatisch ein; unter Contao 4.13 (keine CSP-API)
+ergänzt sie ein Integrator mit eigener strikter CSP selbst.
+
 ## Verhalten bei Cloudflare-Ausfall
 
 - **Netzwerk-/Timeout-Fehler** (Cloudflare nicht erreichbar, 5 s Timeout) → das Formular wird

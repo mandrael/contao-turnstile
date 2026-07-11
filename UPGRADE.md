@@ -19,7 +19,11 @@ externen Dienst, ohne Cookies, ohne Datenbank, ohne Cron.
   ohne gültige Lösung werden abgewiesen.
 - **Secure Context nötig:** Die Rechenaufgabe braucht die Web-Crypto-API, also HTTPS (oder `localhost`).
   Auf unsicherem Kontext degradiert der `altcha`-Modus automatisch zum `filter`-Verhalten (durchlassen +
-  protokollieren), statt echte Besucher hart abzuweisen.
+  protokollieren), statt echte Besucher hart abzuweisen. Praktisch heißt das: **`altcha` setzt eine
+  HTTPS-Site voraus** (idealerweise mit erzwungenem `http→https`-Redirect). Hinter einem TLS-terminierenden
+  Reverse-Proxy muss `framework.trusted_proxies` korrekt gesetzt sein – sonst meldet Symfony
+  `isSecure() = false`, und der Modus degradiert **still zu `filter`** (im System-Log als `altcha-unavailable`
+  sichtbar).
 - **Content-Security-Policy:** Unter Contao 5 trägt das Bundle `script-src`/`worker-src`/`connect-src 'self'`
   automatisch ein, sofern die Seite eine CSP nutzt. Contao 4.13 hat keine CSP-API – dort ergänzt ein
   Integrator mit eigener CSP diese Quellen selbst (gleiche Bringschuld wie beim Turnstile-Host).
@@ -27,6 +31,10 @@ externen Dienst, ohne Cookies, ohne Datenbank, ohne Cron.
   wird die Challenge-Route nicht registriert. Der `altcha`-Modus erkennt das (die Route lässt sich nicht
   erzeugen) und degradiert dann zum **Filter-Verhalten** (Honeypot/Zeitprüfung, Rest durchlassen und
   protokollieren) – kein Fehler, kein Crash, kein hartes Abweisen echter Besucher.
+- **Template-Override abgleichen:** Wer `form_mandrael_turnstile.html5` in `templates/` überschrieben hat
+  (aus 0.5/0.6), muss den neuen ALTCHA-Block (Hidden-Feld + Solver-Script) übernehmen. Sonst fehlt im
+  `altcha`-Modus das Solver-Feld, und **jeder Turnstile-Fehlschlag wird hart geblockt** (Log `altcha-empty`),
+  obwohl der mildere Modus gewählt wurde.
 
 Der Failure-Modus bleibt global (kein Per-Feld-Override). `altcha` ersetzt `filter` nicht, sondern erweitert
 es: Honeypot und Timing laufen weiterhin **vor** der Rechenaufgabe.
