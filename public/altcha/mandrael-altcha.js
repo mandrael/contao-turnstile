@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  document.querySelectorAll('input[data-mandrael-altcha]').forEach(function (input) {
+  function solve(input) {
     fetch(input.dataset.challengeurl, { credentials: 'same-origin' })
       .then(function (response) { return response.json(); })
       .then(function (challenge) {
@@ -33,5 +33,24 @@
         });
       })
       .catch(function () { /* leer lassen: der Server entscheidet, der Submit wird nie blockiert */ });
+  }
+
+  function solveAll() {
+    document.querySelectorAll('input[data-mandrael-altcha]').forEach(solve);
+  }
+
+  solveAll();
+
+  // Nach einer bfcache-Wiederherstellung (Zurueck/Vorwaerts) wurde das Script nicht neu ausgefuehrt und
+  // die geladene Loesung ist evtl. abgelaufen oder bereits verbraucht -> mit frischer Challenge neu loesen.
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      solveAll();
+    }
   });
+
+  // Lange offene Formulare: die Loesung vor Ablauf der serverseitigen Expiry (3600 s) erneuern, damit ein
+  // spaeter Absender mit Turnstile-Fehlschlag keinen abgelaufenen Proof mitschickt. Feuert bei kurzen
+  // Sitzungen nie.
+  setInterval(solveAll, 45 * 60 * 1000);
 })();
