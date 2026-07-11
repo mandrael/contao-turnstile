@@ -6,6 +6,7 @@ namespace Mandrael\ContaoTurnstileBundle\Tests\Service;
 
 use Mandrael\ContaoTurnstileBundle\Service\AltchaVerifier;
 use PHPUnit\Framework\TestCase;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 class AltchaVerifierTest extends TestCase
@@ -93,6 +94,18 @@ class AltchaVerifierTest extends TestCase
     public function testOverlongPayloadReturnsFalse(): void
     {
         $this->assertFalse($this->verifier()->validate($this->encode(['x' => str_repeat('a', 3000)])));
+    }
+
+    public function testCacheFailureIsFailOpen(): void
+    {
+        // Cache-Backend faellt aus (getItem wirft): kein 500, ein gueltiger PoW wird akzeptiert (fail-open),
+        // der Replay-Marker bleibt Best Effort. createChallenge nutzt den Cache nicht -> Payload ableitbar.
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+        $cache->method('getItem')->willThrowException(new \RuntimeException('cache down'));
+
+        $verifier = new AltchaVerifier(self::SECRET, $cache);
+
+        $this->assertTrue($verifier->validate($this->solve($verifier)));
     }
 
     private function verifier(): AltchaVerifier

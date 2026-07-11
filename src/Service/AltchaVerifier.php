@@ -82,13 +82,8 @@ class AltchaVerifier
             return false;
         }
 
-        $item = $this->cache->getItem('mandrael_altcha_'.$json['challenge']);
-
-        if ($item->isHit()) {
-            return false;
-        }
-
-        // Neu ableiten und vergleichen: nur wer den PoW zum signierten Challenge geloest hat, passt.
+        // Krypto zuerst, OHNE Cache-Zugriff: nur wer den PoW zum signierten Challenge geloest hat, passt.
+        // (Reihenfolge bewusst vor dem Cache, damit ein Cache-Ausfall die Verifikation nicht verhindert.)
         $check = $this->createChallenge((string) $json['salt'], (int) $json['number']);
 
         if (
@@ -99,8 +94,20 @@ class AltchaVerifier
             return false;
         }
 
-        $item->set(true)->expiresAfter(self::EXPIRY);
-        $this->cache->save($item);
+        // Replay-Schutz best-effort ueber den Cache. Faellt das Backend aus, den Submit NICHT mit einem
+        // 500 abwuergen: der PoW ist gueltig -> fail-open (der Replay-Marker bleibt Best Effort). Der
+        // try-Block umfasst ausschliesslich Cache-I/O, daher ist \Throwable hier eng begrenzt.
+        try {
+            $item = $this->cache->getItem('mandrael_altcha_'.$json['challenge']);
+
+            if ($item->isHit()) {
+                return false;                       // bereits eingeloest
+            }
+
+            $this->cache->save($item->set(true)->expiresAfter(self::EXPIRY));
+        } catch (\Throwable) {
+            // Cache-Backend nicht verfuegbar: Verifikation bleibt gueltig, Replay-Marker nicht gesetzt.
+        }
 
         return true;
     }

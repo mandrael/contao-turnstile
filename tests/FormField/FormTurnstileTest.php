@@ -348,15 +348,15 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertTrue($widget->hasErrors());
     }
 
-    public function testAltchaModeInsecureContextDegradesToLogPass(): void
+    public function testAltchaModeUnavailableDegradesToLogPass(): void
     {
-        // Unsicherer Kontext (kein Web Crypto -> altchaActive=false): wie filter durchlassen + protokollieren,
-        // nicht hart blocken. Der PoW-Verifier wird nicht bemueht.
+        // ALTCHA nicht verfuegbar (altchaActive=false: unsicherer Kontext ODER fehlende Route): wie filter
+        // durchlassen + protokollieren, nicht hart blocken. Der PoW-Verifier wird nicht bemueht.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::once())->method('logSoftPass')->with('altcha-insecure-context');
+        $verifier->expects(self::once())->method('logSoftPass')->with('altcha-unavailable');
 
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::never())->method('validate');
@@ -365,6 +365,34 @@ class FormTurnstileTest extends ContaoTestCase
         $widget->validate();
 
         self::assertFalse($widget->hasErrors());
+    }
+
+    public function testAltchaChallengeUrlDegradesWhenRouteMissing(): void
+    {
+        // Nicht-Managed-Setup: Route nicht registriert -> generate() wirft -> '' (kein Crash), altcha inaktiv.
+        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
+        $router->method('generate')->willThrowException(new \Symfony\Component\Routing\Exception\RouteNotFoundException());
+
+        self::assertSame('', $this->invokeAltchaChallengeUrl($router));
+    }
+
+    public function testAltchaChallengeUrlReturnsGeneratedUrl(): void
+    {
+        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
+        $router->method('generate')->willReturn('/_mandrael_turnstile/altcha');
+
+        self::assertSame('/_mandrael_turnstile/altcha', $this->invokeAltchaChallengeUrl($router));
+    }
+
+    private function invokeAltchaChallengeUrl(object $router): string
+    {
+        $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
+
+        $container = new Container();
+        $container->set('router', $router);
+        System::setContainer($container);
+
+        return (string) (new \ReflectionMethod($widget, 'altchaChallengeUrl'))->invoke($widget);
     }
 
     private static function signTime(int $time): string

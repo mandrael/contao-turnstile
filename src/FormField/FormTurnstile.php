@@ -64,8 +64,23 @@ class FormTurnstile extends FormCaptcha
         $this->turnstileAltchaUrl = '';
 
         if ('altcha' === $this->configValue('turnstileFailureMode', 'block') && $this->isSecureContext()) {
-            $this->altchaActive = true;
-            $this->turnstileAltchaUrl = (string) System::getContainer()->get('router')->generate('mandrael_turnstile_altcha');
+            // Leere URL (fehlende Route ohne Manager-Plugin) -> altcha inaktiv, degradiert zu Filter.
+            $this->turnstileAltchaUrl = $this->altchaChallengeUrl();
+            $this->altchaActive = '' !== $this->turnstileAltchaUrl;
+        }
+    }
+
+    /**
+     * Erzeugt die Challenge-Endpoint-URL. In einem Nicht-Managed-Setup (Bundle in eigener Symfony-App
+     * ohne Manager-Plugin) ist die Route nicht registriert und generate() wirft – dann '' zurueckgeben,
+     * damit der altcha-Modus kontrolliert zu Filter-Verhalten degradiert statt das Formular zu crashen.
+     */
+    private function altchaChallengeUrl(): string
+    {
+        try {
+            return (string) System::getContainer()->get('router')->generate('mandrael_turnstile_altcha');
+        } catch (\Throwable) {
+            return '';
         }
     }
 
@@ -164,8 +179,9 @@ class FormTurnstile extends FormCaptcha
 
     /**
      * Fallback 'altcha': billiger Filter zuerst (Honeypot/Timing), dann der ALTCHA-Proof-of-Work als
-     * Zweitbeweis. Ohne gueltige Loesung wird blockiert. Im unsicheren Kontext (kein Web Crypto)
-     * degradieren wir zu Filter-Verhalten (log+pass), damit echte Besucher nicht hart abgewiesen werden.
+     * Zweitbeweis. Ohne gueltige Loesung wird blockiert. Ist ALTCHA nicht verfuegbar (unsicherer Kontext
+     * ohne Web Crypto ODER fehlende Route ohne Manager-Plugin), degradieren wir zu Filter-Verhalten
+     * (log+pass), damit echte Besucher nicht hart abgewiesen werden.
      *
      * @param array<string, mixed> $post
      */
@@ -178,7 +194,7 @@ class FormTurnstile extends FormCaptcha
         }
 
         if (!$this->altchaActive) {
-            $this->getVerifier()->logSoftPass('altcha-insecure-context');
+            $this->getVerifier()->logSoftPass('altcha-unavailable');
 
             return;
         }
@@ -311,7 +327,7 @@ class FormTurnstile extends FormCaptcha
 
         $host = $request->getHost();
 
-        return \in_array($host, ['127.0.0.1', 'localhost'], true) || str_ends_with($host, '.localhost');
+        return \in_array($host, ['127.0.0.1', '::1', 'localhost'], true) || str_ends_with($host, '.localhost');
     }
 
     private function configValue(string $key, string $default): string

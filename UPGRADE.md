@@ -24,8 +24,9 @@ externen Dienst, ohne Cookies, ohne Datenbank, ohne Cron.
   automatisch ein, sofern die Seite eine CSP nutzt. Contao 4.13 hat keine CSP-API – dort ergänzt ein
   Integrator mit eigener CSP diese Quellen selbst (gleiche Bringschuld wie beim Turnstile-Host).
 - **Nicht-Managed-Setup:** Läuft Contao ohne Manager-Plugin (das Bundle in einer eigenen Symfony-App),
-  wird die Challenge-Route nicht registriert; der `altcha`-Modus fällt dann für Turnstile-Versager auf
-  `block` zurück (kein Fehler, kein Crash).
+  wird die Challenge-Route nicht registriert. Der `altcha`-Modus erkennt das (die Route lässt sich nicht
+  erzeugen) und degradiert dann zum **Filter-Verhalten** (Honeypot/Zeitprüfung, Rest durchlassen und
+  protokollieren) – kein Fehler, kein Crash, kein hartes Abweisen echter Besucher.
 
 Der Failure-Modus bleibt global (kein Per-Feld-Override). `altcha` ersetzt `filter` nicht, sondern erweitert
 es: Honeypot und Timing laufen weiterhin **vor** der Rechenaufgabe.
