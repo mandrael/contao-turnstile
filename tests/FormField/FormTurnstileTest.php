@@ -44,16 +44,16 @@ class FormTurnstileTest extends ContaoTestCase
      */
     public static function provideModeMatrix(): iterable
     {
-        // 'off' ist die globale Notbremse und schlaegt jeden Per-Feld-Override.
-        yield 'off schlaegt Feld-on' => ['off', 'on', false];
+        // 'off' ist die globale Notbremse und schlägt jeden Per-Feld-Override.
+        yield 'off schlägt Feld-on' => ['off', 'on', false];
         yield 'off, Vorgabe' => ['off', '', false];
 
-        // 'optout': standardmaessig fuer alle, einzelne Felder koennen abwaehlen.
+        // 'optout': standardmäßig für alle, einzelne Felder können abwählen.
         yield 'optout Vorgabe greift' => ['optout', '', true];
-        yield 'optout Feld-off waehlt ab' => ['optout', 'off', false];
+        yield 'optout Feld-off wählt ab' => ['optout', 'off', false];
         yield 'optout Feld-on greift' => ['optout', 'on', true];
 
-        // 'optin': nur ausgewaehlte Felder.
+        // 'optin': nur ausgewählte Felder.
         yield 'optin Vorgabe greift nicht' => ['optin', '', false];
         yield 'optin Feld-on greift' => ['optin', 'on', true];
         yield 'optin Feld-off greift nicht' => ['optin', 'off', false];
@@ -84,7 +84,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testValidateIgnoresForeignInstanceToken(): void
     {
-        // Token eines ANDEREN Turnstile-Felds im selben Formular darf das eigene nicht erfuellen.
+        // Token eines ANDEREN Turnstile-Felds im selben Formular darf das eigene nicht erfüllen.
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->expects(self::once())->method('validate')->with('')->willReturn(false);
 
@@ -107,7 +107,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testFilterModeInvalidTokenPassesWithoutError(): void
     {
-        // 'filter' = Fallback: fehlgeschlagene Pruefung wird durchgelassen + protokolliert, nicht geblockt.
+        // 'filter' = Fallback: fehlgeschlagene Prüfung wird durchgelassen + protokolliert, nicht geblockt.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -138,7 +138,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testFilterModeHoneypotFilledBlocks(): void
     {
-        // Befuellter Honeypot ist ein eindeutiges Bot-Signal: trotz filter-Modus blocken, nicht durchlassen.
+        // Befüllter Honeypot ist ein eindeutiges Bot-Signal: trotz filter-Modus blocken, nicht durchlassen.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -156,7 +156,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testFilterModeTooFastSubmissionBlocks(): void
     {
-        // Gueltig signierter, aber unmenschlich frischer Zeitstempel: blocken.
+        // Gültig signierter, aber unmenschlich frischer Zeitstempel: blocken.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -174,7 +174,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testFilterModePassesWhenSlowEnoughAndHoneypotEmpty(): void
     {
-        // Langsam genug ausgefuellt + Honeypot leer: mehrdeutiger Rest -> durchlassen + protokollieren.
+        // Langsam genug ausgefüllt + Honeypot leer: mehrdeutiger Rest -> durchlassen + protokollieren.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -192,7 +192,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testFilterModeForgedTimingIsIgnored(): void
     {
-        // Ungueltige Signatur (z. B. Cache/Template-Override/Faelschung): Timing greift NICHT (fail-open),
+        // Ungültige Signatur (z. B. Cache/Template-Override/Fälschung): Timing greift NICHT (fail-open),
         // Honeypot leer -> durchlassen + protokollieren. Kein Fehlalarm durch kaputte Zeitstempel.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
 
@@ -211,7 +211,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testBlockIsDefaultWhenFailureModeUnset(): void
     {
-        // Ohne gesetzte Einstellung gilt 'block': fehlgeschlagene Pruefung wird abgewiesen.
+        // Ohne gesetzte Einstellung gilt 'block': fehlgeschlagene Prüfung wird abgewiesen.
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::never())->method('logSoftPass');
@@ -224,7 +224,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testUnknownFailureModeBlocks(): void
     {
-        // Unbekannter Wert faellt auf 'block' zurueck (sichere Vorgabe), nie still durchlassen.
+        // Unbekannter Wert fällt auf 'block' zurück (sichere Vorgabe), nie still durchlassen.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'bogus';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -272,7 +272,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testAltchaModeValidSolutionPasses(): void
     {
-        // 'altcha': Turnstile schlaegt fehl, aber der PoW-Zweitbeweis ist gueltig -> durchlassen + Pass loggen.
+        // 'altcha': Turnstile schlägt fehl, aber der PoW-Zweitbeweis ist gültig -> durchlassen + Pass loggen.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -291,7 +291,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testAltchaModeInvalidSolutionBlocks(): void
     {
-        // Gefuelltes, aber ungueltiges Payload = Angriff/Replay -> blocken, Kategorie altcha-invalid.
+        // Gefülltes, aber ungültiges Payload = Angriff/Replay -> blocken, Kategorie altcha-invalid.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -310,7 +310,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testAltchaModeEmptyFieldBlocksAndLogsEmpty(): void
     {
-        // Leeres Feld = JS/Endpoint kaputt -> blocken, Kategorie altcha-empty; der Verifier wird nicht bemueht.
+        // Leeres Feld = JS/Endpoint kaputt -> blocken, Kategorie altcha-empty; der Verifier wird nicht bemüht.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -328,7 +328,7 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testAltchaModeHoneypotBlocksBeforePow(): void
     {
-        // Billiger Filter zuerst: befuellter Honeypot blockt, der PoW-Verifier wird gar nicht erst gerufen.
+        // Billiger Filter zuerst: befüllter Honeypot blockt, der PoW-Verifier wird gar nicht erst gerufen.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -350,8 +350,8 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testAltchaModeUnavailableDegradesToLogPass(): void
     {
-        // ALTCHA nicht verfuegbar (altchaActive=false: unsicherer Kontext ODER fehlende Route): wie filter
-        // durchlassen + protokollieren, nicht hart blocken. Der PoW-Verifier wird nicht bemueht.
+        // ALTCHA nicht verfügbar (altchaActive=false: unsicherer Kontext ODER fehlende Route): wie filter
+        // durchlassen + protokollieren, nicht hart blocken. Der PoW-Verifier wird nicht bemüht.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);

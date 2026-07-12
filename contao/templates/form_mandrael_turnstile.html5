@@ -22,7 +22,7 @@
        data-appearance="<?= \Contao\StringUtil::specialchars($this->turnstileAppearance) ?>"
        data-response-field-name="cf-turnstile-response-<?= $this->id ?>"></div>
 
-  <?php // Sekundaerfilter fuer den filter-Modus: Honeypot (Mensch sieht/befuellt das Feld nie) + ?>
+  <?php // Sekundärfilter für den filter-Modus: Honeypot (Mensch sieht/befüllt das Feld nie) + ?>
   <?php // signierter Render-Zeitstempel (Timing). 'hidden' statt Inline-Style = CSP-sauber. ?>
   <div hidden>
     <label for="ctrl_<?= $this->id ?>_hp">Do not fill in this field</label>
@@ -31,7 +31,7 @@
   <input type="hidden" name="cf-turnstile-ts-<?= $this->id ?>" value="<?= \Contao\StringUtil::specialchars($this->turnstileTiming) ?>">
 
   <?php // ALTCHA-Proof-of-Work-Fallback: nur im altcha-Modus (Secure Context). Headless statt Widget – ?>
-  <?php // kein required-Feld, das Submits blocken koennte. Der Solver schreibt die Loesung ins Hidden-Field; ?>
+  <?php // kein required-Feld, das Submits blocken könnte. Der Solver schreibt die Lösung ins Hidden-Field; ?>
   <?php // scheitert er, bleibt es leer und der Server entscheidet (Turnstile-Besteher sind nie betroffen). ?>
   <?php if ($this->turnstileAltchaUrl): ?>
     <input type="hidden" name="altcha-<?= $this->id ?>" value=""

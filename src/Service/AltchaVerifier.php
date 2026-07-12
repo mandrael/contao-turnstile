@@ -7,17 +7,17 @@ namespace Mandrael\ContaoTurnstileBundle\Service;
 use Psr\Cache\CacheItemPoolInterface;
 
 /**
- * Self-contained ALTCHA-Proof-of-Work (SHA-256), nachgebaut nach dem Contao-Core-Schema, aber OHNE
- * Rueckgriff auf dessen @internal, Doctrine-gekoppelten Verifier – damit identisch auf Contao 4.13 und 5.x.
- * Replay-Schutz ueber einen PSR-6-Cache (selbstaufraeumende TTL), keine DB, kein Cron.
+ * Eigenständiger SHA-256-Proof-of-Work, damit der ALTCHA-Fallback auf Contao 4.13, 5.3 und 5.7 exakt
+ * gleich läuft (Contao bringt ein eigenes ALTCHA erst ab 5.4 mit). Replay-Schutz über einen PSR-6-Cache
+ * (selbstaufräumende TTL), keine Datenbank, kein Cron.
  */
 class AltchaVerifier
 {
     private const ALGORITHM = 'SHA-256';
     private const RANGE_MAX = 100000;
 
-    // Nicht unter Cores eigenem Minimum (challenge_expiry ->min(3600)): ein langsamer Ausfueller mit
-    // Turnstile-False-Positive haette sonst eine abgelaufene Loesung und wuerde geblockt.
+    // Nicht unter dem Minimum, das Contao für sein eigenes ALTCHA vorsieht (3600 s): ein langsamer
+    // Ausfüller mit Turnstile-Fehlalarm hätte sonst eine abgelaufene Lösung und würde geblockt.
     private const EXPIRY = 3600;
 
     public function __construct(
@@ -32,7 +32,7 @@ class AltchaVerifier
     public function createChallenge(?string $salt = null, ?int $number = null): array
     {
         $algo = 'sha256';
-        // Das Expiry steckt im Salt: bei der Re-Derivation (validate) wird derselbe Salt uebergeben,
+        // Das Expiry steckt im Salt: bei der Re-Derivation (validate) wird derselbe Salt übergeben,
         // die Ablaufzeit also NICHT neu berechnet.
         $salt ??= bin2hex(random_bytes(12)).'?expires='.(time() + self::EXPIRY).'&';
         $number ??= random_int(0, self::RANGE_MAX);
@@ -49,7 +49,7 @@ class AltchaVerifier
 
     public function validate(string $payload): bool
     {
-        // Laengen-Guard vor dem Decode: ein gueltiges Payload ist wenige hundert Byte.
+        // Längen-Guard vor dem Decode: ein gültiges Payload ist wenige hundert Byte.
         if ('' === $payload || \strlen($payload) > 2048) {
             return false;
         }
@@ -70,7 +70,7 @@ class AltchaVerifier
             }
         }
 
-        // challenge ist ein SHA-256-Hex -> als Cache-Key sicher; reservierte Zeichen wuerden sonst
+        // challenge ist ein SHA-256-Hex -> als Cache-Key sicher; reservierte Zeichen würden sonst
         // CacheItem::validateKey eine Exception werfen lassen (500 beim Formular-Submit).
         if (!\is_string($json['challenge']) || !preg_match('/^[0-9a-f]{64}$/', $json['challenge'])) {
             return false;
@@ -82,7 +82,7 @@ class AltchaVerifier
             return false;
         }
 
-        // Krypto zuerst, OHNE Cache-Zugriff: nur wer den PoW zum signierten Challenge geloest hat, passt.
+        // Krypto zuerst, OHNE Cache-Zugriff: nur wer den PoW zum signierten Challenge gelöst hat, passt.
         // (Reihenfolge bewusst vor dem Cache, damit ein Cache-Ausfall die Verifikation nicht verhindert.)
         $check = $this->createChallenge((string) $json['salt'], (int) $json['number']);
 
@@ -94,19 +94,19 @@ class AltchaVerifier
             return false;
         }
 
-        // Replay-Schutz best-effort ueber den Cache. Faellt das Backend aus, den Submit NICHT mit einem
-        // 500 abwuergen: der PoW ist gueltig -> fail-open (der Replay-Marker bleibt Best Effort). Der
-        // try-Block umfasst ausschliesslich Cache-I/O, daher ist \Throwable hier eng begrenzt.
+        // Replay-Schutz best-effort über den Cache. Fällt das Backend aus, den Submit NICHT mit einem
+        // 500 abwürgen: der PoW ist gültig -> fail-open (der Replay-Marker bleibt Best Effort). Der
+        // try-Block umfasst ausschließlich Cache-I/O, daher ist \Throwable hier eng begrenzt.
         try {
             $item = $this->cache->getItem('mandrael_altcha_'.$json['challenge']);
 
             if ($item->isHit()) {
-                return false;                       // bereits eingeloest
+                return false;                       // bereits eingelöst
             }
 
             $this->cache->save($item->set(true)->expiresAfter(self::EXPIRY));
         } catch (\Throwable) {
-            // Cache-Backend nicht verfuegbar: Verifikation bleibt gueltig, Replay-Marker nicht gesetzt.
+            // Cache-Backend nicht verfügbar: Verifikation bleibt gültig, Replay-Marker nicht gesetzt.
         }
 
         return true;

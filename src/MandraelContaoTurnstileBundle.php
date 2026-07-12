@@ -7,7 +7,7 @@ namespace Mandrael\ContaoTurnstileBundle;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 // Klassische Bundle-Basis statt AbstractBundle: AbstractBundle existiert erst ab
-// Symfony 6.1, Contao 4.13 laeuft aber auf Symfony 5.4.
+// Symfony 6.1, Contao 4.13 läuft aber auf Symfony 5.4.
 class MandraelContaoTurnstileBundle extends Bundle
 {
     public function getPath(): string

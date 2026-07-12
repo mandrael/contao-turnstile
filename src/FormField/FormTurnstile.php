@@ -12,8 +12,8 @@ use Mandrael\ContaoTurnstileBundle\Service\AltchaVerifier;
 use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
 
 /**
- * Ersetzt das Standard-CAPTCHA. Wird vom Formular-Compiler ueber $GLOBALS['TL_FFL']['captcha']
- * per "new" erzeugt (nicht ueber den Container), daher Service-Zugriff via System::getContainer().
+ * Ersetzt das Standard-CAPTCHA. Wird vom Formular-Compiler über $GLOBALS['TL_FFL']['captcha']
+ * per "new" erzeugt (nicht über den Container), daher Service-Zugriff via System::getContainer().
  *
  * @property string $siteKey
  * @property string $turnstileTheme
@@ -26,15 +26,15 @@ use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
  */
 class FormTurnstile extends FormCaptcha
 {
-    // Mindest-Ausfuellzeit in Sekunden: schneller = mit hoher Sicherheit ein Skript, kein Mensch.
-    // ponytail: bewusst konservativ (kaum Fehlalarme), feste Schwelle; bei Bedarf spaeter konfigurierbar.
+    // Mindest-Ausfüllzeit in Sekunden: schneller = mit hoher Sicherheit ein Skript, kein Mensch.
+    // ponytail: bewusst konservativ (kaum Fehlalarme), feste Schwelle; bei Bedarf später konfigurierbar.
     private const MIN_FILL_SECONDS = 3;
 
     protected $strTemplate = 'form_mandrael_turnstile';
 
     private bool $fallbackToCaptcha = false;
 
-    // 'altcha'-Modus aktiv UND Secure Context (Web Crypto verfuegbar). Steuert Template-Render + Validate.
+    // 'altcha'-Modus aktiv UND Secure Context (Web Crypto verfügbar). Steuert Template-Render + Validate.
     private bool $altchaActive = false;
 
     public function __construct($arrAttributes = null)
@@ -43,8 +43,8 @@ class FormTurnstile extends FormCaptcha
 
         $verifier = $this->getVerifier();
 
-        // Ohne Keys, global deaktiviert oder pro Feld abgewaehlt: verlustfrei auf das
-        // Standard-CAPTCHA zurueckfallen.
+        // Ohne Keys, global deaktiviert oder pro Feld abgewählt: verlustfrei auf das
+        // Standard-CAPTCHA zurückfallen.
         if (!$verifier->isConfigured() || !$this->turnstileApplies($arrAttributes)) {
             $this->fallbackToCaptcha = true;
             $this->strTemplate = 'form_captcha';
@@ -58,16 +58,16 @@ class FormTurnstile extends FormCaptcha
         $this->turnstileTheme = $this->configValue('turnstileTheme', 'light');
         $this->turnstileSize = $this->configValue('turnstileSize', 'normal');
         $this->turnstileAppearance = $this->configValue('turnstileAppearance', 'always');
-        // Signierter Render-Zeitstempel fuer den Timing-Check (Sekundaerfilter im filter-Modus).
+        // Signierter Render-Zeitstempel für den Timing-Check (Sekundärfilter im filter-Modus).
         $this->turnstileTiming = $this->signTime(time());
 
         // ALTCHA-Fallback nur im Modus 'altcha' UND im Secure Context (Web Crypto). Sonst kann der
-        // Client kein Token erzeugen -> spaeter zu Filter-Verhalten degradieren statt hart blocken.
+        // Client kein Token erzeugen -> später zu Filter-Verhalten degradieren statt hart blocken.
         $this->turnstileAltchaUrl = '';
 
         if ('altcha' === $this->configValue('turnstileFailureMode', 'block') && $this->isSecureContext()) {
-            // Route + Asset-URLs hier in PHP aufloesen (NICHT via $this->asset() im Template: dort ist
-            // $this auf Contao 4.13 die Widget-Instanz ohne asset()-Methode). Loest eine der drei URLs
+            // Route + Asset-URLs hier in PHP auflösen (NICHT via $this->asset() im Template: dort ist
+            // $this auf Contao 4.13 die Widget-Instanz ohne asset()-Methode). Löst eine der drei URLs
             // nicht auf (fehlende Route/Asset-Package ohne Manager-Plugin), bleibt altcha inaktiv und
             // degradiert zu Filter-Verhalten – statt das Formular zu crashen.
             $challengeUrl = $this->altchaChallengeUrl();
@@ -85,7 +85,7 @@ class FormTurnstile extends FormCaptcha
 
     /**
      * Erzeugt die Challenge-Endpoint-URL. In einem Nicht-Managed-Setup (Bundle in eigener Symfony-App
-     * ohne Manager-Plugin) ist die Route nicht registriert und generate() wirft – dann '' zurueckgeben,
+     * ohne Manager-Plugin) ist die Route nicht registriert und generate() wirft – dann '' zurückgeben,
      * damit der altcha-Modus kontrolliert zu Filter-Verhalten degradiert statt das Formular zu crashen.
      */
     private function altchaChallengeUrl(): string
@@ -98,9 +98,9 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Loest ein Bundle-Asset ueber den Symfony-Assets-Service auf (identisch zu Template::asset(), aber
+     * Löst ein Bundle-Asset über den Symfony-Assets-Service auf (identisch zu Template::asset(), aber
      * in PHP statt im Widget-Template – siehe Konstruktor-Kommentar). Package = 'mandrael_contao_turnstile'
-     * -> URL bundles/mandraelcontaoturnstile/<path>. Bei fehlendem Package '' zurueck (degradiert).
+     * -> URL bundles/mandraelcontaoturnstile/<path>. Bei fehlendem Package '' zurück (degradiert).
      */
     private function assetUrl(string $path): string
     {
@@ -140,13 +140,13 @@ class FormTurnstile extends FormCaptcha
         }
 
         $request = System::getContainer()->get('request_stack')->getCurrentRequest();
-        // Roh aus dem ParameterBag (nicht ueber Contao\Input): das opake CF-Token darf nicht durch
-        // die XSS-/Encoding-Schicht. all() ohne Schluessel wirft bei Array-Input kein BadRequest.
+        // Roh aus dem ParameterBag (nicht über Contao\Input): das opake CF-Token darf nicht durch
+        // die XSS-/Encoding-Schicht. all() ohne Schlüssel wirft bei Array-Input kein BadRequest.
         $post = null !== $request ? $request->request->all() : [];
         // Feldname pro Widget-Instanz eindeutig (analog Core-Captcha: captcha_<id>), sonst teilen sich
-        // mehrere Turnstile-Felder eines Formulars denselben POST-Schluessel und PHP behaelt nur den
-        // letzten Wert. Faellt auf den Cloudflare-Default cf-turnstile-response zurueck, falls ein
-        // Template-Override das -<id>-Suffix verliert – sonst braeche das Feld still.
+        // mehrere Turnstile-Felder eines Formulars denselben POST-Schlüssel und PHP behält nur den
+        // letzten Wert. Fällt auf den Cloudflare-Default cf-turnstile-response zurück, falls ein
+        // Template-Override das -<id>-Suffix verliert – sonst bräche das Feld still.
         $value = $post['cf-turnstile-response-'.$this->id] ?? $post['cf-turnstile-response'] ?? null;
         $token = \is_string($value) ? $value : '';
 
@@ -158,9 +158,9 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Verhalten, wenn die Turnstile-Pruefung fehlschlaegt (Einstellung turnstileFailureMode):
-     * 'block' (Default und unbekannte Werte) weist ab; 'filter' laesst nach dem Honeypot/Timing-
-     * Sekundaerfilter durch. Die Stufe 'altcha' wird in 0.7.0 hier eingehaengt.
+     * Verhalten, wenn die Turnstile-Prüfung fehlschlägt (Einstellung turnstileFailureMode):
+     * 'block' (Default und unbekannte Werte) weist ab; 'filter' lässt nach dem Honeypot/Timing-
+     * Sekundärfilter durch. Die Stufe 'altcha' wird in 0.7.0 hier eingehängt.
      *
      * @param array<string, mixed> $post
      */
@@ -184,12 +184,12 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Fallback 'filter': offensichtliche Bots (Honeypot befuellt oder unmenschlich schnell
+     * Fallback 'filter': offensichtliche Bots (Honeypot befüllt oder unmenschlich schnell
      * abgeschickt) trotzdem blocken; nur den mehrdeutigen Rest (z. B. Turnstile-Fehlalarme bei
-     * Privacy-Browsern) durchlassen + protokollieren (Kategorie ohne Token/PII). Logging laeuft
-     * ueber den Verifier (dort ist der Contao-Logger per DI injiziert – monolog.logger.contao ist
-     * nicht public, also nicht ueber den Container abrufbar); der Missing-Token-Warn feuert davon
-     * unabhaengig im Verifier.
+     * Privacy-Browsern) durchlassen + protokollieren (Kategorie ohne Token/PII). Logging läuft
+     * über den Verifier (dort ist der Contao-Logger per DI injiziert – monolog.logger.contao ist
+     * nicht public, also nicht über den Container abrufbar); der Missing-Token-Warn feuert davon
+     * unabhängig im Verifier.
      *
      * @param array<string, mixed> $post
      */
@@ -206,7 +206,7 @@ class FormTurnstile extends FormCaptcha
 
     /**
      * Fallback 'altcha': billiger Filter zuerst (Honeypot/Timing), dann der ALTCHA-Proof-of-Work als
-     * Zweitbeweis. Ohne gueltige Loesung wird blockiert. Ist ALTCHA nicht verfuegbar (unsicherer Kontext
+     * Zweitbeweis. Ohne gültige Lösung wird blockiert. Ist ALTCHA nicht verfügbar (unsicherer Kontext
      * ohne Web Crypto ODER fehlende Route ohne Manager-Plugin), degradieren wir zu Filter-Verhalten
      * (log+pass), damit echte Besucher nicht hart abgewiesen werden.
      *
@@ -234,7 +234,7 @@ class FormTurnstile extends FormCaptcha
             return;
         }
 
-        // Diagnose: leeres Feld = JS/Endpoint kaputt; gefuellt-aber-ungueltig = Angriff/Replay.
+        // Diagnose: leeres Feld = JS/Endpoint kaputt; gefüllt-aber-ungültig = Angriff/Replay.
         $this->getVerifier()->logAltchaBlock('' === $payload ? 'altcha-empty' : 'altcha-invalid');
         $this->blockWithError();
     }
@@ -246,8 +246,8 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Honeypot: ein per CSS verstecktes Feld, das ein Mensch nie sieht. Ist es befuellt (oder kommt
-     * es als unerwarteter Typ an), war ein Skript am Werk. Kein Fehlalarm-Risiko fuer echte Nutzer.
+     * Honeypot: ein per CSS verstecktes Feld, das ein Mensch nie sieht. Ist es befüllt (oder kommt
+     * es als unerwarteter Typ an), war ein Skript am Werk. Kein Fehlalarm-Risiko für echte Nutzer.
      *
      * @param array<string, mixed> $post
      */
@@ -264,7 +264,7 @@ class FormTurnstile extends FormCaptcha
 
     /**
      * Timing: signierter Render-Zeitstempel. Schneller als MIN_FILL_SECONDS = Bot. Fehlt das Feld
-     * oder ist die Signatur ungueltig (Template-Override, Cache, Faelschung), wird NICHT geblockt
+     * oder ist die Signatur ungültig (Template-Override, Cache, Fälschung), wird NICHT geblockt
      * (fail-open) – der Honeypot bleibt als Schranke. So entstehen keine Fehlalarme durch Edge-Cases.
      *
      * @param array<string, mixed> $post
@@ -303,7 +303,7 @@ class FormTurnstile extends FormCaptcha
             return parent::generate();
         }
 
-        // Markup kommt vollstaendig aus dem Template form_mandrael_turnstile.
+        // Markup kommt vollständig aus dem Template form_mandrael_turnstile.
         return '';
     }
 

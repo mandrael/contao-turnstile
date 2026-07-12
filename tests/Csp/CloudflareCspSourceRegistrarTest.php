@@ -43,7 +43,7 @@ class CloudflareCspSourceRegistrarTest extends TestCase
     public function testAddsCloudflareHostToScriptAndFrameSrc(): void
     {
         $directives = new DirectiveSet(new PolicyManager());
-        // addSource() ergaenzt nur bestehende Direktiven (autoIgnore), daher vorab setzen.
+        // addSource() ergänzt nur bestehende Direktiven (autoIgnore), daher vorab setzen.
         $directives->setDirectives(['script-src' => "'self'", 'frame-src' => "'self'"]);
         $csp = new CspHandler($directives);
 

@@ -38,7 +38,7 @@ class TurnstileVerifier
 
     private function configValue(string $key): string
     {
-        // Zugriff ueber den Framework-Adapter statt statischem Config::get -> testbar/mockbar.
+        // Zugriff über den Framework-Adapter statt statischem Config::get -> testbar/mockbar.
         $this->framework->initialize();
 
         return trim((string) $this->framework->getAdapter(Config::class)->get($key));
@@ -50,7 +50,7 @@ class TurnstileVerifier
     }
 
     /**
-     * Default an (rueckwaertskompatibel): nur ein explizit leerer Wert (Checkbox abgewaehlt) schaltet
+     * Default an (rückwärtskompatibel): nur ein explizit leerer Wert (Checkbox abgewählt) schaltet
      * remoteip ab; ungesetzt (frische Installation) sendet weiterhin. Hinter NAT/VPN/iCloud Private
      * Relay kann Abschalten sinnvoll sein – CF validiert remoteip nicht strikt (kein IP-Mismatch-Code).
      */
@@ -62,10 +62,10 @@ class TurnstileVerifier
     }
 
     /**
-     * Fallback 'filter' (Bruecke): protokolliert eine durchgelassene, aber fehlgeschlagene Submission auf
+     * Fallback 'filter' (Brücke): protokolliert eine durchgelassene, aber fehlgeschlagene Submission auf
      * Level info, damit die Site die Menge (Privacy-Browser-Fehlalarme vs. Bots) per Log auswerten
      * kann. Liegt hier, weil der Logger via DI injiziert ist (FormTurnstile kann monolog.logger.contao
-     * nicht ueber den Container holen – nicht public). $category ist 'missing-token' oder
+     * nicht über den Container holen – nicht public). $category ist 'missing-token' oder
      * 'verification-failed'; nie Token/Secret/PII loggen.
      */
     public function logSoftPass(string $category): void
@@ -78,7 +78,7 @@ class TurnstileVerifier
 
     /**
      * ALTCHA-Fallback: bestandener Proof-of-Work-Zweitbeweis (kein „fehlgeschlagen"-Wortlaut, weil der
-     * Client den PoW nachweislich geloest hat).
+     * Client den PoW nachweislich gelöst hat).
      */
     public function logAltchaPass(): void
     {
@@ -90,8 +90,8 @@ class TurnstileVerifier
 
     /**
      * ALTCHA-Fallback blockiert. $category trennt „altcha-empty" (leeres Feld -> JS/Endpoint kaputt)
-     * von „altcha-invalid" (gefuelltes, aber ungueltiges/abgelaufenes/Replay-Payload -> Angriff) –
-     * im Prod-Log der Unterschied zwischen Betriebsstoerung und Angriff. Nie Payload/PII loggen.
+     * von „altcha-invalid" (gefülltes, aber ungültiges/abgelaufenes/Replay-Payload -> Angriff) –
+     * im Prod-Log der Unterschied zwischen Betriebsstörung und Angriff. Nie Payload/PII loggen.
      */
     public function logAltchaBlock(string $category): void
     {
@@ -106,7 +106,7 @@ class TurnstileVerifier
         if (null === $token || '' === $token) {
             // Hier wird ein stiller Totalausfall sichtbar: kommt gar kein Token an (kaputter
             // Template-Override/Feldname, JS aus), genau EINE Warnung – bewusst warning (nicht info),
-            // damit ein flaechiger Ausfall im Prod-Log auffaellt. Abgelehnte Tokens (Bot-Replays)
+            // damit ein flächiger Ausfall im Prod-Log auffällt. Abgelehnte Tokens (Bot-Replays)
             // bleiben weiter still, um keine Log-Flut zu erzeugen. Nie das Secret loggen.
             $this->logger->warning(
                 'Cloudflare Turnstile: kein Token im Request – Template/Feldname prüfen.',
@@ -158,12 +158,12 @@ class TurnstileVerifier
         // enthalten kein Secret; Bot-/Replay-Codes bleiben absichtlich still.
         if ([] !== array_intersect(['invalid-input-secret', 'invalid-input-sitekey'], (array) ($data['error-codes'] ?? []))) {
             $this->logger->warning(
-                'Cloudflare Turnstile lehnt die Konfiguration ab – Site Key/Secret Key pruefen.',
+                'Cloudflare Turnstile lehnt die Konfiguration ab – Site Key/Secret Key prüfen.',
                 ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
             );
         }
 
-        // Ungueltiges/gefaelschtes Token: hart blockieren (fail-closed).
+        // Ungültiges/gefälschtes Token: hart blockieren (fail-closed).
         return false;
     }
 }

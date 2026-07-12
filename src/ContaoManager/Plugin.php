@@ -29,7 +29,7 @@ class Plugin implements BundlePluginInterface, RoutingPluginInterface
     /**
      * Route programmatisch statt via routes.yaml: kein einzelner `type:`-Loader funktioniert auf
      * beiden Versionsseiten (Symfony 5.4/Contao 4.13 kennt nur 'annotation', Symfony 7/Contao 5.7 nur
-     * 'attribute'). RouteCollection/Route sind ueber 5.4–7.x stabil.
+     * 'attribute'). RouteCollection/Route sind über 5.4–7.x stabil.
      */
     public function getRouteCollection(LoaderResolverInterface $resolver, KernelInterface $kernel): ?RouteCollection
     {

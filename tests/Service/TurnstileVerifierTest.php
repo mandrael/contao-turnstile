@@ -43,7 +43,7 @@ class TurnstileVerifierTest extends ContaoTestCase
     public function testEmptyTokenLogsWarning(): void
     {
         // Fehlendes Token (kaputter Feldname/Template, JS aus) -> genau eine diagnostische Warnung,
-        // damit ein flaechiger Ausfall im Prod-Log auffaellt.
+        // damit ein flächiger Ausfall im Prod-Log auffällt.
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('warning');
 
@@ -109,7 +109,7 @@ class TurnstileVerifierTest extends ContaoTestCase
 
     public function testBotErrorCodeStaysSilent(): void
     {
-        // Gewoehnliche Bot-/Replay-Codes duerfen NICHT geloggt werden.
+        // Gewöhnliche Bot-/Replay-Codes dürfen NICHT geloggt werden.
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->never())->method('warning');
 

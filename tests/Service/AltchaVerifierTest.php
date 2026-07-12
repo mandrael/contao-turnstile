@@ -59,8 +59,8 @@ class AltchaVerifierTest extends TestCase
 
     public function testNumberOutOfRangeIsBlocked(): void
     {
-        // number ausserhalb 0..RANGE_MAX: die Re-Derivation erzeugt einen anderen Challenge-Hash
-        // -> Vergleich scheitert. Kein separater Bounds-Check noetig.
+        // number außerhalb 0..RANGE_MAX: die Re-Derivation erzeugt einen anderen Challenge-Hash
+        // -> Vergleich scheitert. Kein separater Bounds-Check nötig.
         $verifier = $this->verifier();
         $solution = $this->decode($this->solve($verifier));
         $solution['number'] = 999999999;
@@ -98,7 +98,7 @@ class AltchaVerifierTest extends TestCase
 
     public function testCacheFailureIsFailOpen(): void
     {
-        // Cache-Backend faellt aus (getItem wirft): kein 500, ein gueltiger PoW wird akzeptiert (fail-open),
+        // Cache-Backend fällt aus (getItem wirft): kein 500, ein gültiger PoW wird akzeptiert (fail-open),
         // der Replay-Marker bleibt Best Effort. createChallenge nutzt den Cache nicht -> Payload ableitbar.
         $cache = $this->createMock(CacheItemPoolInterface::class);
         $cache->method('getItem')->willThrowException(new \RuntimeException('cache down'));
@@ -114,7 +114,7 @@ class AltchaVerifierTest extends TestCase
     }
 
     /**
-     * Baut ein gueltiges Client-Payload mit bekannter Zahl (der Worker wuerde sie per Brute-Force finden).
+     * Baut ein gültiges Client-Payload mit bekannter Zahl (der Worker würde sie per Brute-Force finden).
      */
     private function solve(AltchaVerifier $verifier, ?string $salt = null, int $number = 42): string
     {

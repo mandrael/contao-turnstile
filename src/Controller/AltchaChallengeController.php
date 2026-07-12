@@ -9,8 +9,8 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
  * Liefert pro Abruf eine frische, kurzlebige ALTCHA-Challenge (Cache-Control: no-store). Ein
- * eingebettetes Pre-Signing waere durch einen Page-Cache/CDN teilbar – der erste Submit markierte
- * die Challenge als Replay und wies alle weiteren gueltigen Loesungen ab. Ein eigener Endpoint umgeht das.
+ * eingebettetes Pre-Signing wäre durch einen Page-Cache/CDN teilbar – der erste Submit markierte
+ * die Challenge als Replay und wies alle weiteren gültigen Lösungen ab. Ein eigener Endpoint umgeht das.
  */
 class AltchaChallengeController
 {

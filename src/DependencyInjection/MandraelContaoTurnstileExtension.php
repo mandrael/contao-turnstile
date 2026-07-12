@@ -24,7 +24,7 @@ class MandraelContaoTurnstileExtension extends Extension
         $loader->load('services.yaml');
 
         // CSP-Auto-Registrierung nur auf Contao 5.x: dort existiert die native CSP-API.
-        // Auf 4.13 bliebe die Referenz auf ResponseContextAccessor sonst beim Kompilieren haengen.
+        // Auf 4.13 bliebe die Referenz auf ResponseContextAccessor sonst beim Kompilieren hängen.
         if (class_exists(CspHandler::class)) {
             $loader->load('services_csp.yaml');
         }
