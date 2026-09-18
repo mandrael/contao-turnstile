@@ -37,6 +37,7 @@ class Plugin implements BundlePluginInterface, RoutingPluginInterface
         $collection->add('mandrael_turnstile_altcha', new Route(
             '/_mandrael_turnstile/altcha',
             ['_controller' => AltchaChallengeController::class],
+            methods: ['GET'],
         ));
 
         return $collection;
