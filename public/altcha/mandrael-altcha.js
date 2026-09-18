@@ -13,7 +13,11 @@
   function solve(input) {
     var gen = (generation.get(input) || 0) + 1;
     generation.set(input, gen);
-    input.value = '';   // alten/verbrauchten Proof sofort entfernen, bis die frische Lösung vorliegt
+    // Die alte Lösung bleibt stehen, bis die neue vorliegt (worker.onmessage überschreibt sie erst
+    // dann) – ein sofort geleertes Feld würde einen Nutzer mit Turnstile-Fehlschlag während der
+    // Such-Laufzeit (1,6 s Desktop, ein Mehrfaches am Telefon) als altcha-empty blockieren. Eine
+    // verbrauchte alte Lösung schadet nicht: der Server lehnt sie als Replay ab, das Ergebnis ist
+    // dasselbe wie beim leeren Feld.
 
     fetch(input.dataset.challengeurl, { credentials: 'same-origin' })
       .then(function (response) {
