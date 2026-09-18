@@ -18,6 +18,9 @@ class TurnstileVerifier
     private const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
     private const TIMEOUT = 5;
 
+    // Ein gültiges Turnstile-Token ist wenige hundert Byte; ein überlanger Wert ist kein Token.
+    private const MAX_TOKEN_LENGTH = 2048;
+
     // Öffentlich dokumentierte Cloudflare-Test-Secrets (immer-passierend). Die siteverify-Antwort
     // liefert dafür fest "hostname":"example.com" – die Hostname-Prüfung würde jede echte
     // DDEV-Testinstanz sonst blocken.
@@ -125,6 +128,11 @@ class TurnstileVerifier
             return false;
         }
 
+        if (\strlen($token) > self::MAX_TOKEN_LENGTH) {
+            // Kein plausibles Turnstile-Token -> gar nicht erst gegen Cloudflare validieren.
+            return false;
+        }
+
         $payload = [
             'secret' => $this->getSecretKey(),
             'response' => $token,
@@ -148,15 +156,15 @@ class TurnstileVerifier
 
             $data = $response->toArray(false);
         } catch (TransportExceptionInterface | DecodingExceptionInterface $e) {
-            // Cloudflare nicht erreichbar oder unverwertbare Antwort. Bewusst fail-open, damit ein
-            // CF-Ausfall nicht alle Formulare blockiert. Andere Fehler (Code-Bugs) NICHT schlucken.
-            // Niemals Secret/$GLOBALS loggen.
+            // Cloudflare nicht erreichbar oder unverwertbare Antwort. Fail-closed: die konfigurierte
+            // Fallback-Stufe (block/filter/altcha) entscheidet über das weitere Vorgehen, nicht mehr
+            // dieser Verifier. Andere Fehler (Code-Bugs) NICHT schlucken. Niemals Secret/$GLOBALS loggen.
             $this->logger->error(
-                'Cloudflare Turnstile nicht erreichbar, Absenden wird durchgelassen: '.$e->getMessage(),
+                'Cloudflare Turnstile nicht erreichbar, Verifikation gilt als fehlgeschlagen: '.$e->getMessage(),
                 ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
             );
 
-            return true;
+            return false;
         }
 
         if (true === ($data['success'] ?? false)) {

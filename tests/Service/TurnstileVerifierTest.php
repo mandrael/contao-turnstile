@@ -78,14 +78,22 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->createVerifier(new MockHttpClient(), logger: $logger)->logSoftPass('missing-token');
     }
 
-    public function testTransportErrorFailsOpen(): void
+    public function testTransportErrorFailsClosed(): void
     {
         $client = new MockHttpClient(static function (): MockResponse {
             throw new TransportException('Cloudflare not reachable');
         });
 
-        // Netzwerk-/Timeout-Fehler -> bewusst durchlassen (fail-open).
-        $this->assertTrue($this->createVerifier($client)->validate('a-token'));
+        // Netzwerk-/Timeout-Fehler -> fail-closed, die konfigurierte Fallback-Stufe entscheidet.
+        $this->assertFalse($this->createVerifier($client)->validate('a-token'));
+    }
+
+    public function testOverlongTokenFailsWithoutHttpCall(): void
+    {
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->expects($this->never())->method('request');
+
+        $this->assertFalse($this->createVerifier($client)->validate(str_repeat('a', 2049)));
     }
 
     public function testHostnameMatchingRequestHostPasses(): void
