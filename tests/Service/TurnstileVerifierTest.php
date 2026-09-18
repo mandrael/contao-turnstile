@@ -99,6 +99,20 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertFalse($this->createVerifier($client, requestStack: $requestStack)->validate('a-token'));
     }
 
+    public function testHostnameDotDoesNotMatchAndDoesNotThrow(): void
+    {
+        // Cloudflare liefert hostname "." (Edge-Fall) -> normalizeHost() muss den Guard gegen den
+        // bereits rtrim()ten Wert prüfen. Zieht man ihn vor das rtrim, bleibt "." dort stehen,
+        // idn_to_ascii('.') liefert '' zurück und der anschliessende rtrim('.') faellt auf idn_to_ascii('')
+        // herein, das seit PHP 8 ein ValueError wirft statt false zu liefern - dieser Test faengt genau das.
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('https://beispiel.at/formular'));
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => '.'])));
+
+        $this->assertFalse($this->createVerifier($client, requestStack: $requestStack)->validate('a-token'));
+    }
+
     public function testTransportErrorFailsClosed(): void
     {
         $client = new MockHttpClient(static function (): MockResponse {

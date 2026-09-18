@@ -1,7 +1,8 @@
 /*
  * Headless ALTCHA-Proof-of-Work-Solver. Holt eine frische Challenge vom Bundle-Endpoint, lässt den
  * SHA-256-PoW off-thread im worker.js rechnen und schreibt die Lösung in ein Hidden-Field. Schlägt
- * Fetch oder PoW fehl, bleibt das Feld leer -> der Server entscheidet; der Submit wird NIE blockiert.
+ * Fetch oder PoW fehl, bleibt das Feld beim ersten Solve leer, bei einem Re-Solve steht die alte
+ * Lösung weiter -> der Server entscheidet; der Submit wird NIE blockiert.
  */
 (function () {
   'use strict';
@@ -62,7 +63,7 @@
           start: 0
         });
       })
-      .catch(function () { /* leer lassen: der Server entscheidet, der Submit wird nie blockiert */ });
+      .catch(function () { /* erster Solve: leer lassen; Re-Solve: alte Lösung stehen lassen - der Server entscheidet, der Submit wird nie blockiert */ });
   }
 
   function solveAll() {
