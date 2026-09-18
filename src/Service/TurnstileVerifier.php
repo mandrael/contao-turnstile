@@ -101,8 +101,10 @@ class TurnstileVerifier
     }
 
     /**
-     * ALTCHA-Fallback blockiert. $category trennt „altcha-empty" (leeres Feld -> JS/Endpoint kaputt)
-     * von „altcha-invalid" (gefülltes, aber ungültiges/abgelaufenes/Replay-Payload -> Angriff) –
+     * ALTCHA-Fallback blockiert. $category trennt „altcha-empty" (leeres Feld -> JS/Endpoint kaputt),
+     * „altcha-invalid" (gefülltes, aber ungültiges/abgelaufenes/Replay-Payload -> Angriff) und
+     * „altcha-timing-invalid" (fehlendes oder falsch signiertes Zeitstempel-Feld -> Betriebsstörung:
+     * Template-Override ohne das Feld, oder Seiten-Cache über eine kernel.secret-Rotation hinweg) –
      * im Prod-Log der Unterschied zwischen Betriebsstörung und Angriff. Nie Payload/PII loggen.
      */
     public function logAltchaBlock(string $category): void

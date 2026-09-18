@@ -273,6 +273,7 @@ class FormTurnstileTest extends ContaoTestCase
     public function testAltchaModeValidSolutionPasses(): void
     {
         // 'altcha': Turnstile schlägt fehl, aber der PoW-Zweitbeweis ist gültig -> durchlassen + Pass loggen.
+        // Gültig signierter, ausreichend alter Zeitstempel, damit der neue Timing-Zweig nicht blockt.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -283,7 +284,10 @@ class FormTurnstileTest extends ContaoTestCase
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::once())->method('validate')->with('a-payload')->willReturn(true);
 
-        $widget = $this->createAltchaWidget('42', ['altcha-42' => 'a-payload'], $verifier, $altcha);
+        $widget = $this->createAltchaWidget('42', [
+            'altcha-42' => 'a-payload',
+            'cf-turnstile-ts-42' => self::signTime(time() - 30),
+        ], $verifier, $altcha);
         $widget->validate();
 
         self::assertFalse($widget->hasErrors());
@@ -302,7 +306,10 @@ class FormTurnstileTest extends ContaoTestCase
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::once())->method('validate')->with('bad')->willReturn(false);
 
-        $widget = $this->createAltchaWidget('42', ['altcha-42' => 'bad'], $verifier, $altcha);
+        $widget = $this->createAltchaWidget('42', [
+            'altcha-42' => 'bad',
+            'cf-turnstile-ts-42' => self::signTime(time() - 30),
+        ], $verifier, $altcha);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());
@@ -320,7 +327,97 @@ class FormTurnstileTest extends ContaoTestCase
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::never())->method('validate');
 
-        $widget = $this->createAltchaWidget('42', [], $verifier, $altcha);
+        $widget = $this->createAltchaWidget('42', [
+            'cf-turnstile-ts-42' => self::signTime(time() - 30),
+        ], $verifier, $altcha);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testAltchaModeMissingTimestampBlocksWithTimingInvalidCategory(): void
+    {
+        // altcha ist aktiv, aber cf-turnstile-ts-<id> fehlt (Template-Override ohne das Feld) ->
+        // fail-closed blocken, Kategorie altcha-timing-invalid; der PoW-Verifier wird nicht bemüht.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-timing-invalid');
+        $verifier->expects(self::never())->method('logAltchaUnavailable');
+        $verifier->expects(self::never())->method('logAltchaPass');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::never())->method('validate');
+
+        $widget = $this->createAltchaWidget('42', ['altcha-42' => 'a-payload'], $verifier, $altcha);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testAltchaModeForgedTimestampBlocksWithTimingInvalidCategory(): void
+    {
+        // Falsch signierter Zeitstempel (Fälschung oder Seiten-Cache über eine kernel.secret-Rotation
+        // hinweg) -> ebenfalls fail-closed mit Kategorie altcha-timing-invalid.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-timing-invalid');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::never())->method('validate');
+
+        $widget = $this->createAltchaWidget('42', [
+            'altcha-42' => 'a-payload',
+            'cf-turnstile-ts-42' => time().'.deadbeefdeadbeef',
+        ], $verifier, $altcha);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    public function testAltchaModeHourOldValidTimestampIsNotBlockedByTiming(): void
+    {
+        // Gültig signiert und eine Stunde alt (z. B. aus dem Seiten-Cache): "zu alt" ist kein Fehler,
+        // geprüft wird weiter nur die Mindestzeit. Der PoW-Zweitbeweis entscheidet weiter.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logAltchaPass');
+        $verifier->expects(self::never())->method('logAltchaBlock');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::once())->method('validate')->with('a-payload')->willReturn(true);
+
+        $widget = $this->createAltchaWidget('42', [
+            'altcha-42' => 'a-payload',
+            'cf-turnstile-ts-42' => self::signTime(time() - 3600),
+        ], $verifier, $altcha);
+        $widget->validate();
+
+        self::assertFalse($widget->hasErrors());
+    }
+
+    public function testAltchaModeTooFastBlocksWithoutLog(): void
+    {
+        // "Zu schnell" blockt weiterhin wie bisher, aber ohne eigenes Log (kein altcha-timing-invalid).
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logAltchaBlock');
+        $verifier->expects(self::never())->method('logAltchaPass');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::never())->method('validate');
+
+        $widget = $this->createAltchaWidget('42', [
+            'altcha-42' => 'a-payload',
+            'cf-turnstile-ts-42' => self::signTime(time()),
+        ], $verifier, $altcha);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());

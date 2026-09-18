@@ -211,10 +211,10 @@ class FormTurnstile extends FormCaptcha
     /**
      * Fallback 'altcha': ALTCHA nicht verfügbar (unsicherer Kontext ohne Web Crypto ODER fehlende
      * Route/Assets ohne Manager-Plugin) blockiert fail-closed und wird deshalb ZUERST geprüft – lief
-     * dieser Zweig später, würde der Zeitstempel-Zweig (submittedTooFast()) denselben Fall bereits
+     * dieser Zweig später, würde der Zeitstempel-Zweig (parseSignedTime()) denselben Fall bereits
      * stumm abfangen, und genau die Betriebsstörung, für die logAltchaUnavailable() gedacht ist,
-     * bliebe unsichtbar. Danach der billige Filter (Honeypot/Timing), dann der ALTCHA-Proof-of-Work
-     * als Zweitbeweis. Ohne gültige Lösung wird blockiert.
+     * bliebe unsichtbar. Danach der billige Filter (Honeypot/Timing, im altcha-Modus fail-closed),
+     * dann der ALTCHA-Proof-of-Work als Zweitbeweis. Ohne gültige Lösung wird blockiert.
      *
      * @param array<string, mixed> $post
      */
@@ -227,7 +227,26 @@ class FormTurnstile extends FormCaptcha
             return;
         }
 
-        if ($this->honeypotTripped($post) || $this->submittedTooFast($post)) {
+        if ($this->honeypotTripped($post)) {
+            $this->blockWithError();
+
+            return;
+        }
+
+        $time = $this->parseSignedTime($post);
+
+        if (null === $time) {
+            // Fehlendes oder falsch signiertes Feld: im altcha-Modus fail-closed (Betriebsstörung,
+            // nicht Angriff – Ursachen: Template-Override ohne das Feld, oder Seiten-Cache über eine
+            // kernel.secret-Rotation hinweg).
+            $this->getVerifier()->logAltchaBlock('altcha-timing-invalid');
+            $this->blockWithError();
+
+            return;
+        }
+
+        if (time() - $time < self::MIN_FILL_SECONDS) {
+            // „Zu schnell" blockt wie bisher ohne eigenes Log.
             $this->blockWithError();
 
             return;
@@ -270,31 +289,53 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Timing: signierter Render-Zeitstempel. Schneller als MIN_FILL_SECONDS = Bot. Fehlt das Feld
-     * oder ist die Signatur ungültig (Template-Override, Cache, Fälschung), wird NICHT geblockt
-     * (fail-open) – der Honeypot bleibt als Schranke. So entstehen keine Fehlalarme durch Edge-Cases.
+     * Timing für den Modus 'filter': signierter Render-Zeitstempel, schneller als MIN_FILL_SECONDS =
+     * Bot. Fehlt das Feld oder ist die Signatur ungültig (Template-Override, Cache, Fälschung), wird
+     * NICHT geblockt (fail-open) – der Honeypot bleibt als Schranke. So entstehen keine Fehlalarme
+     * durch Edge-Cases. Der Modus 'altcha' prüft denselben Zeitstempel stattdessen fail-closed über
+     * parseSignedTime() direkt in applyAltchaFallback().
      *
      * @param array<string, mixed> $post
      */
     private function submittedTooFast(array $post): bool
     {
+        $time = $this->parseSignedTime($post);
+
+        if (null === $time) {
+            return false;
+        }
+
+        return time() - $time < self::MIN_FILL_SECONDS;
+    }
+
+    /**
+     * Liest und prüft das signierte Zeitstempel-Feld cf-turnstile-ts-<id>. Liefert die Unixzeit bei
+     * gültiger Signatur, sonst null (Feld fehlt, kein Punkt-Trenner, kein numerischer Zeitanteil,
+     * oder die HMAC-Signatur passt nicht). Gemeinsame Grundlage für submittedTooFast() (fail-open,
+     * Modus 'filter') und applyAltchaFallback() (fail-closed, Modus 'altcha') – keine doppelte
+     * Signaturprüfung.
+     *
+     * @param array<string, mixed> $post
+     */
+    private function parseSignedTime(array $post): ?int
+    {
         $raw = $post['cf-turnstile-ts-'.$this->id] ?? null;
 
         if (!\is_string($raw) || !str_contains($raw, '.')) {
-            return false;
+            return null;
         }
 
         [$time, $sig] = explode('.', $raw, 2);
 
         if (!ctype_digit($time)) {
-            return false;
+            return null;
         }
 
         if (!hash_equals($this->signTime((int) $time), $raw)) {
-            return false;
+            return null;
         }
 
-        return time() - (int) $time < self::MIN_FILL_SECONDS;
+        return (int) $time;
     }
 
     private function signTime(int $time): string
