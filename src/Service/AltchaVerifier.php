@@ -94,9 +94,13 @@ class AltchaVerifier
             return false;
         }
 
-        // Replay-Schutz best-effort über den Cache. Fällt das Backend aus, den Submit NICHT mit einem
-        // 500 abwürgen: der PoW ist gültig -> fail-open (der Replay-Marker bleibt Best Effort). Der
-        // try-Block umfasst ausschließlich Cache-I/O, daher ist \Throwable hier eng begrenzt.
+        // Replay-Schutz fail-closed: wirft der Cache, oder liefert save() false, gilt die Validierung
+        // als fehlgeschlagen – ein PoW ohne funktionierenden Replay-Marker wäre sonst beliebig oft
+        // einlösbar. Der try-Block umfasst ausschließlich Cache-I/O, daher ist \Throwable hier eng
+        // begrenzt.
+        // ponytail: zwei exakt parallele Requests sehen beide isHit() === false (PSR-6 kennt kein
+        // atomares Add) – Grenze bleibt bestehen, Ausbauweg Symfony Lock, falls parallele
+        // Wiederverwendung je real beobachtet wird.
         try {
             $item = $this->cache->getItem('mandrael_altcha_'.$json['challenge']);
 
@@ -104,9 +108,11 @@ class AltchaVerifier
                 return false;                       // bereits eingelöst
             }
 
-            $this->cache->save($item->set(true)->expiresAfter(self::EXPIRY));
+            if (!$this->cache->save($item->set(true)->expiresAfter(self::EXPIRY))) {
+                return false;
+            }
         } catch (\Throwable) {
-            // Cache-Backend nicht verfügbar: Verifikation bleibt gültig, Replay-Marker nicht gesetzt.
+            return false;
         }
 
         return true;

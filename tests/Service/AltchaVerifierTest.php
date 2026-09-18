@@ -6,6 +6,7 @@ namespace Mandrael\ContaoTurnstileBundle\Tests\Service;
 
 use Mandrael\ContaoTurnstileBundle\Service\AltchaVerifier;
 use PHPUnit\Framework\TestCase;
+use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
@@ -96,16 +97,35 @@ class AltchaVerifierTest extends TestCase
         $this->assertFalse($this->verifier()->validate($this->encode(['x' => str_repeat('a', 3000)])));
     }
 
-    public function testCacheFailureIsFailOpen(): void
+    public function testCacheFailureIsFailClosed(): void
     {
-        // Cache-Backend fällt aus (getItem wirft): kein 500, ein gültiger PoW wird akzeptiert (fail-open),
-        // der Replay-Marker bleibt Best Effort. createChallenge nutzt den Cache nicht -> Payload ableitbar.
+        // Cache-Backend fällt aus (getItem wirft): kein 500, aber auch keine Verifikation mehr ohne
+        // funktionierenden Replay-Schutz (fail-closed). createChallenge nutzt den Cache nicht -> Payload
+        // trotzdem ableitbar, aber validate() gibt jetzt false zurück.
         $cache = $this->createMock(CacheItemPoolInterface::class);
         $cache->method('getItem')->willThrowException(new \RuntimeException('cache down'));
 
         $verifier = new AltchaVerifier(self::SECRET, $cache);
 
-        $this->assertTrue($verifier->validate($this->solve($verifier)));
+        $this->assertFalse($verifier->validate($this->solve($verifier)));
+    }
+
+    public function testCacheSaveFailureIsFailClosed(): void
+    {
+        // save() liefert false (z. B. Cache-Backend voll/read-only, aber ohne Exception): ebenfalls
+        // fail-closed, kein stiller Erfolg ohne gesetzten Replay-Marker.
+        $item = $this->createMock(CacheItemInterface::class);
+        $item->method('isHit')->willReturn(false);
+        $item->method('set')->willReturnSelf();
+        $item->method('expiresAfter')->willReturnSelf();
+
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+        $cache->method('getItem')->willReturn($item);
+        $cache->method('save')->willReturn(false);
+
+        $verifier = new AltchaVerifier(self::SECRET, $cache);
+
+        $this->assertFalse($verifier->validate($this->solve($verifier)));
     }
 
     private function verifier(): AltchaVerifier
