@@ -18,6 +18,15 @@ class TurnstileVerifier
     private const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
     private const TIMEOUT = 5;
 
+    // Öffentlich dokumentierte Cloudflare-Test-Secrets (immer-passierend). Die siteverify-Antwort
+    // liefert dafür fest "hostname":"example.com" – die Hostname-Prüfung würde jede echte
+    // DDEV-Testinstanz sonst blocken.
+    private const TEST_SECRETS = [
+        '1x0000000000000000000000000000000AA',
+        '2x0000000000000000000000000000000AA',
+        '3x0000000000000000000000000000000AA',
+    ];
+
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
@@ -151,7 +160,7 @@ class TurnstileVerifier
         }
 
         if (true === ($data['success'] ?? false)) {
-            return true;
+            return $this->hostnameMatches($data);
         }
 
         // Falscher/abgelaufener Key blockiert sonst alle Formulare ohne Hinweis. error-codes
@@ -165,5 +174,70 @@ class TurnstileVerifier
 
         // Ungültiges/gefälschtes Token: hart blockieren (fail-closed).
         return false;
+    }
+
+    /**
+     * Hostname-Bindung: ein anderswo gelöstes Token darf hier nicht gelten. Übersprungen (gilt als
+     * Treffer), wenn kein Request vorliegt, die Antwort kein hostname-Feld liefert, oder das
+     * konfigurierte Secret eines der drei Cloudflare-Test-Secrets ist (liefert fest "example.com").
+     *
+     * @param array<string, mixed> $data
+     */
+    private function hostnameMatches(array $data): bool
+    {
+        if (\in_array($this->getSecretKey(), self::TEST_SECRETS, true)) {
+            return true;
+        }
+
+        $responseHost = $data['hostname'] ?? '';
+
+        if (!\is_string($responseHost) || '' === $responseHost) {
+            return true;
+        }
+
+        $request = $this->requestStack->getCurrentRequest();
+
+        if (null === $request) {
+            return true;
+        }
+
+        // getHost() entfernt den Port bereits selbst.
+        $requestHost = $this->normalizeHost($request->getHost());
+        $responseHostNormalized = $this->normalizeHost($responseHost);
+
+        if ($requestHost === $responseHostNormalized) {
+            return true;
+        }
+
+        $this->logger->warning(
+            \sprintf(
+                'Cloudflare Turnstile: Hostname der siteverify-Antwort ("%s") weicht vom Request-Host ("%s") ab.',
+                $responseHostNormalized,
+                $requestHost
+            ),
+            ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
+        );
+
+        return false;
+    }
+
+    /**
+     * Vergleichbar machen: Groß-/Kleinschreibung, abschließender Punkt (FQDN-Notation) und – falls
+     * die intl-Extension verfügbar ist – Punycode-Normalisierung für IDN-Domains. Liefert
+     * idn_to_ascii() false (kein gültiger Hostname), bleibt der bereits normalisierte Wert stehen.
+     */
+    private function normalizeHost(string $host): string
+    {
+        $host = rtrim(strtolower($host), '.');
+
+        if (\function_exists('idn_to_ascii')) {
+            $ascii = idn_to_ascii($host);
+
+            if (false !== $ascii) {
+                return $ascii;
+            }
+        }
+
+        return $host;
     }
 }

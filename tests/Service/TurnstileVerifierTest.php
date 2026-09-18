@@ -88,6 +88,74 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertTrue($this->createVerifier($client)->validate('a-token'));
     }
 
+    public function testHostnameMatchingRequestHostPasses(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('https://beispiel.at/formular'));
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => 'beispiel.at'])));
+
+        $this->assertTrue($this->createVerifier($client, requestStack: $requestStack)->validate('a-token'));
+    }
+
+    public function testHostnameMismatchBlocksAndLogsBothNames(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('https://beispiel.at/formular'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning')->with(
+            $this->logicalAnd($this->stringContains('beispiel.at'), $this->stringContains('anderer-host.example'))
+        );
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => 'anderer-host.example'])));
+
+        $this->assertFalse($this->createVerifier($client, logger: $logger, requestStack: $requestStack)->validate('a-token'));
+    }
+
+    public function testHostnameMissingInResponseSkipsCheck(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('https://beispiel.at/formular'));
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true])));
+
+        $this->assertTrue($this->createVerifier($client, requestStack: $requestStack)->validate('a-token'));
+    }
+
+    public function testHostnameCaseDifferenceIsIgnored(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('https://Beispiel.AT/formular'));
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => 'beispiel.at'])));
+
+        $this->assertTrue($this->createVerifier($client, requestStack: $requestStack)->validate('a-token'));
+    }
+
+    public function testHostnameTrailingDotIsIgnored(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('https://beispiel.at/formular'));
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => 'beispiel.at.'])));
+
+        $this->assertTrue($this->createVerifier($client, requestStack: $requestStack)->validate('a-token'));
+    }
+
+    public function testHostnameCheckSkippedForCloudflareTestSecret(): void
+    {
+        // Test-Schlüssel liefern siteverify fest "hostname":"example.com" -> die DDEV-Testinstanzen
+        // hängen an diesen Schlüsseln und dürfen dadurch nicht geblockt werden.
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('https://ts-cto413.ddev.site/formular'));
+
+        $config = ['turnstileSiteKey' => 'site-key', 'turnstileSecretKey' => '1x0000000000000000000000000000000AA'];
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => 'example.com'])));
+
+        $this->assertTrue($this->createVerifier($client, $config, requestStack: $requestStack)->validate('a-token'));
+    }
+
     public function testIsConfigured(): void
     {
         $this->assertTrue($this->createVerifier(new MockHttpClient())->isConfigured());
