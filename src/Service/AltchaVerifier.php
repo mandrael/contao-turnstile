@@ -14,6 +14,11 @@ use Psr\Cache\CacheItemPoolInterface;
 class AltchaVerifier
 {
     private const ALGORITHM = 'SHA-256';
+
+    // Bleibt bei 100.000 (Messung 18.09.2026, docs/messungen-pow-dauer-2026-09-18.md): volle Suche im
+    // Browser-Worker 1,6 s am Desktop (Telefon ein Mehrfaches), natives SHA-256 braucht dafür 23 ms –
+    // mehr Aufwand träfe Nutzer, nicht Skripte. Der Schutzwert liegt darin, dass Clients ohne
+    // JavaScript scheitern.
     private const RANGE_MAX = 100000;
 
     // Nicht unter dem Minimum, das Contao für sein eigenes ALTCHA vorsieht (3600 s): ein langsamer
