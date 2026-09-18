@@ -125,7 +125,7 @@ class TurnstileVerifier
     {
         $this->logger->error(
             'Cloudflare Turnstile ALTCHA-Fallback nicht verfügbar, Absenden wird blockiert: '
-            .'kein HTTPS erkannt (trusted_proxies prüfen) oder Route/Assets nicht auflösbar.',
+            .'kein HTTPS erkannt (trusted_proxies prüfen) oder Route/Assets nicht auflösbar (altcha-unavailable).',
             ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
         );
     }
@@ -177,7 +177,8 @@ class TurnstileVerifier
             // Fallback-Stufe (block/filter/altcha) entscheidet über das weitere Vorgehen, nicht mehr
             // dieser Verifier. Andere Fehler (Code-Bugs) NICHT schlucken. Niemals Secret/$GLOBALS loggen.
             $this->logger->error(
-                'Cloudflare Turnstile nicht erreichbar, Verifikation gilt als fehlgeschlagen: '.$e->getMessage(),
+                'Cloudflare Turnstile nicht erreichbar, Verifikation gilt als fehlgeschlagen; die konfigurierte '
+                .'Fallback-Stufe entscheidet über das weitere Vorgehen: '.$e->getMessage(),
                 ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
             );
 
@@ -254,6 +255,13 @@ class TurnstileVerifier
     private function normalizeHost(string $host): string
     {
         $host = rtrim(strtolower($host), '.');
+
+        // idn_to_ascii('') wirft seit PHP 8 ein ValueError statt false zu liefern. Ein leerer Host
+        // (Request::getHost() ohne Host-Header/SERVER_NAME, oder ein Hostname ".") bleibt daher
+        // unverändert, statt in die Funktion zu laufen.
+        if ('' === $host) {
+            return $host;
+        }
 
         if (\function_exists('idn_to_ascii')) {
             $ascii = idn_to_ascii($host);

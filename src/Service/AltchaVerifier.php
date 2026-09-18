@@ -83,7 +83,8 @@ class AltchaVerifier
         }
 
         // Krypto zuerst, OHNE Cache-Zugriff: nur wer den PoW zum signierten Challenge gelöst hat, passt.
-        // (Reihenfolge bewusst vor dem Cache, damit ein Cache-Ausfall die Verifikation nicht verhindert.)
+        // (Reihenfolge nur aus Kostengründen – die billige Prüfung vor dem Cache-I/O. Ein Cache-Ausfall
+        // blockt die Verifikation jetzt bewusst, siehe fail-closed unten.)
         $check = $this->createChallenge((string) $json['salt'], (int) $json['number']);
 
         if (

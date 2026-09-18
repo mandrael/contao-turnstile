@@ -78,6 +78,27 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->createVerifier(new MockHttpClient(), logger: $logger)->logSoftPass('missing-token');
     }
 
+    public function testLogAltchaUnavailableLogsErrorWithCategory(): void
+    {
+        // Eine Log-Auswertung, die auf die Kategorie filtert, muss "altcha-unavailable" im Text finden.
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')->with($this->stringContains('altcha-unavailable'));
+
+        $this->createVerifier(new MockHttpClient(), logger: $logger)->logAltchaUnavailable();
+    }
+
+    public function testHostnameEmptyRequestHostDoesNotMatch(): void
+    {
+        // Request::getHost() ohne Host-Header/SERVER_NAME liefert '' (kein Wurf durch idn_to_ascii
+        // mehr, siehe normalizeHost()) – ein leerer Request-Host passt nicht zum gelieferten Hostnamen.
+        $requestStack = new RequestStack();
+        $requestStack->push(new Request());
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => 'beispiel.at'])));
+
+        $this->assertFalse($this->createVerifier($client, requestStack: $requestStack)->validate('a-token'));
+    }
+
     public function testTransportErrorFailsClosed(): void
     {
         $client = new MockHttpClient(static function (): MockResponse {
@@ -133,10 +154,17 @@ class TurnstileVerifierTest extends ContaoTestCase
 
     public function testHostnameCaseDifferenceIsIgnored(): void
     {
+        // Request::getHost() liefert selbst schon kleingeschrieben (Symfony normalisiert intern) –
+        // eine Großschreibung im Request-URL testet den strtolower() in normalizeHost() daher nicht.
+        // Der Fall mit Wirkung ist die von Cloudflare gelieferte hostname, die hier großgeschrieben ist.
+        // Hinweis: idn_to_ascii() normalisiert reine ASCII-Hosts ebenfalls auf Kleinschreibung (IDNA-
+        // Nameprep) – der Test bestätigt daher das Verhalten (Groß-/Kleinschreibung wird toleriert),
+        // isoliert aber nicht den strtolower()-Aufruf von idn_to_ascii(); das lässt sich mit aktiver
+        // intl-Extension nicht trennen.
         $requestStack = new RequestStack();
-        $requestStack->push(Request::create('https://Beispiel.AT/formular'));
+        $requestStack->push(Request::create('https://beispiel.at/formular'));
 
-        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => 'beispiel.at'])));
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true, 'hostname' => 'BEISPIEL.AT'])));
 
         $this->assertTrue($this->createVerifier($client, requestStack: $requestStack)->validate('a-token'));
     }
