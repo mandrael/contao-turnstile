@@ -328,13 +328,15 @@ class FormTurnstileTest extends ContaoTestCase
 
     public function testAltchaModeHoneypotBlocksBeforePow(): void
     {
-        // Billiger Filter zuerst: befüllter Honeypot blockt, der PoW-Verifier wird gar nicht erst gerufen.
+        // Billiger Filter zuerst (nach dem altchaActive-Check): befüllter Honeypot blockt, der
+        // PoW-Verifier wird gar nicht erst gerufen.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::never())->method('logAltchaPass');
         $verifier->expects(self::never())->method('logAltchaBlock');
+        $verifier->expects(self::never())->method('logAltchaUnavailable');
 
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::never())->method('validate');
@@ -348,15 +350,20 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertTrue($widget->hasErrors());
     }
 
-    public function testAltchaModeUnavailableDegradesToLogPass(): void
+    public function testAltchaModeUnavailableBlocksAndLogsError(): void
     {
-        // ALTCHA nicht verfügbar (altchaActive=false: unsicherer Kontext ODER fehlende Route): wie filter
-        // durchlassen + protokollieren, nicht hart blocken. Der PoW-Verifier wird nicht bemüht.
+        // ALTCHA nicht verfügbar (altchaActive=false: unsicherer Kontext ODER fehlende Route): fail-
+        // closed blocken + Betriebsstörung auf error loggen, nicht mehr durchlassen. Der PoW-Verifier
+        // wird nicht bemüht. Reihenfolge: dieser Zweig läuft zuerst, auch wenn zugleich der
+        // Zeitstempel fehlt (kein cf-turnstile-ts-42 im Post), bleibt logAltchaUnavailable() die
+        // Meldung, nicht logAltchaBlock('altcha-timing-invalid').
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::once())->method('logSoftPass')->with('altcha-unavailable');
+        $verifier->expects(self::once())->method('logAltchaUnavailable');
+        $verifier->expects(self::never())->method('logAltchaBlock');
+        $verifier->expects(self::never())->method('logSoftPass');
 
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::never())->method('validate');
@@ -364,7 +371,7 @@ class FormTurnstileTest extends ContaoTestCase
         $widget = $this->createAltchaWidget('42', [], $verifier, $altcha, false);
         $widget->validate();
 
-        self::assertFalse($widget->hasErrors());
+        self::assertTrue($widget->hasErrors());
     }
 
     public function testAltchaChallengeUrlDegradesWhenRouteMissing(): void

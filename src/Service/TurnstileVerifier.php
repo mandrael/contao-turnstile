@@ -113,6 +113,21 @@ class TurnstileVerifier
         );
     }
 
+    /**
+     * ALTCHA-Fallback nicht verfügbar: der Client konnte keinen Zweitbeweis erzeugen (kein HTTPS
+     * erkannt, trusted_proxies prüfen) oder die Route/Assets waren nicht auflösbar (Nicht-Managed-
+     * Setup ohne Manager-Plugin). Level error statt info: Betriebsstörung, kein Angriff, muss im
+     * Prod-Log auffallen. Der Aufrufer blockiert das Formular (fail-closed).
+     */
+    public function logAltchaUnavailable(): void
+    {
+        $this->logger->error(
+            'Cloudflare Turnstile ALTCHA-Fallback nicht verfügbar, Absenden wird blockiert: '
+            .'kein HTTPS erkannt (trusted_proxies prüfen) oder Route/Assets nicht auflösbar.',
+            ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
+        );
+    }
+
     public function validate(?string $token): bool
     {
         if (null === $token || '' === $token) {

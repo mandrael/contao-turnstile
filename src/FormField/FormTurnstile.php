@@ -62,14 +62,16 @@ class FormTurnstile extends FormCaptcha
         $this->turnstileTiming = $this->signTime(time());
 
         // ALTCHA-Fallback nur im Modus 'altcha' UND im Secure Context (Web Crypto). Sonst kann der
-        // Client kein Token erzeugen -> später zu Filter-Verhalten degradieren statt hart blocken.
+        // Client kein Token erzeugen -> altchaActive bleibt false, applyAltchaFallback() blockiert
+        // dann fail-closed (Betreiber-Entscheidung: wo altcha gewählt ist, gilt fail-closed).
         $this->turnstileAltchaUrl = '';
 
         if ('altcha' === $this->configValue('turnstileFailureMode', 'block') && $this->isSecureContext()) {
             // Route + Asset-URLs hier in PHP auflösen (NICHT via $this->asset() im Template: dort ist
             // $this auf Contao 4.13 die Widget-Instanz ohne asset()-Methode). Löst eine der drei URLs
             // nicht auf (fehlende Route/Asset-Package ohne Manager-Plugin), bleibt altcha inaktiv und
-            // degradiert zu Filter-Verhalten – statt das Formular zu crashen.
+            // applyAltchaFallback() blockiert dann fail-closed – statt das Formular zu crashen oder
+            // eine wirkungslose Prüfung stillschweigend durchzulassen.
             $challengeUrl = $this->altchaChallengeUrl();
             $workerUrl = $this->assetUrl('altcha/worker.js');
             $solverUrl = $this->assetUrl('altcha/mandrael-altcha.js');
@@ -86,7 +88,8 @@ class FormTurnstile extends FormCaptcha
     /**
      * Erzeugt die Challenge-Endpoint-URL. In einem Nicht-Managed-Setup (Bundle in eigener Symfony-App
      * ohne Manager-Plugin) ist die Route nicht registriert und generate() wirft – dann '' zurückgeben,
-     * damit der altcha-Modus kontrolliert zu Filter-Verhalten degradiert statt das Formular zu crashen.
+     * damit der altcha-Modus kontrolliert fail-closed blockiert (applyAltchaFallback()) statt das
+     * Formular zu crashen.
      */
     private function altchaChallengeUrl(): string
     {
@@ -100,7 +103,8 @@ class FormTurnstile extends FormCaptcha
     /**
      * Löst ein Bundle-Asset über den Symfony-Assets-Service auf (identisch zu Template::asset(), aber
      * in PHP statt im Widget-Template – siehe Konstruktor-Kommentar). Package = 'mandrael_contao_turnstile'
-     * -> URL bundles/mandraelcontaoturnstile/<path>. Bei fehlendem Package '' zurück (degradiert).
+     * -> URL bundles/mandraelcontaoturnstile/<path>. Bei fehlendem Package '' zurück (altcha bleibt
+     * inaktiv, applyAltchaFallback() blockiert dann fail-closed).
      */
     private function assetUrl(string $path): string
     {
@@ -205,23 +209,26 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Fallback 'altcha': billiger Filter zuerst (Honeypot/Timing), dann der ALTCHA-Proof-of-Work als
-     * Zweitbeweis. Ohne gültige Lösung wird blockiert. Ist ALTCHA nicht verfügbar (unsicherer Kontext
-     * ohne Web Crypto ODER fehlende Route ohne Manager-Plugin), degradieren wir zu Filter-Verhalten
-     * (log+pass), damit echte Besucher nicht hart abgewiesen werden.
+     * Fallback 'altcha': ALTCHA nicht verfügbar (unsicherer Kontext ohne Web Crypto ODER fehlende
+     * Route/Assets ohne Manager-Plugin) blockiert fail-closed und wird deshalb ZUERST geprüft – lief
+     * dieser Zweig später, würde der Zeitstempel-Zweig (submittedTooFast()) denselben Fall bereits
+     * stumm abfangen, und genau die Betriebsstörung, für die logAltchaUnavailable() gedacht ist,
+     * bliebe unsichtbar. Danach der billige Filter (Honeypot/Timing), dann der ALTCHA-Proof-of-Work
+     * als Zweitbeweis. Ohne gültige Lösung wird blockiert.
      *
      * @param array<string, mixed> $post
      */
     private function applyAltchaFallback(array $post): void
     {
-        if ($this->honeypotTripped($post) || $this->submittedTooFast($post)) {
+        if (!$this->altchaActive) {
+            $this->getVerifier()->logAltchaUnavailable();
             $this->blockWithError();
 
             return;
         }
 
-        if (!$this->altchaActive) {
-            $this->getVerifier()->logSoftPass('altcha-unavailable');
+        if ($this->honeypotTripped($post) || $this->submittedTooFast($post)) {
+            $this->blockWithError();
 
             return;
         }
