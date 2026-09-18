@@ -1,5 +1,21 @@
 # Upgrade
 
+## 0.7.0 → 0.7.1
+
+Additiv und rückwärtskompatibel. **Keine DB-Migration nötig.** Drei Verhaltensänderungen, weil 0.7.1
+mehrere bisherige Fail-open-Stellen auf fail-closed umstellt:
+
+1. **Ist Cloudflare nicht erreichbar, entscheidet jetzt die gewählte Fallback-Stufe.** Im Modus
+   `block` (Standard) sind Formulare für die Dauer des Ausfalls gesperrt; wer das nicht will, wählt
+   `filter` oder `altcha`.
+2. **Der Modus `altcha` degradiert nicht mehr still zu `filter`.** Wird HTTPS nicht erkannt
+   (Reverse-Proxy ohne `trusted_proxies`) oder sind Route/Assets nicht auflösbar, wird blockiert und
+   im System-Log ein Fehler `altcha-unavailable` geschrieben. Außerdem muss ein Template-Override das
+   Feld `cf-turnstile-ts-<id>` führen; nach einer Rotation von `kernel.secret` (`APP_SECRET`) den
+   Seiten-Cache leeren, sonst `altcha-timing-invalid`.
+3. **Der von Cloudflare gemeldete Hostname muss zum Host des Requests passen;** Abweichungen stehen
+   als Warnung mit beiden Namen im System-Log. Die Cloudflare-Test-Schlüssel sind ausgenommen.
+
 ## 0.6.0 → 0.7.0
 
 Additiv und rückwärtskompatibel. **Keine DB-Migration nötig.** Bestandsinstallationen verhalten sich
@@ -19,18 +35,20 @@ externen Dienst, ohne Cookies, ohne Datenbank, ohne Cron.
   ohne gültige Lösung werden abgewiesen.
 - **Secure Context nötig:** Die Rechenaufgabe braucht die Web-Crypto-API, also HTTPS (oder `localhost`).
   Auf unsicherem Kontext degradiert der `altcha`-Modus automatisch zum `filter`-Verhalten (durchlassen +
-  protokollieren), statt echte Besucher hart abzuweisen. Praktisch heißt das: **`altcha` setzt eine
+  protokollieren), statt echte Besucher hart abzuweisen (**ab 0.7.1: wird blockiert, siehe unten**).
+  Praktisch heißt das: **`altcha` setzt eine
   HTTPS-Site voraus** (idealerweise mit erzwungenem `http→https`-Redirect). Hinter einem TLS-terminierenden
   Reverse-Proxy muss `framework.trusted_proxies` korrekt gesetzt sein – sonst meldet Symfony
   `isSecure() = false`, und der Modus degradiert **still zu `filter`** (im System-Log als `altcha-unavailable`
-  sichtbar).
+  sichtbar; **ab 0.7.1: wird blockiert, siehe unten**).
 - **Content-Security-Policy:** Unter Contao 5 trägt das Bundle `script-src`/`worker-src`/`connect-src 'self'`
   automatisch ein, sofern die Seite eine CSP nutzt. Contao 4.13 hat keine CSP-API – dort ergänzt ein
   Integrator mit eigener CSP diese Quellen selbst (gleiche Bringschuld wie beim Turnstile-Host).
 - **Nicht-Managed-Setup:** Läuft Contao ohne Manager-Plugin (das Bundle in einer eigenen Symfony-App),
   wird die Challenge-Route nicht registriert. Der `altcha`-Modus erkennt das (die Route lässt sich nicht
   erzeugen) und degradiert dann zum **Filter-Verhalten** (Honeypot/Zeitprüfung, Rest durchlassen und
-  protokollieren) – kein Fehler, kein Crash, kein hartes Abweisen echter Besucher.
+  protokollieren) – kein Fehler, kein Crash, kein hartes Abweisen echter Besucher (**ab 0.7.1: wird
+  blockiert, siehe unten**).
 - **Template-Override abgleichen:** Wer `form_mandrael_turnstile.html5` in `templates/` überschrieben hat
   (aus 0.5/0.6), muss den neuen ALTCHA-Block (Hidden-Feld + Solver-Script) übernehmen. Sonst fehlt im
   `altcha`-Modus das Solver-Feld, und **jeder Turnstile-Fehlschlag wird hart geblockt** (Log `altcha-empty`),

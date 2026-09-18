@@ -114,9 +114,10 @@ integrator with a strict CSP of their own adds them manually.
 
 ## Failure behaviour
 
-- **Network/timeout errors** (Cloudflare unreachable, 5 s timeout) → the submission is **allowed**
-  (fail-open) and an error is written to the Contao system log, so a Cloudflare outage does not
-  bring down all forms.
+- **Network/timeout errors** (Cloudflare unreachable, 5 s timeout) → the check counts as failed
+  (fail-closed) and an error is written to the Contao system log. The configured fallback level
+  (`block`/`filter`/`altcha`, see `UPGRADE.md`) decides what happens next; in the default `block`
+  mode, forms are locked for the duration of the outage.
 - **Invalid/forged token** (`success: false`) → the submission is **blocked** (fail-closed). This
   also covers a wrong or expired site/secret key – then all forms block until the keys are fixed
   (a corresponding warning is written to the system log).
@@ -160,7 +161,7 @@ Contao's internal ALTCHA (available from 5.4) and therefore identical on 4.13 an
 - **Declarative rendering, no inline JavaScript:** Only Cloudflare's official external `api.js` is loaded. This is CSP-friendly (no `nonce`/`unsafe-inline` required); on Contao 5 the Cloudflare host is added to the Content Security Policy automatically.
 - **Unique template name:** The front-end template uses a unique name and therefore does not collide with templates from other extensions or existing project templates.
 - **Lossless configuration fallback:** With no keys configured, Turnstile globally disabled, or deselected per field, the field automatically uses Contao's default security question – no loss of function.
-- **Differentiated failure behaviour:** *fail-open* only on transport/timeout errors when communicating with Cloudflare, *fail-closed* on an invalid token. The secret key is never written to the log.
+- **Fail-closed on every error:** Transport/timeout errors when communicating with Cloudflare and an invalid token both count as a failed check; the configured fallback level decides what happens next. The secret key is never written to the log.
 
 **Handling of the keys**
 

@@ -115,9 +115,10 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
 
 ## Verhalten bei Cloudflare-Ausfall
 
-- **Netzwerk-/Timeout-Fehler** (Cloudflare nicht erreichbar, 5 s Timeout) → das Formular wird
-  **durchgelassen** (fail-open) und ein Fehler ins Contao-System-Log geschrieben. So legt ein
-  Cloudflare-Ausfall nicht alle Formulare lahm.
+- **Netzwerk-/Timeout-Fehler** (Cloudflare nicht erreichbar, 5 s Timeout) → die Prüfung gilt als
+  fehlgeschlagen (fail-closed) und ein Fehler wird ins Contao-System-Log geschrieben. Über das
+  weitere Vorgehen entscheidet die konfigurierte Fallback-Stufe (`block`/`filter`/`altcha`, siehe
+  `UPGRADE.md`); im Standardmodus `block` sind Formulare für die Dauer des Ausfalls gesperrt.
 - **Ungültiges/gefälschtes Token** (`success: false`) → das Formular wird **blockiert**
   (fail-closed). Dazu zählt auch ein falscher oder abgelaufener Site/Secret Key – dann blockieren
   alle Formulare, bis die Keys korrigiert sind (eine entsprechende Warnung landet im System-Log).
@@ -161,7 +162,7 @@ von Contaos internem, ab 5.4 verfügbarem ALTCHA und daher auf 4.13 wie 5.x iden
 - **Deklaratives Rendering ohne Inline-JavaScript:** Es wird ausschließlich das offizielle externe `api.js` von Cloudflare eingebunden. Das ist CSP-freundlich (keine `nonce`/`unsafe-inline` erforderlich); unter Contao 5 wird der Cloudflare-Host automatisch zur Content-Security-Policy hinzugefügt.
 - **Eindeutiger Template-Name:** Das Frontend-Template trägt einen eindeutigen Namen und kollidiert daher nicht mit Templates anderer Erweiterungen oder vorhandenen Projekt-Templates.
 - **Verlustfreier Konfigurations-Fallback:** Sind keine Keys hinterlegt, ist Turnstile global deaktiviert oder pro Feld abgewählt, verwendet das Feld automatisch die Standard-Sicherheitsfrage von Contao – kein Funktionsverlust.
-- **Differenziertes Fehlerverhalten:** *fail-open* ausschließlich bei Transport-/Timeout-Fehlern in der Kommunikation mit Cloudflare, *fail-closed* bei ungültigem Token. Der Secret Key wird zu keinem Zeitpunkt protokolliert.
+- **Fail-closed bei jedem Fehler:** Transport-/Timeout-Fehler in der Kommunikation mit Cloudflare und ein ungültiges Token führen beide zu einer fehlgeschlagenen Prüfung; die konfigurierte Fallback-Stufe entscheidet über das weitere Vorgehen. Der Secret Key wird zu keinem Zeitpunkt protokolliert.
 
 **Umgang mit den Schlüsseln**
 
