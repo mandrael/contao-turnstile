@@ -10,14 +10,18 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 ### Geändert
 - **Hostname-Bindung:** Der `hostname` der siteverify-Antwort wird jetzt gegen den Request-Host
   geprüft (normalisiert auf Klein-/Großschreibung, abschließenden Punkt und Punycode). Weicht er ab,
-  blockt die Prüfung fail-closed und eine Warnung mit beiden Namen landet im System-Log. Übersprungen
-  bei fehlendem Request, fehlendem `hostname`-Feld oder einem der drei Cloudflare-Test-Secrets.
+  gilt die Turnstile-Prüfung als fehlgeschlagen und eine Warnung mit beiden Namen landet im
+  System-Log; wie bei jedem Fehlschlag entscheidet danach die gewählte Fallback-Stufe – in `block`
+  und `altcha` wird blockiert (bzw. nur mit gültigem Rechenbeweis durchgelassen), in `filter` kommt
+  die Übermittlung nach Honeypot- und Zeitprüfung weiter durch. Übersprungen bei fehlendem Request,
+  fehlendem `hostname`-Feld oder einem der drei Cloudflare-Test-Secrets.
 - **Transport-/Dekodierfehler blockieren jetzt fail-closed:** Ist Cloudflare nicht erreichbar oder die
   Antwort unverwertbar, entscheidet die konfigurierte Fallback-Stufe (`block`/`filter`/`altcha`) über
   das weitere Vorgehen, statt die Prüfung wie bisher stillschweigend als bestanden zu werten.
 - **Kein stiller Soft-Pass mehr im Modus `altcha`:** Ist ALTCHA nicht verfügbar (kein HTTPS erkannt,
-  Route/Assets nicht auflösbar), wird jetzt blockiert statt zu `filter` durchgelassen; die neue
-  Log-Kategorie `altcha-unavailable` (Level `error`) hält die Betriebsstörung im System-Log fest.
+  Route/Assets nicht auflösbar), wird jetzt blockiert statt zu `filter` durchgelassen; die
+  Log-Kategorie `altcha-unavailable` (seit 0.7.0, jetzt neu mit Level `error` statt `info` und mit
+  Blockieren statt Durchlassen) hält die Betriebsstörung im System-Log fest.
 - **Zeitstempel im Modus `altcha` fail-closed geprüft:** Ein fehlendes oder falsch signiertes Feld
   `cf-turnstile-ts-<id>` gilt jetzt als Blockierung (neue Log-Kategorie `altcha-timing-invalid`), statt
   wie im Modus `filter` durchgelassen zu werden.
@@ -28,7 +32,9 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   jede HTTP-Methode.
 - **Solver behält die alte Lösung:** Beim Re-Solve (bfcache, 45-Minuten-Intervall) bleibt das Feld
   bis zur neuen Lösung gefüllt, statt für die Dauer der Suche leer zu sein – ein Nutzer mit
-  Turnstile-Fehlschlag wurde in diesem Fenster sonst fälschlich als `altcha-empty` geblockt.
+  Turnstile-Fehlschlag wurde in diesem Fenster sonst fälschlich als `altcha-empty` geblockt. Schlägt
+  das Erneuern fehl, bleibt der alte Wert stehen; der Server lehnt ihn dann gegebenenfalls als
+  `altcha-invalid` ab (statt wie zuvor als `altcha-empty`).
 
 ## [0.7.0] - 2026-07-12
 
