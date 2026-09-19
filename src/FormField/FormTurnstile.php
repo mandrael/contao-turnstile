@@ -67,14 +67,14 @@ class FormTurnstile extends FormCaptcha
         $this->turnstileAltchaUrl = '';
 
         if ('altcha' === $this->configValue('turnstileFailureMode', 'block') && $this->isSecureContext()) {
-            // Route + Asset-URLs hier in PHP auflösen (NICHT via $this->asset() im Template: dort ist
+            // Route + Bundle-URLs hier in PHP auflösen (NICHT via $this->asset() im Template: dort ist
             // $this auf Contao 4.13 die Widget-Instanz ohne asset()-Methode). Löst eine der drei URLs
-            // nicht auf (fehlende Route/Asset-Package ohne Manager-Plugin), bleibt altcha inaktiv und
+            // nicht auf (keine Route ohne Manager-Plugin, kein Request), bleibt altcha inaktiv und
             // applyAltchaFallback() blockiert dann fail-closed – statt das Formular zu crashen oder
             // eine wirkungslose Prüfung stillschweigend durchzulassen.
             $challengeUrl = $this->altchaChallengeUrl();
-            $workerUrl = $this->assetUrl('altcha/worker.js');
-            $solverUrl = $this->assetUrl('altcha/mandrael-altcha.js');
+            $workerUrl = $this->bundleUrl('worker.js');
+            $solverUrl = $this->bundleUrl('mandrael-altcha.js');
 
             if ('' !== $challengeUrl && '' !== $workerUrl && '' !== $solverUrl) {
                 $this->turnstileAltchaUrl = $challengeUrl;
@@ -101,18 +101,25 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Löst ein Bundle-Asset über den Symfony-Assets-Service auf (identisch zu Template::asset(), aber
-     * in PHP statt im Widget-Template – siehe Konstruktor-Kommentar). Package = 'mandrael_contao_turnstile'
-     * -> URL bundles/mandraelcontaoturnstile/<path>. Bei fehlendem Package '' zurück (altcha bleibt
-     * inaktiv, applyAltchaFallback() blockiert dann fail-closed).
+     * Same-origin-Adresse eines ALTCHA-Bundle-Assets: <Basis-Pfad des Requests>/bundles/
+     * mandraelcontaoturnstile/altcha/<datei>. Bewusst NICHT mehr über assets.packages (siehe
+     * Konstruktor-Kommentar) – sowohl der Worker (new Worker() verweigert fremde Origin, SecurityError)
+     * als auch der Solver (scheitert an jeder CSP mit script-src 'self', siehe registerAltcha()) müssen
+     * same-origin liegen, eine Assets-URL fremder Origin würde beide brechen. Das Asset-Paket des
+     * Bundles nutzt heute EmptyVersionStrategy (Contao-Core, kein manifest.json im Bundle), die feste
+     * Adresse entspricht deshalb exakt dem bisherigen getUrl() ohne Assets-URL; ein künftiges
+     * manifest.json oder eine eigene Versionsstrategie würde diese feste Pfadbildung brechen. Kein
+     * Request (CLI/ESI) -> '' (altcha bleibt inaktiv, applyAltchaFallback() blockiert dann fail-closed).
      */
-    private function assetUrl(string $path): string
+    private function bundleUrl(string $file): string
     {
-        try {
-            return (string) System::getContainer()->get('assets.packages')->getUrl($path, 'mandrael_contao_turnstile');
-        } catch (\Throwable) {
+        $request = System::getContainer()->get('request_stack')->getCurrentRequest();
+
+        if (null === $request) {
             return '';
         }
+
+        return $request->getBasePath().'/bundles/mandraelcontaoturnstile/altcha/'.$file;
     }
 
     /**

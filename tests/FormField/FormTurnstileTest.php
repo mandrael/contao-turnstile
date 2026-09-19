@@ -499,32 +499,71 @@ class FormTurnstileTest extends ContaoTestCase
         return (string) (new \ReflectionMethod($widget, 'altchaChallengeUrl'))->invoke($widget);
     }
 
-    public function testAssetUrlDegradesWhenPackageMissing(): void
+    public function testBundleUrlUsesRequestBasePath(): void
     {
-        // Nicht registriertes Asset-Package -> getUrl() wirft -> '' (kein Crash), altcha degradiert.
-        $packages = $this->createMock(\Symfony\Component\Asset\Packages::class);
-        $packages->method('getUrl')->willThrowException(new \InvalidArgumentException());
+        // Installation unter /sub/: SCRIPT_NAME/SCRIPT_FILENAME müssen übereinstimmen, damit
+        // Symfony überhaupt einen Basis-Pfad erkennt (siehe Request::prepareBaseUrl()).
+        $request = Request::create('http://example.com/sub/index.php/kontakt');
+        $request->server->set('SCRIPT_NAME', '/sub/index.php');
+        $request->server->set('SCRIPT_FILENAME', '/var/www/sub/index.php');
 
-        self::assertSame('', $this->invokeAssetUrl($packages));
+        self::assertSame(
+            '/sub/bundles/mandraelcontaoturnstile/altcha/worker.js',
+            $this->invokeBundleUrl($request)
+        );
     }
 
-    public function testAssetUrlReturnsUrl(): void
+    public function testBundleUrlIsRootRelativeWithoutBasePath(): void
     {
-        $packages = $this->createMock(\Symfony\Component\Asset\Packages::class);
-        $packages->method('getUrl')->willReturn('/bundles/mandraelcontaoturnstile/altcha/worker.js');
-
-        self::assertSame('/bundles/mandraelcontaoturnstile/altcha/worker.js', $this->invokeAssetUrl($packages));
+        self::assertSame(
+            '/bundles/mandraelcontaoturnstile/altcha/worker.js',
+            $this->invokeBundleUrl(Request::create('http://example.com/kontakt'))
+        );
     }
 
-    private function invokeAssetUrl(object $packages): string
+    public function testBundleUrlEmptyWithoutRequest(): void
     {
+        self::assertSame('', $this->invokeBundleUrl(null));
+    }
+
+    public function testBundleUrlIgnoresAssetPackage(): void
+    {
+        // Selbst wenn ein assets.packages-Dienst eine CDN-Adresse liefern würde, bleibt die Adresse
+        // same-origin – bundleUrl() fragt den Dienst gar nicht mehr ab.
         $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
 
+        $stack = new RequestStack();
+        $stack->push(Request::create('http://example.com/kontakt'));
+
+        $packages = $this->createMock(\Symfony\Component\Asset\Packages::class);
+        $packages->expects(self::never())->method('getUrl');
+
         $container = new Container();
+        $container->set('request_stack', $stack);
         $container->set('assets.packages', $packages);
         System::setContainer($container);
 
-        return (string) (new \ReflectionMethod($widget, 'assetUrl'))->invoke($widget, 'altcha/worker.js');
+        self::assertSame(
+            '/bundles/mandraelcontaoturnstile/altcha/worker.js',
+            (string) (new \ReflectionMethod($widget, 'bundleUrl'))->invoke($widget, 'worker.js')
+        );
+    }
+
+    private function invokeBundleUrl(?Request $request): string
+    {
+        $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
+
+        $stack = new RequestStack();
+
+        if (null !== $request) {
+            $stack->push($request);
+        }
+
+        $container = new Container();
+        $container->set('request_stack', $stack);
+        System::setContainer($container);
+
+        return (string) (new \ReflectionMethod($widget, 'bundleUrl'))->invoke($widget, 'worker.js');
     }
 
     public function testIsSecureContextRecognisesLoopbackHosts(): void
