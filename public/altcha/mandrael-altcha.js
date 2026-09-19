@@ -63,7 +63,12 @@
           start: 0
         });
       })
-      .catch(function () { /* erster Solve: leer lassen; Re-Solve: alte Lösung stehen lassen - der Server entscheidet, der Submit wird nie blockiert */ });
+      .catch(function (error) {
+        // Feld bleibt unverändert (erster Solve: leer; Re-Solve: alte Lösung stehen lassen), der
+        // Submit wird nie blockiert – der Server entscheidet. console.warn macht den Fehler in den
+        // DevTools sichtbar, ohne das Verhalten zu ändern.
+        console.warn('[mandrael-altcha] Solver fehlgeschlagen', error);
+      });
   }
 
   function solveAll() {
