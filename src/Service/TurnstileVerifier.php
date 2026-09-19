@@ -167,18 +167,20 @@ class TurnstileVerifier
             // Hinweis auf einen stillen Formular-Ausfall.
         }
 
+        $message = \sprintf(
+            'Cloudflare Turnstile: Template "%s" ist veraltet, es fehlen die Marker %s '
+            .'(template-outdated) – Override gegen das Bundle-Template abgleichen.',
+            $template,
+            implode(', ', $missing)
+        );
+        $context = ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)];
+
         try {
-            $this->logger->error(
-                \sprintf(
-                    'Cloudflare Turnstile: Template "%s" ist veraltet, es fehlen die Marker %s '
-                    .'(template-outdated) – Override gegen das Bundle-Template abgleichen.',
-                    $template,
-                    implode(', ', $missing)
-                ),
-                ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
-            );
+            $this->logger->error($message, $context);
         } catch (\Throwable) {
-            // Reine Diagnose: darf die Formularseite nie abschießen, siehe Docblock.
+            // Reine Diagnose: darf die Formularseite nie abschießen, siehe Docblock. Nur der
+            // Logger-Aufruf selbst ist hier abgesichert, nicht der Bau von Nachricht/Context –
+            // ein Fehler dabei wäre ein Programmierfehler, den das catch nicht verschlucken soll.
         }
     }
 

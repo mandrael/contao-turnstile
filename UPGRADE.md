@@ -7,19 +7,24 @@
 Wer `templates/form_mandrael_turnstile.html5` überschrieben hat, sollte nach dem Update das
 System-Log auf die Kategorie `template-outdated` prüfen und den Override gegen das
 Bundle-Template abgleichen. Geprüft werden folgende Pflichtmarker (aus
-`FormTurnstile::missingTemplateMarkers()`):
+`FormTurnstile::missingTemplateMarkers()` und `FormTurnstile::checkTemplateMarkers()`):
 
 - `cf-turnstile-response-<id>`, `cf-turnstile-hp-<id>`, `cf-turnstile-ts-<id>` – immer.
 - `data-sitekey` – immer.
 - `altcha-<id>`, `data-mandrael-altcha`, `data-challengeurl`, `data-workerurl` – nur bei
   aktivem ALTCHA-Fallback (`turnstileFailureMode = altcha` und Secure Context).
+- `$GLOBALS['TL_BODY']['mandrael-altcha']` (das Solver-Skript, im Log als
+  `TL_BODY[mandrael-altcha]`) – ebenfalls nur bei aktivem ALTCHA-Fallback.
 
 Wer die Worker-Adresse in einem Override fest eingetragen hat, kann wieder
 `$this->turnstileWorkerUrl` verwenden (seit 0.7.2 same-origin aufgelöst, siehe
 `CHANGELOG.md`).
 
 **Bekannte Grenze:** Geprüft wird nur beim echten Rendern, nicht bei Auslieferung aus dem
-Seiten-Cache – ein zwischengespeichertes, veraltetes HTML wird nicht erkannt.
+Seiten-Cache – ein zwischengespeichertes, veraltetes HTML wird nicht erkannt. Ein Override, der
+Turnstile per JavaScript rendert (`turnstile.render()`) und dafür das HTML-Attribut
+`data-sitekey` weglässt, wird ebenfalls als veraltet gemeldet; ein solcher Override muss
+`data-sitekey` im HTML behalten.
 
 ## 0.7.0 → 0.7.1
 
