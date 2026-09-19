@@ -144,6 +144,17 @@ Contao's internal ALTCHA (available from 5.4) and therefore identical on 4.13 an
   core; there the default security question remains (no loss of function). The newsletter module
   also has its own core option to disable the captcha.
 
+### Template overrides
+
+Anyone overriding `templates/form_mandrael_turnstile.html5` should compare their own override
+against the bundle template after an update: when rendering, the bundle checks whether the
+generated HTML contains all required fields (among them `data-sitekey`, the per-field-ID
+Cloudflare attributes, and – with the ALTCHA fallback active – `data-challengeurl`/
+`data-workerurl`). If something is missing, an error of category `template-outdated` is
+written to the system log at most once per hour; the output itself stays unchanged. The exact
+list of required markers is in [`UPGRADE.md`](UPGRADE.md). The ALTCHA solver additionally
+reports its own errors via `console.warn` in the browser console.
+
 ## Compatibility
 
 - **PHP:** 8.1+

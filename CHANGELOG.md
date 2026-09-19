@@ -5,6 +5,23 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
+## [0.7.2] - UNRELEASED
+
+### Behoben
+- Liefert eine Installation Assets von einer anderen Domain (Startpunkt-Einstellung
+  „Assets-URL"), zeigten die Adressen von `worker.js` und des Solver-Skripts dorthin.
+  Browser starten einen Web Worker von fremder Origin nicht (`SecurityError`), der Solver
+  verschluckte den Fehler, das ALTCHA-Feld blieb leer und der Fallback `altcha` war
+  wirkungslos; seit 0.7.1 wurde damit jeder gescheiterte Turnstile-Versuch blockiert. Beide
+  Adressen werden jetzt same-origin aus dem Basis-Pfad des Requests gebildet.
+
+### Hinzugefügt
+- Selbstprüfung gegen veraltete Template-Overrides – beim Rendern wird geprüft, ob das
+  erzeugte HTML die Pflichtfelder enthält; fehlt etwas, steht höchstens einmal je Stunde
+  ein Fehler der Kategorie `template-outdated` mit den fehlenden Markern im System-Log.
+  Die Prüfung ändert weder Ausgabe noch Validierung. Der Solver meldet Fehler jetzt per
+  `console.warn` in der Browser-Konsole.
+
 ## [0.7.1] - 2026-09-19
 
 ### Geändert
