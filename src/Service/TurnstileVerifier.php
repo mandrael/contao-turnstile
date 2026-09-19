@@ -7,6 +7,7 @@ namespace Mandrael\ContaoTurnstileBundle\Service;
 use Contao\Config;
 use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Monolog\ContaoContext;
+use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
@@ -30,11 +31,16 @@ class TurnstileVerifier
         '3x0000000000000000000000000000000AA',
     ];
 
+    // Drosselung fuer logTemplateOutdated(): ein dauerhaft veralteter Override soll nicht bei jedem
+    // Submit erneut loggen.
+    private const TEMPLATE_OUTDATED_THROTTLE = 3600;
+
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
         private readonly RequestStack $requestStack,
         private readonly ContaoFramework $framework,
+        private readonly CacheItemPoolInterface $cache,
     ) {
     }
 
@@ -126,6 +132,47 @@ class TurnstileVerifier
         $this->logger->error(
             'Cloudflare Turnstile ALTCHA-Fallback nicht verfügbar, Absenden wird blockiert: '
             .'kein HTTPS erkannt (trusted_proxies prüfen) oder Route/Assets nicht auflösbar (altcha-unavailable).',
+            ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
+        );
+    }
+
+    /**
+     * Meldet einen veralteten Template-Override: FormTurnstile::missingTemplateMarkers() fand im
+     * gerenderten HTML nicht alle erwarteten Marker. Level error (nicht info), weil genau das zweimal
+     * einen mehrstündigen stillen Formular-Ausfall verursacht hat, ohne dass irgendetwas es meldete.
+     * Höchstens einmal je Stunde je Kombination aus Template und fehlenden Markern (PSR-6-Cache-Schlüssel
+     * aus beidem), damit ein dauerhaft veralteter Override das Log nicht bei jedem Submit flutet; der
+     * Cache wird von FormTurnstile aus nur erreicht, wenn wirklich etwas fehlt. Wirft der Cache
+     * (getItem/save), wird trotzdem geloggt statt abzubrechen – die einzige Stelle im Bundle, an der ein
+     * catch NICHT zu einem Fehlschlag führt: eine Meldung zu viel ist hier harmloser als ein verlorener
+     * Hinweis auf einen stillen Totalausfall.
+     *
+     * @param list<string> $missing
+     */
+    public function logTemplateOutdated(string $template, array $missing): void
+    {
+        $key = 'mandrael_turnstile.template_outdated.'.md5($template.'|'.implode(',', $missing));
+
+        try {
+            $item = $this->cache->getItem($key);
+
+            if ($item->isHit()) {
+                return;
+            }
+
+            $this->cache->save($item->set(true)->expiresAfter(self::TEMPLATE_OUTDATED_THROTTLE));
+        } catch (\Throwable) {
+            // Bewusst kein Abbruch, siehe Docblock: lieber eine Meldung zu viel als ein verlorener
+            // Hinweis auf einen stillen Formular-Ausfall.
+        }
+
+        $this->logger->error(
+            \sprintf(
+                'Cloudflare Turnstile: Template "%s" ist veraltet, es fehlen die Marker %s '
+                .'(template-outdated) – Override gegen das Bundle-Template abgleichen.',
+                $template,
+                implode(', ', $missing)
+            ),
             ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
         );
     }

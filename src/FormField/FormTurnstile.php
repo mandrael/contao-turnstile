@@ -378,7 +378,68 @@ class FormTurnstile extends FormCaptcha
             }
         }
 
-        return parent::parse($arrAttributes);
+        $html = parent::parse($arrAttributes);
+
+        // Selbstprüfung gegen veraltete Template-Overrides: nur wenn Turnstile tatsächlich rendert –
+        // form_captcha hat keine dieser Marker, dort wäre es Fehlalarm. Blockiert nichts und wirft nie:
+        // das HTML geht unabhängig davon unverändert zurück.
+        if (!$this->fallbackToCaptcha) {
+            $this->checkTemplateMarkers($html);
+        }
+
+        return $html;
+    }
+
+    /**
+     * Rührt logTemplateOutdated() (und damit den Cache im Verifier) NUR an, wenn wirklich ein Marker
+     * fehlt – bei intaktem Template kostet der Aufruf nur die String-Vergleiche aus
+     * missingTemplateMarkers(). Eigene Methode statt Inline-Code in parse(), damit sie per Reflection
+     * mit einem gemockten Verifier testbar ist (parse() selbst ruft parent::parse() -> Template-Loader,
+     * im ContaoTestCase nicht sinnvoll aufrufbar).
+     */
+    private function checkTemplateMarkers(string $html): void
+    {
+        $missing = $this->missingTemplateMarkers($html);
+
+        if ($this->altchaActive && !isset($GLOBALS['TL_BODY']['mandrael-altcha'])) {
+            $missing[] = 'TL_BODY[mandrael-altcha]';
+        }
+
+        if ([] !== $missing) {
+            $this->getVerifier()->logTemplateOutdated($this->strTemplate, $missing);
+        }
+    }
+
+    /**
+     * Rein, ohne Seiteneffekte (per Reflection testbar) – sucht per str_contains ausschließlich nach
+     * nackten Token, nie mit Attributnamen, Anführungszeichen oder Whitespace drumherum: ein Override
+     * mit anderer Attributreihenfolge oder anderem Quoting-Stil (single statt double quotes, Leerzeichen
+     * um "=") soll keinen Fehlalarm auslösen, nur ein wirklich fehlendes Feld.
+     *
+     * @return list<string>
+     */
+    private function missingTemplateMarkers(string $html): array
+    {
+        $markers = [
+            'cf-turnstile-response-'.$this->id,
+            'cf-turnstile-hp-'.$this->id,
+            'cf-turnstile-ts-'.$this->id,
+        ];
+
+        if ($this->altchaActive) {
+            $markers[] = 'altcha-'.$this->id;
+            $markers[] = 'data-mandrael-altcha';
+        }
+
+        $missing = [];
+
+        foreach ($markers as $marker) {
+            if (!str_contains($html, $marker)) {
+                $missing[] = $marker;
+            }
+        }
+
+        return $missing;
     }
 
     private function getVerifier(): TurnstileVerifier

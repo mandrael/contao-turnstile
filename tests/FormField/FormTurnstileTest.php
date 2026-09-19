@@ -566,6 +566,128 @@ class FormTurnstileTest extends ContaoTestCase
         return (string) (new \ReflectionMethod($widget, 'bundleUrl'))->invoke($widget, 'worker.js');
     }
 
+    /**
+     * @return list<string>
+     */
+    #[DataProvider('provideSingleMissingMarker')]
+    public function testMissingTemplateMarkersDetectsEachMissingMarker(string $removedMarker): void
+    {
+        $widget = $this->createMarkerWidget('42', true);
+        $html = str_replace($removedMarker, '', self::completeMarkerHtml('42'));
+
+        self::assertSame([$removedMarker], $this->invokeMissingTemplateMarkers($widget, $html));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideSingleMissingMarker(): iterable
+    {
+        yield 'response' => ['cf-turnstile-response-42'];
+        yield 'honeypot' => ['cf-turnstile-hp-42'];
+        yield 'zeitstempel' => ['cf-turnstile-ts-42'];
+        yield 'altcha' => ['altcha-42'];
+        yield 'altcha data attribute' => ['data-mandrael-altcha'];
+    }
+
+    public function testMissingTemplateMarkersToleratesQuotingWhitespaceAndAttributeOrder(): void
+    {
+        // Einfache Anführungszeichen, Leerzeichen um "=", andere Attributreihenfolge – str_contains
+        // sucht nur das nackte Token, das bleibt in jeder dieser Schreibweisen unverändert erhalten.
+        $html = <<<'HTML'
+            <div data-theme='light' data-response-field-name = 'cf-turnstile-response-42' data-size='normal'></div>
+            <input type="text" name = 'cf-turnstile-hp-42' tabindex="-1">
+            <input name='cf-turnstile-ts-42' type = "hidden" value="">
+            <input data-mandrael-altcha name = 'altcha-42' type="hidden">
+            HTML;
+
+        $widget = $this->createMarkerWidget('42', true);
+
+        self::assertSame([], $this->invokeMissingTemplateMarkers($widget, $html));
+    }
+
+    public function testMissingTemplateMarkersSkipsAltchaMarkersWhenAltchaInactive(): void
+    {
+        // ALTCHA inaktiv: die beiden ALTCHA-Marker fehlen im HTML, zählen aber nicht als fehlend.
+        $html = '<div data-response-field-name="cf-turnstile-response-42"></div>'
+            .'<input name="cf-turnstile-hp-42">'
+            .'<input name="cf-turnstile-ts-42">';
+
+        $widget = $this->createMarkerWidget('42', false);
+
+        self::assertSame([], $this->invokeMissingTemplateMarkers($widget, $html));
+    }
+
+    public function testBundledTemplateContainsAllRequiredMarkers(): void
+    {
+        // Schützt davor, dass jemand das Bundle-Template ändert und die Selbstprüfung dann bei
+        // JEDEM Rendern Fehlalarm gibt (die Template-Datei ist der Maßstab für die Marker-Stämme).
+        $path = \dirname(__DIR__, 2).'/contao/templates/form_mandrael_turnstile.html5';
+        $html = (string) file_get_contents($path);
+
+        foreach ([
+            'cf-turnstile-response-',
+            'cf-turnstile-hp-',
+            'cf-turnstile-ts-',
+            'altcha-',
+            'data-mandrael-altcha',
+            'mandrael-altcha',
+        ] as $stem) {
+            self::assertStringContainsString($stem, $html, \sprintf('Template-Stamm "%s" fehlt im Bundle-Template.', $stem));
+        }
+    }
+
+    public function testIntactTemplateDoesNotTouchCache(): void
+    {
+        // Bei leerer Marker-Liste (intaktes Template, TL_BODY-Eintrag gesetzt) wird logTemplateOutdated()
+        // nie aufgerufen – checkTemplateMarkers() rührt den Verifier (und damit dessen Cache) nur an,
+        // wenn wirklich etwas fehlt.
+        $GLOBALS['TL_BODY']['mandrael-altcha'] = '<script></script>';
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->expects(self::never())->method('logTemplateOutdated');
+
+        $widget = $this->createMarkerWidget('42', true);
+        (new \ReflectionProperty(FormTurnstile::class, 'fallbackToCaptcha'))->setValue($widget, false);
+
+        $container = new Container();
+        $container->set(TurnstileVerifier::class, $verifier);
+        System::setContainer($container);
+
+        (new \ReflectionMethod($widget, 'checkTemplateMarkers'))->invoke($widget, self::completeMarkerHtml('42'));
+
+        unset($GLOBALS['TL_BODY']);
+    }
+
+    private static function completeMarkerHtml(string $id): string
+    {
+        return '<div data-response-field-name="cf-turnstile-response-'.$id.'"></div>'
+            .'<input name="cf-turnstile-hp-'.$id.'">'
+            .'<input name="cf-turnstile-ts-'.$id.'">'
+            .'<input data-mandrael-altcha name="altcha-'.$id.'">';
+    }
+
+    private function createMarkerWidget(string $id, bool $altchaActive): FormTurnstile
+    {
+        $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
+
+        (new \ReflectionProperty(Widget::class, 'strId'))->setValue($widget, $id);
+        (new \ReflectionProperty(FormTurnstile::class, 'altchaActive'))->setValue($widget, $altchaActive);
+
+        return $widget;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function invokeMissingTemplateMarkers(FormTurnstile $widget, string $html): array
+    {
+        /** @var list<string> $missing */
+        $missing = (new \ReflectionMethod($widget, 'missingTemplateMarkers'))->invoke($widget, $html);
+
+        return $missing;
+    }
+
     public function testIsSecureContextRecognisesLoopbackHosts(): void
     {
         // Request::getHost() liefert IPv6-Loopback in Klammern ('[::1]') – der frühere nackte '::1'-Eintrag

@@ -12,6 +12,7 @@ services:
             $logger: '@monolog.logger.contao'
             $requestStack: '@request_stack'
             $framework: '@contao.framework'
+            $cache: '@cache.app'
 
     # Public wie der TurnstileVerifier: das Widget zieht ihn per System::getContainer()->get(...).
     # Replay-Store ueber den PSR-6-App-Cache, kein eigener Cache-Pool noetig.

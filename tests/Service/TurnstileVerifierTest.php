@@ -7,8 +7,10 @@ namespace Mandrael\ContaoTurnstileBundle\Tests\Service;
 use Contao\Config;
 use Contao\TestCase\ContaoTestCase;
 use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
+use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpClient\Exception\TransportException;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -85,6 +87,48 @@ class TurnstileVerifierTest extends ContaoTestCase
         $logger->expects($this->once())->method('error')->with($this->stringContains('altcha-unavailable'));
 
         $this->createVerifier(new MockHttpClient(), logger: $logger)->logAltchaUnavailable();
+    }
+
+    public function testLogTemplateOutdatedLogsErrorWithCategoryTemplateAndMarkers(): void
+    {
+        // Eine Log-Auswertung muss "template-outdated", den Template-Namen und die fehlenden Marker finden.
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')->with($this->logicalAnd(
+            $this->stringContains('template-outdated'),
+            $this->stringContains('form_mandrael_turnstile'),
+            $this->stringContains('cf-turnstile-hp-42')
+        ));
+
+        $this->createVerifier(new MockHttpClient(), logger: $logger)
+            ->logTemplateOutdated('form_mandrael_turnstile', ['cf-turnstile-hp-42']);
+    }
+
+    public function testLogTemplateOutdatedIsThrottledToOncePerHour(): void
+    {
+        // Zweiter Aufruf mit denselben Argumenten (Template + fehlende Marker) loggt nicht erneut,
+        // ein anderes fehlendes Token ergibt einen anderen Cache-Schluessel und loggt wieder.
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->exactly(2))->method('error');
+
+        $verifier = $this->createVerifier(new MockHttpClient(), logger: $logger);
+
+        $verifier->logTemplateOutdated('form_mandrael_turnstile', ['cf-turnstile-hp-42']);
+        $verifier->logTemplateOutdated('form_mandrael_turnstile', ['cf-turnstile-hp-42']);
+        $verifier->logTemplateOutdated('form_mandrael_turnstile', ['cf-turnstile-ts-42']);
+    }
+
+    public function testLogTemplateOutdatedStillLogsWhenCacheThrows(): void
+    {
+        // Wirft der Cache (getItem), wird trotzdem geloggt statt abzubrechen – lieber eine Meldung
+        // zu viel als ein verlorener Hinweis auf einen stillen Formular-Ausfall.
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+        $cache->method('getItem')->willThrowException(new \RuntimeException('Cache nicht erreichbar'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error');
+
+        $this->createVerifier(new MockHttpClient(), logger: $logger, cache: $cache)
+            ->logTemplateOutdated('form_mandrael_turnstile', ['cf-turnstile-hp-42']);
     }
 
     public function testHostnameEmptyRequestHostDoesNotMatch(): void
@@ -275,13 +319,13 @@ class TurnstileVerifierTest extends ContaoTestCase
     /**
      * @param array<string, string> $config
      */
-    private function createVerifier(HttpClientInterface $client, array $config = ['turnstileSiteKey' => 'site-key', 'turnstileSecretKey' => 'secret-key'], ?LoggerInterface $logger = null, ?RequestStack $requestStack = null): TurnstileVerifier
+    private function createVerifier(HttpClientInterface $client, array $config = ['turnstileSiteKey' => 'site-key', 'turnstileSecretKey' => 'secret-key'], ?LoggerInterface $logger = null, ?RequestStack $requestStack = null, ?CacheItemPoolInterface $cache = null): TurnstileVerifier
     {
         $adapter = $this->mockAdapter(['get']);
         $adapter->method('get')->willReturnCallback(static fn (string $key) => $config[$key] ?? null);
 
         $framework = $this->mockContaoFramework([Config::class => $adapter]);
 
-        return new TurnstileVerifier($client, $logger ?? new NullLogger(), $requestStack ?? new RequestStack(), $framework);
+        return new TurnstileVerifier($client, $logger ?? new NullLogger(), $requestStack ?? new RequestStack(), $framework, $cache ?? new ArrayAdapter());
     }
 }
