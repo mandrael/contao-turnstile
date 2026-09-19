@@ -131,6 +131,19 @@ class TurnstileVerifierTest extends ContaoTestCase
             ->logTemplateOutdated('form_mandrael_turnstile', ['cf-turnstile-hp-42']);
     }
 
+    public function testLogTemplateOutdatedNeverThrowsWhenLoggerThrows(): void
+    {
+        // Der Logger-Aufruf ist reine Diagnose und darf die Formularseite nie abschießen (kaputtes
+        // Logverzeichnis, volle Platte) – wirft der Logger, muss die Methode trotzdem sauber zurückkehren.
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->method('error')->willThrowException(new \RuntimeException('Log nicht beschreibbar'));
+
+        $this->createVerifier(new MockHttpClient(), logger: $logger)
+            ->logTemplateOutdated('form_mandrael_turnstile', ['cf-turnstile-hp-42']);
+
+        $this->addToAssertionCount(1);
+    }
+
     public function testHostnameEmptyRequestHostDoesNotMatch(): void
     {
         // Request::getHost() ohne Host-Header/SERVER_NAME liefert '' (kein Wurf durch idn_to_ascii

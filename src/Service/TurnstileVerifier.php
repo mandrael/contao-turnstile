@@ -143,9 +143,10 @@ class TurnstileVerifier
      * Höchstens einmal je Stunde je Kombination aus Template und fehlenden Markern (PSR-6-Cache-Schlüssel
      * aus beidem), damit ein dauerhaft veralteter Override das Log nicht bei jedem Submit flutet; der
      * Cache wird von FormTurnstile aus nur erreicht, wenn wirklich etwas fehlt. Wirft der Cache
-     * (getItem/save), wird trotzdem geloggt statt abzubrechen – die einzige Stelle im Bundle, an der ein
-     * catch NICHT zu einem Fehlschlag führt: eine Meldung zu viel ist hier harmloser als ein verlorener
-     * Hinweis auf einen stillen Totalausfall.
+     * (getItem/save) oder der Logger selbst, wird das jeweils einzeln abgefangen statt abzubrechen: eine
+     * Meldung zu viel (Cache) bzw. eine ausbleibende Meldung (Logger) ist hier harmloser als ein Formular,
+     * das wegen reiner Diagnose mit HTTP 500 endet – der Logger-Aufruf ist reine Diagnose und darf das
+     * Rendern der Seite nie verhindern (nicht beschreibbares Logverzeichnis, volle Platte).
      *
      * @param list<string> $missing
      */
@@ -166,15 +167,19 @@ class TurnstileVerifier
             // Hinweis auf einen stillen Formular-Ausfall.
         }
 
-        $this->logger->error(
-            \sprintf(
-                'Cloudflare Turnstile: Template "%s" ist veraltet, es fehlen die Marker %s '
-                .'(template-outdated) – Override gegen das Bundle-Template abgleichen.',
-                $template,
-                implode(', ', $missing)
-            ),
-            ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
-        );
+        try {
+            $this->logger->error(
+                \sprintf(
+                    'Cloudflare Turnstile: Template "%s" ist veraltet, es fehlen die Marker %s '
+                    .'(template-outdated) – Override gegen das Bundle-Template abgleichen.',
+                    $template,
+                    implode(', ', $missing)
+                ),
+                ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
+            );
+        } catch (\Throwable) {
+            // Reine Diagnose: darf die Formularseite nie abschießen, siehe Docblock.
+        }
     }
 
     public function validate(?string $token): bool

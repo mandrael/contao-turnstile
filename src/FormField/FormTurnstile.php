@@ -382,10 +382,9 @@ class FormTurnstile extends FormCaptcha
 
         // Selbstprüfung gegen veraltete Template-Overrides: nur wenn Turnstile tatsächlich rendert –
         // form_captcha hat keine dieser Marker, dort wäre es Fehlalarm. Blockiert nichts und wirft nie:
-        // das HTML geht unabhängig davon unverändert zurück.
-        if (!$this->fallbackToCaptcha) {
-            $this->checkTemplateMarkers($html);
-        }
+        // das HTML geht unabhängig davon unverändert zurück. Der Wächter sitzt in checkTemplateMarkers()
+        // selbst (einzige Stelle, die entscheidet).
+        $this->checkTemplateMarkers($html);
 
         return $html;
     }
@@ -399,6 +398,12 @@ class FormTurnstile extends FormCaptcha
      */
     private function checkTemplateMarkers(string $html): void
     {
+        // form_captcha hat keine dieser Marker, dort wäre jeder Aufruf ein Fehlalarm – deshalb hier
+        // und nicht mehr (nur) in parse() geprüft, damit die Bedingung auch von der Test-Suite erreicht wird.
+        if ($this->fallbackToCaptcha) {
+            return;
+        }
+
         $missing = $this->missingTemplateMarkers($html);
 
         if ($this->altchaActive && !isset($GLOBALS['TL_BODY']['mandrael-altcha'])) {
@@ -411,29 +416,43 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Rein, ohne Seiteneffekte (per Reflection testbar) – sucht per str_contains ausschließlich nach
-     * nackten Token, nie mit Attributnamen, Anführungszeichen oder Whitespace drumherum: ein Override
-     * mit anderer Attributreihenfolge oder anderem Quoting-Stil (single statt double quotes, Leerzeichen
-     * um "=") soll keinen Fehlalarm auslösen, nur ein wirklich fehlendes Feld.
+     * Rein, ohne Seiteneffekte (per Reflection testbar) – sucht ausschließlich nach nackten Token, nie
+     * mit Attributnamen, Anführungszeichen oder Whitespace drumherum: ein Override mit anderer
+     * Attributreihenfolge oder anderem Quoting-Stil (single statt double quotes, Leerzeichen um "=")
+     * soll keinen Fehlalarm auslösen, nur ein wirklich fehlendes Feld.
+     *
+     * Token mit ID-Suffix (cf-turnstile-*-<id>, altcha-<id>) laufen über preg_match mit "(?!\d)": reines
+     * str_contains würde "cf-turnstile-hp-2" bereits durch "cf-turnstile-hp-25" erfüllt sehen (Präfix-
+     * Kollision bei zweistelligen Feld-IDs). Token ohne ID-Suffix (data-sitekey usw.) bleiben str_contains.
      *
      * @return list<string>
      */
     private function missingTemplateMarkers(string $html): array
     {
-        $markers = [
+        $idMarkers = [
             'cf-turnstile-response-'.$this->id,
             'cf-turnstile-hp-'.$this->id,
             'cf-turnstile-ts-'.$this->id,
         ];
 
+        $plainMarkers = ['data-sitekey'];
+
         if ($this->altchaActive) {
-            $markers[] = 'altcha-'.$this->id;
-            $markers[] = 'data-mandrael-altcha';
+            $idMarkers[] = 'altcha-'.$this->id;
+            $plainMarkers[] = 'data-mandrael-altcha';
+            $plainMarkers[] = 'data-challengeurl';
+            $plainMarkers[] = 'data-workerurl';
         }
 
         $missing = [];
 
-        foreach ($markers as $marker) {
+        foreach ($idMarkers as $marker) {
+            if (!preg_match('/'.preg_quote($marker, '/').'(?!\d)/', $html)) {
+                $missing[] = $marker;
+            }
+        }
+
+        foreach ($plainMarkers as $marker) {
             if (!str_contains($html, $marker)) {
                 $missing[] = $marker;
             }

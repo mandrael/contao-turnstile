@@ -595,10 +595,10 @@ class FormTurnstileTest extends ContaoTestCase
         // Einfache Anführungszeichen, Leerzeichen um "=", andere Attributreihenfolge – str_contains
         // sucht nur das nackte Token, das bleibt in jeder dieser Schreibweisen unverändert erhalten.
         $html = <<<'HTML'
-            <div data-theme='light' data-response-field-name = 'cf-turnstile-response-42' data-size='normal'></div>
+            <div data-sitekey = 'site-key' data-theme='light' data-response-field-name = 'cf-turnstile-response-42' data-size='normal'></div>
             <input type="text" name = 'cf-turnstile-hp-42' tabindex="-1">
             <input name='cf-turnstile-ts-42' type = "hidden" value="">
-            <input data-mandrael-altcha name = 'altcha-42' type="hidden">
+            <input data-mandrael-altcha data-challengeurl='/x' data-workerurl = "/y" name = 'altcha-42' type="hidden">
             HTML;
 
         $widget = $this->createMarkerWidget('42', true);
@@ -609,7 +609,7 @@ class FormTurnstileTest extends ContaoTestCase
     public function testMissingTemplateMarkersSkipsAltchaMarkersWhenAltchaInactive(): void
     {
         // ALTCHA inaktiv: die beiden ALTCHA-Marker fehlen im HTML, zählen aber nicht als fehlend.
-        $html = '<div data-response-field-name="cf-turnstile-response-42"></div>'
+        $html = '<div data-sitekey="site-key" data-response-field-name="cf-turnstile-response-42"></div>'
             .'<input name="cf-turnstile-hp-42">'
             .'<input name="cf-turnstile-ts-42">';
 
@@ -632,6 +632,9 @@ class FormTurnstileTest extends ContaoTestCase
             'altcha-',
             'data-mandrael-altcha',
             'mandrael-altcha',
+            'data-sitekey',
+            'data-challengeurl',
+            'data-workerurl',
         ] as $stem) {
             self::assertStringContainsString($stem, $html, \sprintf('Template-Stamm "%s" fehlt im Bundle-Template.', $stem));
         }
@@ -659,12 +662,68 @@ class FormTurnstileTest extends ContaoTestCase
         unset($GLOBALS['TL_BODY']);
     }
 
+    public function testCheckTemplateMarkersSkipsCaptchaFallback(): void
+    {
+        // Der Wächter sitzt jetzt in checkTemplateMarkers() selbst (einzige entscheidende Stelle):
+        // eine auf form_captcha zurückgefallene Installation darf nie template-outdated loggen, auch
+        // nicht bei HTML ohne jeden Marker.
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->expects(self::never())->method('logTemplateOutdated');
+
+        $widget = $this->createMarkerWidget('42', true);
+        (new \ReflectionProperty(FormTurnstile::class, 'fallbackToCaptcha'))->setValue($widget, true);
+
+        $container = new Container();
+        $container->set(TurnstileVerifier::class, $verifier);
+        System::setContainer($container);
+
+        (new \ReflectionMethod($widget, 'checkTemplateMarkers'))->invoke($widget, '');
+    }
+
+    public function testMissingTemplateMarkersDoesNotMatchLongerId(): void
+    {
+        // Präfix-Kollision: "cf-turnstile-hp-2" darf nicht bereits durch "cf-turnstile-hp-25" erfüllt gelten.
+        $htmlOfFieldTwentyFive = self::completeMarkerHtml('25');
+
+        $widgetTwo = $this->createMarkerWidget('2', false);
+        self::assertSame(
+            ['cf-turnstile-response-2', 'cf-turnstile-hp-2', 'cf-turnstile-ts-2'],
+            $this->invokeMissingTemplateMarkers($widgetTwo, $htmlOfFieldTwentyFive)
+        );
+
+        // Gegenprobe: ID 25 gegen das eigene HTML -> nichts fehlt.
+        $widgetTwentyFive = $this->createMarkerWidget('25', false);
+        self::assertSame([], $this->invokeMissingTemplateMarkers($widgetTwentyFive, $htmlOfFieldTwentyFive));
+    }
+
+    public function testMissingTemplateMarkersDetectsMissingSitekeyAndAltchaUrls(): void
+    {
+        // data-sitekey wird immer verlangt, data-challengeurl/data-workerurl nur bei aktivem ALTCHA.
+        $widget = $this->createMarkerWidget('42', true);
+
+        $htmlWithoutSitekey = str_replace('data-sitekey="site-key" ', '', self::completeMarkerHtml('42'));
+        self::assertSame(['data-sitekey'], $this->invokeMissingTemplateMarkers($widget, $htmlWithoutSitekey));
+
+        $htmlWithoutChallengeUrl = str_replace('data-challengeurl="/x" ', '', self::completeMarkerHtml('42'));
+        self::assertSame(['data-challengeurl'], $this->invokeMissingTemplateMarkers($widget, $htmlWithoutChallengeUrl));
+
+        $htmlWithoutWorkerUrl = str_replace('data-workerurl="/y" ', '', self::completeMarkerHtml('42'));
+        self::assertSame(['data-workerurl'], $this->invokeMissingTemplateMarkers($widget, $htmlWithoutWorkerUrl));
+
+        // Bei inaktivem ALTCHA werden data-challengeurl/data-workerurl nicht verlangt.
+        $widgetInactive = $this->createMarkerWidget('42', false);
+        $htmlInactive = '<div data-response-field-name="cf-turnstile-response-42"></div>'
+            .'<input name="cf-turnstile-hp-42">'
+            .'<input name="cf-turnstile-ts-42">';
+        self::assertSame(['data-sitekey'], $this->invokeMissingTemplateMarkers($widgetInactive, $htmlInactive));
+    }
+
     private static function completeMarkerHtml(string $id): string
     {
-        return '<div data-response-field-name="cf-turnstile-response-'.$id.'"></div>'
+        return '<div data-sitekey="site-key" data-response-field-name="cf-turnstile-response-'.$id.'"></div>'
             .'<input name="cf-turnstile-hp-'.$id.'">'
             .'<input name="cf-turnstile-ts-'.$id.'">'
-            .'<input data-mandrael-altcha name="altcha-'.$id.'">';
+            .'<input data-mandrael-altcha data-challengeurl="/x" data-workerurl="/y" name="altcha-'.$id.'">';
     }
 
     private function createMarkerWidget(string $id, bool $altchaActive): FormTurnstile
