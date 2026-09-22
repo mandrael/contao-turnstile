@@ -119,7 +119,7 @@ integrator with a strict CSP of their own adds them manually.
   forms are locked for the duration of the outage.
 - **Fallback `altcha` (or the deprecated `filter`)** → stands in for Turnstile only during a
   **confirmed** outage: a server-side probe against siteverify must have been failing for at least
-  30 seconds. A missing or rejected token is always blocked (log category `fallback-withheld`) –
+  30 seconds. Without a confirmed outage, a missing or rejected token is blocked (log category `fallback-withheld`) –
   otherwise a browser bot denied a token by Turnstile could simply solve the proof of work (as
   happened before 0.8.0).
 - **Invalid/forged token** (`success: false`) → the submission is **blocked** (fail-closed). This

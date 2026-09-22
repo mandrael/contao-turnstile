@@ -12,10 +12,13 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   bei jedem Fehlschlag, auch wenn Turnstile einem Absender kein Token gab oder es ablehnte. Ein
   Browser-Bot konnte so den Proof-of-Work lösen und durchkommen. Jetzt vertreten beide Stufen
   Turnstile nur noch bei einem bestätigten Cloudflare-Ausfall: Eine serverseitige Probe mit
-  Platzhalter-Token muss seit mindestens 30 Sekunden scheitern (Transportfehler, HTTP ≥ 500 oder
-  nur `internal-error`). Sonst wird blockiert, im Log mit der Kategorie `fallback-withheld`.
-  Ein positiver Befund gilt 60 Sekunden, ein Fehlschlag wird nie gespeichert. Der Modus `block`
-  fragt Cloudflare nie zusätzlich an.
+  Platzhalter-Token muss scheitern (Transportfehler, HTTP ≥ 500 oder HTTP 2xx mit nur
+  `internal-error`), und seit mindestens 30 Sekunden darf keine Probe gelungen sein. Sonst wird
+  blockiert, im Log mit der Kategorie `fallback-withheld`. „Erreichbar" wird 60 Sekunden gemerkt,
+  „unerreichbar" nie; gespeichert wird nur der Beginn eines Ausfalls, und er verfällt nach
+  120 Sekunden ohne neuen Fehlschlag. Der Modus `block` fragt Cloudflare nie zusätzlich an.
+- Log-Aufrufe auf dem Prüfpfad können die Formularseite nicht mehr mit HTTP 500 beenden (etwa bei
+  nicht beschreibbarem Logverzeichnis). Eine unverwertbare siteverify-Antwort wird wieder protokolliert.
 
 ### Geändert
 - Wer Cloudflare nur clientseitig nicht erreicht (Tor, Privacy-Browser, Firmen-Firewall), wird

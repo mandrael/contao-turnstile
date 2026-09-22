@@ -201,10 +201,7 @@ class TurnstileVerifier
             // Template-Override/Feldname, JS aus), genau EINE Warnung – bewusst warning (nicht info),
             // damit ein flächiger Ausfall im Prod-Log auffällt. Abgelehnte Tokens (Bot-Replays)
             // bleiben weiter still, um keine Log-Flut zu erzeugen. Nie das Secret loggen.
-            $this->logger->warning(
-                'Cloudflare Turnstile: kein Token im Request – Template/Feldname prüfen.',
-                ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
-            );
+            $this->safeLog('warning', 'Cloudflare Turnstile: kein Token im Request – Template/Feldname prüfen.', ContaoContext::FORMS, __METHOD__);
 
             return false;
         }
@@ -253,9 +250,10 @@ class TurnstileVerifier
      * (am 22.09.2026 löste ein Browser-Bot über Tor so den Proof-of-Work statt Turnstile).
      *
      * Die Probe fragt siteverify mit festem Platzhalter-Token an, also mit einer Eingabe, die der Angreifer
-     * nicht bestimmt. Nur „erreichbar" wird gecacht, ein Fehlschlag nie; der Ausfall zählt erst, wenn er
-     * seit PROBE_OUTAGE_MIN_SECONDS ohne erfolgreiche Probe anhält. So öffnet ein einzelner, etwa
-     * lastbedingter Timeout nichts. Cache-Fehler: false, ohne Cloudflare anzufragen – ohne Cache lässt
+     * nicht bestimmt. Gecacht wird nur „erreichbar"; bei einem Fehlschlag nur der Beginn des Ausfalls, der
+     * ohne neuen Fehlschlag nach PROBE_OUTAGE_GAP verfällt und von jeder erfolgreichen Probe gelöscht wird.
+     * Bestätigt ist der Ausfall erst, wenn die eigene Probe scheitert und der Beginn mindestens
+     * PROBE_OUTAGE_MIN_SECONDS zurückliegt. So öffnet ein einzelner, etwa lastbedingter Timeout nichts. Cache-Fehler: false, ohne Cloudflare anzufragen – ohne Cache lässt
      * sich die Ausfalldauer nicht festhalten.
      */
     public function isCloudflareOutageConfirmed(): bool
@@ -271,9 +269,12 @@ class TurnstileVerifier
         }
 
         if ($this->probeReachable()) {
+            // Erst den Ausfallbeginn löschen, dann „erreichbar" merken: bliebe ein alter Beginn hinter einem
+            // gecachten „erreichbar" stehen, öffnete nach dessen Ablauf schon ein einzelner Fehlschlag.
             try {
-                $this->cache->save($this->cache->getItem(self::PROBE_REACHABLE_KEY)->set(true)->expiresAfter(self::PROBE_REACHABLE_TTL));
-                $this->cache->deleteItem(self::PROBE_OUTAGE_KEY);
+                if ($this->cache->deleteItem(self::PROBE_OUTAGE_KEY)) {
+                    $this->cache->save($this->cache->getItem(self::PROBE_REACHABLE_KEY)->set(true)->expiresAfter(self::PROBE_REACHABLE_TTL));
+                }
             } catch (\Throwable) {
                 // Nur Optimierung: die nächste Anfrage probt erneut.
             }
@@ -293,7 +294,7 @@ class TurnstileVerifier
     }
 
     /**
-     * Unerreichbar nur bei Transportfehler, HTTP ≥ 500 oder wenn internal-error der einzige Code ist. Jede
+     * Unerreichbar nur bei Transportfehler, HTTP ≥ 500 oder HTTP 2xx mit internal-error als einzigem Code. Jede
      * andere Antwort (auch 4xx, Rate-Limit, Nicht-JSON unter 500, Fehlkonfiguration) beweist, dass Cloudflare
      * antwortet – ein 429 etwa könnte eine Bot-Welle selbst auslösen.
      */
@@ -307,11 +308,9 @@ class TurnstileVerifier
 
         [$status, $data] = $result;
 
-        if ($status >= 500 || ['internal-error'] === array_values((array) ($data['error-codes'] ?? []))) {
-            $this->logger->error(
-                \sprintf('Cloudflare Turnstile: siteverify meldet eine Störung (HTTP %d).', $status),
-                ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
-            );
+        // internal-error zählt nur mit HTTP 2xx: ein 4xx/429 beweist eine Antwort, auch mit diesem Code.
+        if ($status >= 500 || ($status < 300 && ['internal-error'] === array_values((array) ($data['error-codes'] ?? [])))) {
+            $this->safeLog('error', \sprintf('Cloudflare Turnstile: siteverify meldet eine Störung (HTTP %d).', $status), ContaoContext::ERROR, __METHOD__);
 
             return false;
         }
@@ -345,13 +344,11 @@ class TurnstileVerifier
                 $data = $response->toArray(false);
             } catch (DecodingExceptionInterface) {
                 $data = null;
+                $this->safeLog('error', \sprintf('Cloudflare Turnstile: unverwertbare siteverify-Antwort (HTTP %d), Verifikation gilt als fehlgeschlagen.', $status), ContaoContext::ERROR, __METHOD__);
             }
         } catch (TransportExceptionInterface $e) {
             // Andere Fehler (Code-Bugs) NICHT schlucken. Niemals Secret/$GLOBALS loggen.
-            $this->logger->error(
-                'Cloudflare Turnstile nicht erreichbar, Verifikation gilt als fehlgeschlagen: '.$e->getMessage(),
-                ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
-            );
+            $this->safeLog('error', 'Cloudflare Turnstile nicht erreichbar, Verifikation gilt als fehlgeschlagen: '.$e->getMessage(), ContaoContext::ERROR, __METHOD__);
 
             return null;
         }
@@ -368,10 +365,7 @@ class TurnstileVerifier
     private function warnOnConfigError(array $data): void
     {
         if ([] !== array_intersect(['invalid-input-secret', 'invalid-input-sitekey'], (array) ($data['error-codes'] ?? []))) {
-            $this->logger->warning(
-                'Cloudflare Turnstile lehnt die Konfiguration ab – Site Key/Secret Key prüfen.',
-                ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
-            );
+            $this->safeLog('warning', 'Cloudflare Turnstile lehnt die Konfiguration ab – Site Key/Secret Key prüfen.', ContaoContext::ERROR, __METHOD__);
         }
     }
 
@@ -381,10 +375,22 @@ class TurnstileVerifier
      */
     public function logFallbackWithheld(): void
     {
-        $this->logger->info(
-            'Cloudflare Turnstile: Ersatzstufe nicht freigegeben, kein Cloudflare-Ausfall bestätigt – Absenden blockiert (fallback-withheld).',
-            ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
-        );
+        $this->safeLog('info', 'Cloudflare Turnstile: Ersatzstufe nicht freigegeben, kein Cloudflare-Ausfall bestätigt – Absenden blockiert (fallback-withheld).', ContaoContext::FORMS, __METHOD__);
+    }
+
+    /**
+     * Diagnose auf dem Prüfpfad darf die Formularseite nie mit HTTP 500 beenden (nicht beschreibbares
+     * Logverzeichnis, volle Platte; Monolog reicht Handler-Ausnahmen weiter). Abgesichert ist nur der
+     * Logger-Aufruf selbst, nicht der Bau der Nachricht.
+     */
+    private function safeLog(string $level, string $message, string $action, string $method): void
+    {
+        $context = ['contao' => new ContaoContext($method, $action)];
+
+        try {
+            $this->logger->log($level, $message, $context);
+        } catch (\Throwable) {
+        }
     }
 
     /**
@@ -420,14 +426,11 @@ class TurnstileVerifier
             return true;
         }
 
-        $this->logger->warning(
-            \sprintf(
+        $this->safeLog('warning', \sprintf(
                 'Cloudflare Turnstile: Hostname der siteverify-Antwort ("%s") weicht vom Request-Host ("%s") ab.',
                 $responseHostNormalized,
                 $requestHost
-            ),
-            ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
-        );
+            ), ContaoContext::ERROR, __METHOD__);
 
         return false;
     }

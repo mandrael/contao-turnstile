@@ -120,7 +120,7 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
   Standardmodus `block` sind Formulare für die Dauer des Ausfalls gesperrt.
 - **Ersatzstufe `altcha` (oder veraltet `filter`)** → vertritt Turnstile nur bei einem **bestätigten**
   Ausfall: Eine serverseitige Probe gegen siteverify muss seit mindestens 30 Sekunden scheitern.
-  Fehlt das Token oder lehnt Cloudflare es ab, wird immer blockiert (Log-Kategorie
+  Fehlt das Token oder lehnt Cloudflare es ab, wird ohne bestätigten Ausfall blockiert (Log-Kategorie
   `fallback-withheld`) – sonst könnte ein Browser-Bot, dem Turnstile kein Token gibt, einfach den
   Proof-of-Work lösen (so geschehen vor 0.8.0).
 - **Ungültiges/gefälschtes Token** (`success: false`) → das Formular wird **blockiert**
