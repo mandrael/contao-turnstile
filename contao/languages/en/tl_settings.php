@@ -19,7 +19,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
     'Behaviour when the Turnstile check fails',
-    'Turnstile can produce false positives (firewalls, Safari, special configurations). By default the form is then hard-rejected. The fallback mode mitigates such cases.',
+    'By default the form is rejected. A fallback stage stands in for Turnstile only during a confirmed Cloudflare outage (siteverify unreachable for at least 30 seconds). A missing or rejected token never opens it – that is Turnstile\'s verdict on the sender.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -50,8 +50,8 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
     'block' => 'Block: prevent form submission (default)',
-    'filter' => 'Fallback: honeypot & timing check (let the rest through, log it)',
-    'altcha' => 'Fallback: honeypot/timing, then an ALTCHA proof-of-work challenge',
+    'filter' => 'During a Cloudflare outage: honeypot & timing check only (weak protection, deprecated)',
+    'altcha' => 'During a Cloudflare outage: honeypot/timing, then an ALTCHA proof-of-work challenge',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

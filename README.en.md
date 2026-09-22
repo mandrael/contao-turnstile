@@ -115,9 +115,13 @@ integrator with a strict CSP of their own adds them manually.
 ## Failure behaviour
 
 - **Network/timeout errors** (Cloudflare unreachable, 5 s timeout) → the check counts as failed
-  (fail-closed) and an error is written to the Contao system log. The configured fallback level
-  (`block`/`filter`/`altcha`, see `UPGRADE.md`) decides what happens next; in the default `block`
-  mode, forms are locked for the duration of the outage.
+  (fail-closed) and an error is written to the Contao system log. In the default `block` mode,
+  forms are locked for the duration of the outage.
+- **Fallback `altcha` (or the deprecated `filter`)** → stands in for Turnstile only during a
+  **confirmed** outage: a server-side probe against siteverify must have been failing for at least
+  30 seconds. A missing or rejected token is always blocked (log category `fallback-withheld`) –
+  otherwise a browser bot denied a token by Turnstile could simply solve the proof of work (as
+  happened before 0.8.0).
 - **Invalid/forged token** (`success: false`) → the submission is **blocked** (fail-closed). This
   also covers a wrong or expired site/secret key – then all forms block until the keys are fixed
   (a corresponding warning is written to the system log).
@@ -131,8 +135,8 @@ alternative (risk signals instead of pure in-browser computation) and makes sens
 already using Cloudflare. Both exist side by side as separate field types; this bundle does not
 touch Contao's **own** ALTCHA field type.
 
-As of **0.7.0**, when a Turnstile check fails, the bundle can optionally fall back to a
-**self-computed** ALTCHA proof-of-work challenge (`turnstileFailureMode = altcha`) – independent of
+As of **0.7.0** the bundle can optionally fall back to a **self-computed** ALTCHA proof-of-work
+challenge, since **0.8.0** only during a confirmed Cloudflare outage (`turnstileFailureMode = altcha`) – independent of
 Contao's internal ALTCHA (available from 5.4) and therefore identical on 4.13 and 5.x. See
 [`UPGRADE.md`](UPGRADE.md) for details.
 
@@ -172,7 +176,7 @@ reports its own errors via `console.warn` in the browser console.
 - **Declarative rendering, no inline JavaScript:** Only Cloudflare's official external `api.js` is loaded. This is CSP-friendly (no `nonce`/`unsafe-inline` required); on Contao 5 the Cloudflare host is added to the Content Security Policy automatically.
 - **Unique template name:** The front-end template uses a unique name and therefore does not collide with templates from other extensions or existing project templates.
 - **Lossless configuration fallback:** With no keys configured, Turnstile globally disabled, or deselected per field, the field automatically uses Contao's default security question – no loss of function.
-- **Fail-closed on every error:** Transport/timeout errors when communicating with Cloudflare and an invalid token both count as a failed check; the configured fallback level decides what happens next. The secret key is never written to the log.
+- **Fail-closed on every error:** Transport/timeout errors when communicating with Cloudflare and an invalid token both count as a failed check; a fallback stage only applies during a confirmed Cloudflare outage. The secret key is never written to the log.
 
 **Handling of the keys**
 

@@ -19,7 +19,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
     'Verhalten, wenn Turnstile-Prüfung fehlschlägt',
-    'Turnstile kann False-Positives haben (Firewalls, Safari, spezielle Konfigurationen). Standard ist, dass das Formular dann hart abgewiesen wird. Deswegen gibt es einen Fallback-Modus, der solche Fälle mitigiert.',
+    'Standard ist, dass das Formular abgewiesen wird. Eine Ersatzstufe vertritt Turnstile nur bei einem bestätigten Ausfall von Cloudflare (siteverify seit mindestens 30 Sekunden nicht erreichbar). Ein fehlendes oder abgelehntes Token öffnet sie nie – das ist Turnstiles Urteil über den Absender.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -50,8 +50,8 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
     'block' => 'Blockieren: Formular-Absenden wird verhindert (Standard)',
-    'filter' => 'Fallback: Honeypot & Zeitprüfung (Rest durchlassen, protokollieren)',
-    'altcha' => 'Fallback: Honeypot/Zeitprüfung, danach ALTCHA-Rechenaufgabe (Proof of Work)',
+    'filter' => 'Bei Cloudflare-Ausfall: nur Honeypot & Zeitprüfung (schwacher Schutz, veraltet)',
+    'altcha' => 'Bei Cloudflare-Ausfall: Honeypot/Zeitprüfung, danach ALTCHA-Rechenaufgabe (Proof of Work)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

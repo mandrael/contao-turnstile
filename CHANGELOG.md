@@ -5,7 +5,22 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
-## [0.7.2] - UNRELEASED
+## [0.8.0] - UNRELEASED
+
+### Sicherheit
+- **Die Ersatzstufe hebt Turnstiles Urteil nicht mehr auf.** Bisher griffen `filter` und `altcha`
+  bei jedem Fehlschlag, auch wenn Turnstile einem Absender kein Token gab oder es ablehnte. Ein
+  Browser-Bot konnte so den Proof-of-Work lösen und durchkommen. Jetzt vertreten beide Stufen
+  Turnstile nur noch bei einem bestätigten Cloudflare-Ausfall: Eine serverseitige Probe mit
+  Platzhalter-Token muss seit mindestens 30 Sekunden scheitern (Transportfehler, HTTP ≥ 500 oder
+  nur `internal-error`). Sonst wird blockiert, im Log mit der Kategorie `fallback-withheld`.
+  Ein positiver Befund gilt 60 Sekunden, ein Fehlschlag wird nie gespeichert. Der Modus `block`
+  fragt Cloudflare nie zusätzlich an.
+
+### Geändert
+- Wer Cloudflare nur clientseitig nicht erreicht (Tor, Privacy-Browser, Firmen-Firewall), wird
+  auch in `filter` und `altcha` abgewiesen. `filter` gilt als veraltet: Im Ausfall schützt es nur
+  per Honeypot und Mindestzeit.
 
 ### Behoben
 - Liefert eine Installation Assets von einer anderen Domain (Startpunkt-Einstellung

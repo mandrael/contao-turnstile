@@ -116,9 +116,13 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
 ## Verhalten bei Cloudflare-Ausfall
 
 - **Netzwerk-/Timeout-Fehler** (Cloudflare nicht erreichbar, 5 s Timeout) → die Prüfung gilt als
-  fehlgeschlagen (fail-closed) und ein Fehler wird ins Contao-System-Log geschrieben. Über das
-  weitere Vorgehen entscheidet die konfigurierte Fallback-Stufe (`block`/`filter`/`altcha`, siehe
-  `UPGRADE.md`); im Standardmodus `block` sind Formulare für die Dauer des Ausfalls gesperrt.
+  fehlgeschlagen (fail-closed) und ein Fehler wird ins Contao-System-Log geschrieben. Im
+  Standardmodus `block` sind Formulare für die Dauer des Ausfalls gesperrt.
+- **Ersatzstufe `altcha` (oder veraltet `filter`)** → vertritt Turnstile nur bei einem **bestätigten**
+  Ausfall: Eine serverseitige Probe gegen siteverify muss seit mindestens 30 Sekunden scheitern.
+  Fehlt das Token oder lehnt Cloudflare es ab, wird immer blockiert (Log-Kategorie
+  `fallback-withheld`) – sonst könnte ein Browser-Bot, dem Turnstile kein Token gibt, einfach den
+  Proof-of-Work lösen (so geschehen vor 0.8.0).
 - **Ungültiges/gefälschtes Token** (`success: false`) → das Formular wird **blockiert**
   (fail-closed). Dazu zählt auch ein falscher oder abgelaufener Site/Secret Key – dann blockieren
   alle Formulare, bis die Keys korrigiert sind (eine entsprechende Warnung landet im System-Log).
@@ -132,8 +136,8 @@ ist eine Cloudflare-gestützte Alternative (Risiko-Signale statt reiner Rechenar
 und für Betreiber sinnvoll, die ohnehin Cloudflare nutzen. Beide existieren als getrennte
 Feldtypen nebeneinander; Contaos **eigenen** ALTCHA-Feldtyp berührt dieses Bundle nicht.
 
-Seit **0.7.0** kann Turnstile bei einer fehlgeschlagenen Prüfung optional auf eine **selbst gerechnete**
-ALTCHA-Proof-of-Work-Aufgabe als Fallback zurückgreifen (`turnstileFailureMode = altcha`) – unabhängig
+Seit **0.7.0** kann Turnstile optional auf eine **selbst gerechnete** ALTCHA-Proof-of-Work-Aufgabe als
+Fallback zurückgreifen, seit **0.8.0** nur noch bei einem bestätigten Cloudflare-Ausfall (`turnstileFailureMode = altcha`) – unabhängig
 von Contaos internem, ab 5.4 verfügbarem ALTCHA und daher auf 4.13 wie 5.x identisch. Details siehe
 [`UPGRADE.md`](UPGRADE.md).
 
@@ -173,7 +177,7 @@ System-Log; die Ausgabe selbst bleibt unverändert. Die genaue Liste der Pflicht
 - **Deklaratives Rendering ohne Inline-JavaScript:** Es wird ausschließlich das offizielle externe `api.js` von Cloudflare eingebunden. Das ist CSP-freundlich (keine `nonce`/`unsafe-inline` erforderlich); unter Contao 5 wird der Cloudflare-Host automatisch zur Content-Security-Policy hinzugefügt.
 - **Eindeutiger Template-Name:** Das Frontend-Template trägt einen eindeutigen Namen und kollidiert daher nicht mit Templates anderer Erweiterungen oder vorhandenen Projekt-Templates.
 - **Verlustfreier Konfigurations-Fallback:** Sind keine Keys hinterlegt, ist Turnstile global deaktiviert oder pro Feld abgewählt, verwendet das Feld automatisch die Standard-Sicherheitsfrage von Contao – kein Funktionsverlust.
-- **Fail-closed bei jedem Fehler:** Transport-/Timeout-Fehler in der Kommunikation mit Cloudflare und ein ungültiges Token führen beide zu einer fehlgeschlagenen Prüfung; die konfigurierte Fallback-Stufe entscheidet über das weitere Vorgehen. Der Secret Key wird zu keinem Zeitpunkt protokolliert.
+- **Fail-closed bei jedem Fehler:** Transport-/Timeout-Fehler in der Kommunikation mit Cloudflare und ein ungültiges Token führen beide zu einer fehlgeschlagenen Prüfung; eine Ersatzstufe greift nur bei bestätigtem Cloudflare-Ausfall. Der Secret Key wird zu keinem Zeitpunkt protokolliert.
 
 **Umgang mit den Schlüsseln**
 

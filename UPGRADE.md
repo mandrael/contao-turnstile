@@ -1,8 +1,27 @@
 # Upgrade
 
-## 0.7.1 → 0.7.2
+## 0.7.1 → 0.8.0
 
-**Keine Migration, keine neuen Einstellungen, keine Verhaltensänderung bei intaktem Template.**
+**Keine Migration, keine neuen Einstellungen. Eine Verhaltensänderung in den Modi `filter` und `altcha`.**
+
+**Die Ersatzstufe greift nur noch bei einem bestätigten Cloudflare-Ausfall.** Bis 0.7.1 sprang sie bei
+jedem Fehlschlag ein, auch wenn Turnstile einem Absender kein Token gab oder es ablehnte. Ein
+Browser-Bot konnte so den Proof-of-Work lösen und durchkommen. Jetzt fragt der Server siteverify mit
+einem Platzhalter-Token selbst an; erst wenn das seit mindestens 30 Sekunden scheitert, öffnet die
+Ersatzstufe. Sonst wird blockiert, im System-Log mit der Kategorie `fallback-withheld`.
+
+Folgen für Betreiber:
+
+- Besucher, die Cloudflare nur selbst nicht erreichen (Tor, manche Privacy-Browser, Firmen-Firewalls),
+  werden auch in `filter`/`altcha` abgewiesen.
+- Ein Template-Override ohne Token-Feld oder ein JavaScript-Fehler sperrt die Formulare jetzt auch in
+  `filter`/`altcha` vollständig, solange Cloudflare erreichbar ist. Häufen sich nach dem Update
+  `fallback-withheld`-Einträge zusammen mit „kein Token im Request", zuerst den Override prüfen
+  (siehe unten); Notbremse ist `turnstileMode = off` (Rückfall auf die Contao-Sicherheitsfrage).
+- `filter` gilt als veraltet: Im Ausfall schützt es nur per Honeypot und Mindestzeit. Empfohlen ist
+  `altcha` oder `block`.
+
+### Template-Overrides
 
 Wer `templates/form_mandrael_turnstile.html5` überschrieben hat, sollte nach dem Update das
 System-Log auf die Kategorie `template-outdated` prüfen und den Override gegen das
@@ -17,7 +36,7 @@ Bundle-Template abgleichen. Geprüft werden folgende Pflichtmarker (aus
   `TL_BODY[mandrael-altcha]`) – ebenfalls nur bei aktivem ALTCHA-Fallback.
 
 Wer die Worker-Adresse in einem Override fest eingetragen hat, kann wieder
-`$this->turnstileWorkerUrl` verwenden (seit 0.7.2 same-origin aufgelöst, siehe
+`$this->turnstileWorkerUrl` verwenden (seit 0.8.0 same-origin aufgelöst, siehe
 `CHANGELOG.md`).
 
 **Bekannte Grenze:** Geprüft wird nur beim echten Rendern, nicht bei Auslieferung aus dem
