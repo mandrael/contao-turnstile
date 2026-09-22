@@ -18,7 +18,7 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   „unerreichbar" nie; gespeichert wird nur der Beginn eines Ausfalls, und er verfällt nach
   120 Sekunden ohne neuen Fehlschlag. Der Modus `block` fragt Cloudflare nie zusätzlich an.
 - Log-Aufrufe auf dem Prüfpfad können die Formularseite nicht mehr mit HTTP 500 beenden (etwa bei
-  nicht beschreibbarem Logverzeichnis). Eine unverwertbare siteverify-Antwort wird wieder protokolliert.
+  nicht beschreibbarem Logverzeichnis).
 
 ### Geändert
 - Wer Cloudflare nur clientseitig nicht erreicht (Tor, Privacy-Browser, Firmen-Firewall), wird

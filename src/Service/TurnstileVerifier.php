@@ -239,8 +239,8 @@ class TurnstileVerifier
 
     /**
      * Bestätigter Cloudflare-Ausfall – nur dann darf die Ersatzstufe (filter/altcha) Turnstile vertreten.
-     * Ein fehlendes oder abgelehntes Token allein ist Turnstiles Urteil über den Absender und öffnet sie nie
-     * (am 22.09.2026 löste ein Browser-Bot über Tor so den Proof-of-Work statt Turnstile).
+     * Ein fehlendes oder abgelehntes Token allein ist Turnstiles Urteil über den Absender und öffnet sie nie –
+     * sonst löst ein automatisierter Browser einfach den Proof-of-Work statt Turnstile.
      *
      * Die Probe fragt siteverify mit festem Platzhalter-Token an, also mit einer Eingabe, die der Angreifer
      * nicht bestimmt. Gecacht wird nur „erreichbar"; bei einem Fehlschlag nur der Beginn des Ausfalls, der
