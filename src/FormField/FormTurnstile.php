@@ -170,8 +170,10 @@ class FormTurnstile extends FormCaptcha
 
     /**
      * Verhalten, wenn die Turnstile-Prüfung fehlschlägt (Einstellung turnstileFailureMode):
-     * 'block' (Default und unbekannte Werte) weist ab; 'filter' lässt nach dem Honeypot/Timing-
-     * Sekundärfilter durch. Die Stufe 'altcha' wird in 0.7.0 hier eingehängt.
+     * 'block' (Default und unbekannte Werte) weist ab. 'filter' (Honeypot/Timing) und 'altcha'
+     * (zusätzlich Proof-of-Work) vertreten Turnstile nur bei bestätigtem Cloudflare-Ausfall – sonst würde
+     * die Ersatzstufe Turnstiles Urteil über einen Bot aufheben (seit 0.8.0; vorher griff sie bei jedem
+     * Fehlschlag, und ein Browser-Bot löste einfach den Proof-of-Work).
      *
      * @param array<string, mixed> $post
      */
@@ -179,25 +181,32 @@ class FormTurnstile extends FormCaptcha
     {
         $mode = $this->configValue('turnstileFailureMode', 'block');
 
+        if ('filter' !== $mode && 'altcha' !== $mode) {
+            $this->blockWithError();
+
+            return;
+        }
+
+        if (!$this->getVerifier()->isCloudflareOutageConfirmed()) {
+            $this->getVerifier()->logFallbackWithheld();
+            $this->blockWithError();
+
+            return;
+        }
+
         if ('filter' === $mode) {
             $this->applyFilterFallback($post, $token);
 
             return;
         }
 
-        if ('altcha' === $mode) {
-            $this->applyAltchaFallback($post);
-
-            return;
-        }
-
-        $this->blockWithError();
+        $this->applyAltchaFallback($post);
     }
 
     /**
-     * Fallback 'filter': offensichtliche Bots (Honeypot befüllt oder unmenschlich schnell
-     * abgeschickt) trotzdem blocken; nur den mehrdeutigen Rest (z. B. Turnstile-Fehlalarme bei
-     * Privacy-Browsern) durchlassen + protokollieren (Kategorie ohne Token/PII). Logging läuft
+     * Fallback 'filter' (nur bei bestätigtem Cloudflare-Ausfall, schwacher Schutz, veraltet): offensichtliche
+     * Bots (Honeypot befüllt oder unmenschlich schnell abgeschickt) trotzdem blocken; den Rest durchlassen
+     * + protokollieren (Kategorie ohne Token/PII). Logging läuft
      * über den Verifier (dort ist der Contao-Logger per DI injiziert – monolog.logger.contao ist
      * nicht public, also nicht über den Container abrufbar); der Missing-Token-Warn feuert davon
      * unabhängig im Verifier.

@@ -35,6 +35,16 @@ class TurnstileVerifier
     // Submit erneut loggen.
     private const TEMPLATE_OUTDATED_THROTTLE = 3600;
 
+    // Ausfallprobe (isCloudflareOutageConfirmed()): Platzhalter-Token, das der Angreifer nicht wählen kann.
+    // „Erreichbar" gilt 60 s; ein Ausfall muss mindestens 30 s ohne erfolgreiche Probe anhalten, bevor
+    // die Ersatzstufe öffnet. Ohne neuen Fehlschlag verfällt der Ausfallbeginn nach 120 s.
+    private const PROBE_TOKEN = 'mandrael-turnstile-outage-probe';
+    private const PROBE_REACHABLE_KEY = 'mandrael_turnstile.probe_reachable';
+    private const PROBE_OUTAGE_KEY = 'mandrael_turnstile.probe_outage_since';
+    private const PROBE_REACHABLE_TTL = 60;
+    private const PROBE_OUTAGE_MIN_SECONDS = 30;
+    private const PROBE_OUTAGE_GAP = 120;
+
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
@@ -217,6 +227,110 @@ class TurnstileVerifier
             }
         }
 
+        $result = $this->postSiteverify($payload);
+
+        // Nicht erreichbar oder unverwertbare Antwort: fail-closed. Ob die Ersatzstufe greift, entscheidet
+        // allein isCloudflareOutageConfirmed() – nie dieses Ergebnis, denn das Token wählt der Angreifer.
+        if (null === $result || null === $result[1]) {
+            return false;
+        }
+
+        $data = $result[1];
+
+        if (true === ($data['success'] ?? false)) {
+            return $this->hostnameMatches($data);
+        }
+
+        $this->warnOnConfigError($data);
+
+        // Ungültiges/gefälschtes Token: hart blockieren (fail-closed).
+        return false;
+    }
+
+    /**
+     * Bestätigter Cloudflare-Ausfall – nur dann darf die Ersatzstufe (filter/altcha) Turnstile vertreten.
+     * Ein fehlendes oder abgelehntes Token allein ist Turnstiles Urteil über den Absender und öffnet sie nie
+     * (am 22.09.2026 löste ein Browser-Bot über Tor so den Proof-of-Work statt Turnstile).
+     *
+     * Die Probe fragt siteverify mit festem Platzhalter-Token an, also mit einer Eingabe, die der Angreifer
+     * nicht bestimmt. Nur „erreichbar" wird gecacht, ein Fehlschlag nie; der Ausfall zählt erst, wenn er
+     * seit PROBE_OUTAGE_MIN_SECONDS ohne erfolgreiche Probe anhält. So öffnet ein einzelner, etwa
+     * lastbedingter Timeout nichts. Cache-Fehler: false, ohne Cloudflare anzufragen – ohne Cache lässt
+     * sich die Ausfalldauer nicht festhalten.
+     */
+    public function isCloudflareOutageConfirmed(): bool
+    {
+        try {
+            if ($this->cache->getItem(self::PROBE_REACHABLE_KEY)->isHit()) {
+                return false;
+            }
+
+            $outage = $this->cache->getItem(self::PROBE_OUTAGE_KEY);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        if ($this->probeReachable()) {
+            try {
+                $this->cache->save($this->cache->getItem(self::PROBE_REACHABLE_KEY)->set(true)->expiresAfter(self::PROBE_REACHABLE_TTL));
+                $this->cache->deleteItem(self::PROBE_OUTAGE_KEY);
+            } catch (\Throwable) {
+                // Nur Optimierung: die nächste Anfrage probt erneut.
+            }
+
+            return false;
+        }
+
+        $since = $outage->isHit() && \is_int($outage->get()) ? $outage->get() : time();
+
+        try {
+            $saved = $this->cache->save($outage->set($since)->expiresAfter(self::PROBE_OUTAGE_GAP));
+        } catch (\Throwable) {
+            $saved = false;
+        }
+
+        return $saved && time() - $since >= self::PROBE_OUTAGE_MIN_SECONDS;
+    }
+
+    /**
+     * Unerreichbar nur bei Transportfehler, HTTP ≥ 500 oder wenn internal-error der einzige Code ist. Jede
+     * andere Antwort (auch 4xx, Rate-Limit, Nicht-JSON unter 500, Fehlkonfiguration) beweist, dass Cloudflare
+     * antwortet – ein 429 etwa könnte eine Bot-Welle selbst auslösen.
+     */
+    private function probeReachable(): bool
+    {
+        $result = $this->postSiteverify(['secret' => $this->getSecretKey(), 'response' => self::PROBE_TOKEN]);
+
+        if (null === $result) {
+            return false;
+        }
+
+        [$status, $data] = $result;
+
+        if ($status >= 500 || ['internal-error'] === array_values((array) ($data['error-codes'] ?? []))) {
+            $this->logger->error(
+                \sprintf('Cloudflare Turnstile: siteverify meldet eine Störung (HTTP %d).', $status),
+                ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
+            );
+
+            return false;
+        }
+
+        if (null !== $data) {
+            $this->warnOnConfigError($data);
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, string> $payload
+     *
+     * @return array{0: int, 1: array<mixed>|null}|null Status und dekodierte Antwort (null = kein JSON);
+     *                                                   null = Cloudflare nicht erreichbar
+     */
+    private function postSiteverify(array $payload): ?array
+    {
         try {
             $response = $this->httpClient->request('POST', self::VERIFY_URL, [
                 'body' => $payload,
@@ -225,35 +339,52 @@ class TurnstileVerifier
                 'max_duration' => self::TIMEOUT,
             ]);
 
-            $data = $response->toArray(false);
-        } catch (TransportExceptionInterface | DecodingExceptionInterface $e) {
-            // Cloudflare nicht erreichbar oder unverwertbare Antwort. Fail-closed: die konfigurierte
-            // Fallback-Stufe (block/filter/altcha) entscheidet über das weitere Vorgehen, nicht mehr
-            // dieser Verifier. Andere Fehler (Code-Bugs) NICHT schlucken. Niemals Secret/$GLOBALS loggen.
+            $status = $response->getStatusCode();
+
+            try {
+                $data = $response->toArray(false);
+            } catch (DecodingExceptionInterface) {
+                $data = null;
+            }
+        } catch (TransportExceptionInterface $e) {
+            // Andere Fehler (Code-Bugs) NICHT schlucken. Niemals Secret/$GLOBALS loggen.
             $this->logger->error(
-                'Cloudflare Turnstile nicht erreichbar, Verifikation gilt als fehlgeschlagen; die konfigurierte '
-                .'Fallback-Stufe entscheidet über das weitere Vorgehen: '.$e->getMessage(),
+                'Cloudflare Turnstile nicht erreichbar, Verifikation gilt als fehlgeschlagen: '.$e->getMessage(),
                 ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
             );
 
-            return false;
+            return null;
         }
 
-        if (true === ($data['success'] ?? false)) {
-            return $this->hostnameMatches($data);
-        }
+        return [$status, $data];
+    }
 
-        // Falscher/abgelaufener Key blockiert sonst alle Formulare ohne Hinweis. error-codes
-        // enthalten kein Secret; Bot-/Replay-Codes bleiben absichtlich still.
+    /**
+     * Falscher/abgelaufener Key blockiert sonst alle Formulare ohne Hinweis. error-codes enthalten kein
+     * Secret; Bot-/Replay-Codes bleiben absichtlich still.
+     *
+     * @param array<mixed> $data
+     */
+    private function warnOnConfigError(array $data): void
+    {
         if ([] !== array_intersect(['invalid-input-secret', 'invalid-input-sitekey'], (array) ($data['error-codes'] ?? []))) {
             $this->logger->warning(
                 'Cloudflare Turnstile lehnt die Konfiguration ab – Site Key/Secret Key prüfen.',
                 ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
             );
         }
+    }
 
-        // Ungültiges/gefälschtes Token: hart blockieren (fail-closed).
-        return false;
+    /**
+     * Ersatzstufe konfiguriert, aber nicht freigegeben, weil kein Cloudflare-Ausfall bestätigt ist. Info
+     * statt error: der Normalfall bei Bots. Zeigt im Prod-Log, dass die Sperre greift.
+     */
+    public function logFallbackWithheld(): void
+    {
+        $this->logger->info(
+            'Cloudflare Turnstile: Ersatzstufe nicht freigegeben, kein Cloudflare-Ausfall bestätigt – Absenden blockiert (fallback-withheld).',
+            ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
+        );
     }
 
     /**

@@ -329,6 +329,132 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertStringNotContainsString('remoteip', $body);
     }
 
+    public function testOutageProbeReachableIsCachedAndNeverConfirms(): void
+    {
+        $calls = 0;
+        $client = new MockHttpClient(static function () use (&$calls): MockResponse {
+            ++$calls;
+
+            return new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['invalid-input-response']]));
+        });
+
+        $verifier = $this->createVerifier($client);
+
+        $this->assertFalse($verifier->isCloudflareOutageConfirmed());
+        $this->assertFalse($verifier->isCloudflareOutageConfirmed());
+        $this->assertSame(1, $calls);
+    }
+
+    /**
+     * Antworten, die zeigen, dass Cloudflare antwortet – auch Rate-Limit und HTML-Fehlerseiten unter 500,
+     * die ein Angreifer etwa per Bot-Welle selbst auslösen könnte.
+     *
+     * @return iterable<string, array{MockResponse}>
+     */
+    public static function reachableResponses(): iterable
+    {
+        yield 'HTML 403' => [new MockResponse('<html>blocked</html>', ['http_code' => 403])];
+        yield 'Rate-Limit 429' => [new MockResponse('<html>slow down</html>', ['http_code' => 429])];
+        yield 'internal-error mit Ablehnung' => [new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error', 'invalid-input-response']]))];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('reachableResponses')]
+    public function testOutageProbeCountsClientResponsesAsReachable(MockResponse $response): void
+    {
+        $this->assertFalse($this->createVerifier(new MockHttpClient($response), cache: $this->cacheWithOutageSince(time() - 31))->isCloudflareOutageConfirmed());
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(): MockResponse}>
+     */
+    public static function unreachableResponses(): iterable
+    {
+        yield 'Transportfehler' => [static function (): MockResponse {
+            throw new TransportException('Cloudflare not reachable');
+        }];
+        yield 'HTTP 503' => [static fn (): MockResponse => new MockResponse('<html>down</html>', ['http_code' => 503])];
+        yield 'nur internal-error' => [static fn (): MockResponse => new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error']]))];
+    }
+
+    /**
+     * @param \Closure(): MockResponse $response
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('unreachableResponses')]
+    public function testOutageConfirmedOnlyAfterThirtySeconds(\Closure $response): void
+    {
+        // Erster Fehlschlag öffnet nichts (etwa ein lastbedingter Timeout) ...
+        $fresh = new ArrayAdapter();
+        $this->assertFalse($this->createVerifier(new MockHttpClient($response), cache: $fresh)->isCloudflareOutageConfirmed());
+        $this->assertTrue($fresh->getItem('mandrael_turnstile.probe_outage_since')->isHit());
+
+        // ... erst ein seit 30 s anhaltender Ausfall.
+        $this->assertTrue($this->createVerifier(new MockHttpClient($response), cache: $this->cacheWithOutageSince(time() - 31))->isCloudflareOutageConfirmed());
+    }
+
+    public function testSuccessfulProbeEndsOutage(): void
+    {
+        $cache = $this->cacheWithOutageSince(time() - 31);
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['invalid-input-response']])));
+
+        $this->assertFalse($this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed());
+        $this->assertFalse($cache->getItem('mandrael_turnstile.probe_outage_since')->isHit());
+    }
+
+    public function testOutageProbeWithBrokenCacheFailsClosedWithoutRequest(): void
+    {
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->expects($this->never())->method('request');
+
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+        $cache->method('getItem')->willThrowException(new \RuntimeException('Cache nicht verfügbar'));
+
+        $this->assertFalse($this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed());
+    }
+
+    public function testOutageProbeSendsPlaceholderWithoutRemoteIp(): void
+    {
+        $captured = null;
+        $client = new MockHttpClient(static function (string $method, string $url, array $options) use (&$captured): MockResponse {
+            $captured = $options['body'];
+
+            return new MockResponse((string) json_encode(['success' => false]));
+        });
+
+        $requestStack = new RequestStack();
+        $requestStack->push(new Request([], [], [], [], [], ['REMOTE_ADDR' => '203.0.113.5']));
+
+        $this->createVerifier($client, requestStack: $requestStack)->isCloudflareOutageConfirmed();
+
+        $body = \is_string($captured) ? $captured : http_build_query((array) $captured);
+        $this->assertStringContainsString('response=mandrael-turnstile-outage-probe', $body);
+        $this->assertStringNotContainsString('remoteip', $body);
+    }
+
+    public function testOutageProbeWarnsOnConfigError(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning');
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['invalid-input-secret']])));
+
+        $this->assertFalse($this->createVerifier($client, logger: $logger)->isCloudflareOutageConfirmed());
+    }
+
+    public function testNonJsonClientErrorOnTokenFailsClosed(): void
+    {
+        $client = new MockHttpClient(new MockResponse('<html>blocked</html>', ['http_code' => 403]));
+
+        $this->assertFalse($this->createVerifier($client)->validate('a-token'));
+    }
+
+    private function cacheWithOutageSince(int $since): ArrayAdapter
+    {
+        $cache = new ArrayAdapter();
+        $cache->save($cache->getItem('mandrael_turnstile.probe_outage_since')->set($since));
+
+        return $cache;
+    }
+
     /**
      * @param array<string, string> $config
      */
