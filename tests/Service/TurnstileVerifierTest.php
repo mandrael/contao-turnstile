@@ -76,7 +76,7 @@ class TurnstileVerifierTest extends ContaoTestCase
     {
         // Fallback 'filter': durchgelassene Submission wird auf info protokolliert, Kategorie ohne Token/PII.
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('info')->with($this->stringContains('missing-token'));
+        $logger->expects($this->once())->method('log')->with('info', $this->stringContains('missing-token'));
 
         $this->createVerifier(new MockHttpClient(), logger: $logger)->logSoftPass('missing-token');
     }
@@ -85,7 +85,7 @@ class TurnstileVerifierTest extends ContaoTestCase
     {
         // Eine Log-Auswertung, die auf die Kategorie filtert, muss "altcha-unavailable" im Text finden.
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('error')->with($this->stringContains('altcha-unavailable'));
+        $logger->expects($this->once())->method('log')->with('error', $this->stringContains('altcha-unavailable'));
 
         $this->createVerifier(new MockHttpClient(), logger: $logger)->logAltchaUnavailable();
     }
@@ -357,6 +357,7 @@ class TurnstileVerifierTest extends ContaoTestCase
     {
         yield 'HTML 403' => [new MockResponse('<html>blocked</html>', ['http_code' => 403])];
         yield 'Rate-Limit 429' => [new MockResponse('<html>slow down</html>', ['http_code' => 429])];
+        yield '302 mit nur internal-error' => [new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error']]), ['http_code' => 302])];
         yield '429 mit nur internal-error' => [new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error']]), ['http_code' => 429])];
         yield 'internal-error mit Ablehnung' => [new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error', 'invalid-input-response']]))];
     }
@@ -481,6 +482,18 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertFalse($cache->getItem('mandrael_turnstile.probe_reachable')->isHit());
     }
 
+    public function testOutageStartExpiresAfterTwoMinutesWithoutNewFailure(): void
+    {
+        $cache = new FailingArrayAdapter();
+        $client = new MockHttpClient(new MockResponse('<html>down</html>', ['http_code' => 503]));
+
+        $this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed();
+
+        $this->assertNotNull($cache->lastSaved);
+        $expiry = (new \ReflectionProperty($cache->lastSaved, 'expiry'))->getValue($cache->lastSaved);
+        $this->assertEqualsWithDelta(time() + 120, $expiry, 2);
+    }
+
     public function testThrowingLoggerNeverBreaksVerificationOrProbe(): void
     {
         $logger = $this->createMock(LoggerInterface::class);
@@ -493,7 +506,12 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertFalse($this->createVerifier($down, logger: $logger)->validate('a-token'));
         $this->assertFalse($this->createVerifier($down, logger: $logger)->validate(''));
         $this->assertTrue($this->createVerifier($down, logger: $logger, cache: $this->cacheWithOutageSince(time() - 31))->isCloudflareOutageConfirmed());
-        $this->createVerifier($down, logger: $logger)->logFallbackWithheld();
+        $quiet = $this->createVerifier($down, logger: $logger);
+        $quiet->logFallbackWithheld();
+        $quiet->logSoftPass('missing-token');
+        $quiet->logAltchaPass();
+        $quiet->logAltchaBlock('altcha-empty');
+        $quiet->logAltchaUnavailable();
     }
 
     public function testLogFallbackWithheldNamesCategory(): void
@@ -544,9 +562,12 @@ class FailingArrayAdapter extends ArrayAdapter
 {
     public bool $failSave = false;
     public bool $failDelete = false;
+    public ?CacheItemInterface $lastSaved = null;
 
     public function save(CacheItemInterface $item): bool
     {
+        $this->lastSaved = $item;
+
         return !$this->failSave && parent::save($item);
     }
 

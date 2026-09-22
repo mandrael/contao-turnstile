@@ -98,10 +98,7 @@ class TurnstileVerifier
      */
     public function logSoftPass(string $category): void
     {
-        $this->logger->info(
-            'Cloudflare Turnstile soft-pass: Verifikation fehlgeschlagen, Absenden trotzdem erlaubt ('.$category.').',
-            ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
-        );
+        $this->safeLog('info', 'Cloudflare Turnstile soft-pass: Verifikation fehlgeschlagen, Absenden trotzdem erlaubt ('.$category.').', ContaoContext::FORMS, __METHOD__);
     }
 
     /**
@@ -110,10 +107,7 @@ class TurnstileVerifier
      */
     public function logAltchaPass(): void
     {
-        $this->logger->info(
-            'Cloudflare Turnstile ALTCHA-Fallback: Proof-of-Work gelöst, Absenden erlaubt.',
-            ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
-        );
+        $this->safeLog('info', 'Cloudflare Turnstile ALTCHA-Fallback: Proof-of-Work gelöst, Absenden erlaubt.', ContaoContext::FORMS, __METHOD__);
     }
 
     /**
@@ -125,10 +119,7 @@ class TurnstileVerifier
      */
     public function logAltchaBlock(string $category): void
     {
-        $this->logger->info(
-            'Cloudflare Turnstile ALTCHA-Fallback blockiert ('.$category.').',
-            ['contao' => new ContaoContext(__METHOD__, ContaoContext::FORMS)]
-        );
+        $this->safeLog('info', 'Cloudflare Turnstile ALTCHA-Fallback blockiert ('.$category.').', ContaoContext::FORMS, __METHOD__);
     }
 
     /**
@@ -139,10 +130,12 @@ class TurnstileVerifier
      */
     public function logAltchaUnavailable(): void
     {
-        $this->logger->error(
+        $this->safeLog(
+            'error',
             'Cloudflare Turnstile ALTCHA-Fallback nicht verfügbar, Absenden wird blockiert: '
             .'kein HTTPS erkannt (trusted_proxies prüfen) oder Route/Assets nicht auflösbar (altcha-unavailable).',
-            ['contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR)]
+            ContaoContext::ERROR,
+            __METHOD__
         );
     }
 
