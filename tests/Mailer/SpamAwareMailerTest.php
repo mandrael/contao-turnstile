@@ -225,6 +225,28 @@ class SpamAwareMailerTest extends TestCase
         }
     }
 
+    public function testMarkSendsUnarchivedRestEvenIfActivationSendFails(): void
+    {
+        $sent = [];
+        $inner = $this->createMock(MailerInterface::class);
+        $inner->method('send')->willReturnCallback(static function (Email $m) use (&$sent): void {
+            if (['neu@mitglied.example'] === self::addresses($m->getTo())) {
+                throw new \RuntimeException('Mailserver weg');
+            }
+            $sent[] = self::addresses($m->getCc());
+        });
+
+        $mailer = new SpamAwareMailer($inner, $this->stack(['mode' => 'mark', 'addresses' => ['neu@mitglied.example']]), new NullLogger(), $this->archive(null));
+
+        try {
+            $mailer->send((new Email())->from('a@nk.at')->to('neu@mitglied.example')->cc('kurs@nk.at')->subject('Bitte bestätigen'));
+            self::fail('Der Versandfehler muss durchgereicht werden.');
+        } catch (\RuntimeException) {
+        }
+
+        self::assertSame([['kurs@nk.at']], $sent);
+    }
+
     public function testMarkFallbackSendsRestWithPrefixButNeverDropsRegisteredAddress(): void
     {
         $sent = [];

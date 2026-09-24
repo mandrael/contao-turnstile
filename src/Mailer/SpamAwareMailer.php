@@ -111,13 +111,16 @@ class SpamAwareMailer implements MailerInterface
             $stored = $this->store($state, $rest, $restEnvelope);
         }
 
-        if ([] !== array_filter(self::recipients($message, $envelope), $isRegistered)) {
-            $this->inner->send(...self::restrict($message, $envelope, $isRegistered));
-        }
-
-        if (null !== $rest && !$stored) {
-            $this->prefix($rest);
-            $this->inner->send($rest, $restEnvelope);
+        try {
+            if ([] !== array_filter(self::recipients($message, $envelope), $isRegistered)) {
+                $this->inner->send(...self::restrict($message, $envelope, $isRegistered));
+            }
+        } finally {
+            // Auch wenn die Aktivierung wirft: ein nicht abgelegter Rest muss noch hinaus.
+            if (null !== $rest && !$stored) {
+                $this->prefix($rest);
+                $this->inner->send($rest, $restEnvelope);
+            }
         }
     }
 

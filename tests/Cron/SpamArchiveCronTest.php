@@ -87,6 +87,25 @@ class SpamArchiveCronTest extends ContaoTestCase
         (new SpamArchiveCron($archive, $mailer, $framework))();
     }
 
+    public function testFailedDigestSendLeavesEntriesUndigested(): void
+    {
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->method('undigested')->willReturn([['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 9, 'reasons' => 'tor', 'subject' => 'A']]);
+        $archive->expects(self::never())->method('markDigested');
+
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->method('send')->willThrowException(new \RuntimeException('Mailserver weg'));
+
+        $config = $this->createAdapterMock(['get']);
+        $config->method('get')->willReturnMap([
+            ['turnstileSpamDigest', true],
+            ['turnstileSpamDigestEmail', 'digest@example.com'],
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        (new SpamArchiveCron($archive, $mailer, $this->createContaoFrameworkMock([Config::class => $config])))();
+    }
+
     public function testEmptyDigestAddressFallsBackToAdminEmail(): void
     {
         $entries = [['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 9, 'reasons' => 'tor', 'subject' => 'A']];
