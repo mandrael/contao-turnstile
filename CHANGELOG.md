@@ -5,7 +5,7 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
-## [0.8.0] - UNRELEASED
+## [0.8.0] - 2026-09-25
 
 ### Hinzugefügt
 - **Einstufung in der Ersatzstufe.** Eine Einsendung ohne gültiges Turnstile-Token, die die
