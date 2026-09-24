@@ -27,7 +27,8 @@ Folgen für Betreiber:
 - **Notification Center:** Abgefangen wird über einen Dekorator des Symfony-Mailers, also auch Mails des
   Notification Centers samt Anhängen. Mit Notification Center 2.7 geprüft; mit 1.x ungeprüft.
 - **Rückfallweg:** Scheitert das Ablegen (Datenbankfehler, Mail über 12 MB), geht die Mail mit `[Spam]` im Betreff
-  an die Betreiber; die im Formular eingetragene Adresse wird gestrichen. Adressen aus dem Empfängerfeld des
+  an die Betreiber; die im Formular eingetragene Adresse wird gestrichen (ohne Administrator-Adresse bleibt sie als
+  einziger Empfänger, damit nichts verloren geht). Adressen aus dem Empfängerfeld des
   Formulars, die Admin-Adresse und jede Adresse auf der Domain der Website werden dabei nie gestrichen. Eine
   Notification-Center-Empfängeradresse auf einer fremden Domain kennt das Bundle nicht: Trägt ein Bot genau diese
   Adresse ein, entfällt auf dem Rückfallweg die Mail dorthin. Abhilfe: eine Empfängeradresse auf der Domain der

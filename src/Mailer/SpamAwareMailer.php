@@ -102,22 +102,23 @@ class SpamAwareMailer implements MailerInterface
         $isRegistered = static fn (Address $a): bool => \in_array(strtolower($a->getAddress()), $registered, true);
         $isOther = static fn (Address $a): bool => !$isRegistered($a);
 
+        // Erst ablegen, dann senden: wirft der Versand an die registrierte Adresse, ist der Rest schon gesichert.
+        $rest = null;
+        $stored = true;
+
+        if ([] !== array_filter(self::recipients($message, $envelope), $isOther)) {
+            [$rest, $restEnvelope] = self::restrict($message, $envelope, $isOther);
+            $stored = $this->store($state, $rest, $restEnvelope);
+        }
+
         if ([] !== array_filter(self::recipients($message, $envelope), $isRegistered)) {
             $this->inner->send(...self::restrict($message, $envelope, $isRegistered));
         }
 
-        if ([] === array_filter(self::recipients($message, $envelope), $isOther)) {
-            return;
+        if (null !== $rest && !$stored) {
+            $this->prefix($rest);
+            $this->inner->send($rest, $restEnvelope);
         }
-
-        [$rest, $restEnvelope] = self::restrict($message, $envelope, $isOther);
-
-        if ($this->store($state, $rest, $restEnvelope)) {
-            return;
-        }
-
-        $this->prefix($rest);
-        $this->inner->send($rest, $restEnvelope);
     }
 
     /**

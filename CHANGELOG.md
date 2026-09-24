@@ -22,7 +22,8 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   zustellen" unverändert nachträglich versenden, einschließlich Anhängen. Löschung nach 90 Tagen per
   täglichem Cronjob, Systemnachricht bei ungeprüften Einträgen, optionale Tageszusammenfassung ohne Inhalt
   der Einsendung (Einstellungen, Standard aus). Scheitert das Ablegen, geht die Mail mit `[Spam]` im Betreff
-  an die Betreiber, nie an die im Formular eingetragene Adresse.
+  an die Betreiber statt an die im Formular eingetragene Adresse (ohne Administrator-Adresse bleibt der
+  ursprüngliche Empfänger).
 - Registrierung: Die Aktivierungsmail geht bei „Spam sicher" trotzdem an die registrierte Adresse, die
   übrigen Mails landen in der Ablage. Kommentare: bei „Spam sicher" unveröffentlicht, ohne
   Benachrichtigung der Abonnenten.

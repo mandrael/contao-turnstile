@@ -88,7 +88,11 @@ services:
 
     Mandrael\ContaoTurnstileBundle\Cron\SpamArchiveCron:
         arguments:
-            $mailer: '@mailer'
+            # Am Dekorator vorbei: Der Web-Cron läuft auf kernel.terminate derselben Anfrage, deren Einstufung
+            # sonst auch die Zusammenfassung ablegen würde. Synchron, damit ein Fehler markDigested() verhindert.
+            $mailer: !service
+                class: Symfony\Component\Mailer\Mailer
+                arguments: ['@mailer.transports']
             $framework: '@contao.framework'
         tags:
             - { name: contao.cronjob, interval: daily }

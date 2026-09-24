@@ -1,6 +1,7 @@
 <?php
 
 use Contao\Backend;
+use Contao\Database;
 use Contao\DataContainer;
 use Contao\Date;
 use Contao\DC_Table;
@@ -19,6 +20,7 @@ $GLOBALS['TL_DCA']['tl_turnstile_spam'] = [
         'notEditable' => true,
         'notCopyable' => true,
         'backendSearchIgnore' => true,
+        'ondelete_callback' => [[tl_turnstile_spam::class, 'dropUndo']],
         'sql' => [
             'keys' => [
                 'id' => 'primary',
@@ -142,5 +144,14 @@ class tl_turnstile_spam extends Backend
         };
 
         return $args;
+    }
+
+    /**
+     * Contao kopiert gelöschte Zeilen samt Mailtext nach tl_undo (Standard 30 Tage). Die Ablage soll nach dem
+     * Löschen aber wirklich weg sein, deshalb den Undo-Eintrag gleich mit entfernen.
+     */
+    public function dropUndo(DataContainer $dc, int $undoId): void
+    {
+        Database::getInstance()->prepare('DELETE FROM tl_undo WHERE id = ?')->execute($undoId);
     }
 }

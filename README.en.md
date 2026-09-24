@@ -151,7 +151,8 @@ integrator with a strict CSP of their own adds them manually.
 ### Spam archive
 
 Back end under **System → Spam archive**: list of submissions classified as "certain spam" with date, source,
-points, signals and subject. The detail view shows the withheld mails and their recipients; **"Deliver anyway"**
+points, signals and subject. The detail view shows the text of the first mail as a preview and, per
+withheld mail, its recipients and status; **"Deliver anyway"**
 sends them afterwards unchanged, including attachments. If the outcome of a delivery is unclear (e.g. after an
 abort), the view offers a resend only after 15 minutes, with a warning about possible duplicate delivery.
 
@@ -161,7 +162,8 @@ abort), the view offers a resend only after 15 minutes, with a warning about pos
   the new entries, without the submission's content. Recipient is the configured address, otherwise the
   administrator address.
 - If archiving fails (e.g. database error or a mail over 12 MB), the mail goes to the operators with `[Spam]` in
-  the subject instead, never to the address entered in the form. A lost submission weighs more than a spam mail
+  the subject instead of to the address entered in the form; only without an administrator address does the original
+  recipient remain. A lost submission weighs more than a spam mail
   in the error case.
 - The archive contains personal data from the submission; with its 90-day retention it belongs in the privacy
   policy.

@@ -153,7 +153,8 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
 ### Spam-Ablage
 
 Backend unter **System → Spam-Ablage**: Liste der als „Spam sicher" eingestuften Einsendungen mit Datum,
-Quelle, Punkten, Signalen und Betreff. Die Einzelansicht zeigt die zurückgehaltenen Mails samt Empfängern;
+Quelle, Punkten, Signalen und Betreff. Die Einzelansicht zeigt den Text der ersten Mail als Vorschau und je
+zurückgehaltener Mail Empfänger und Status;
 **„Doch zustellen"** verschickt sie nachträglich unverändert, einschließlich Anhängen. Ist der Ausgang eines
 Versands unklar (etwa nach einem Abbruch), bietet die Ansicht erst nach 15 Minuten ein erneutes Senden an, mit
 Hinweis auf mögliche Doppelzustellung.
@@ -164,8 +165,8 @@ Hinweis auf mögliche Doppelzustellung.
   Signalen und Betreff der neuen Einträge, ohne Inhalt der Einsendung. Empfänger ist die eingetragene Adresse,
   sonst die Administrator-Adresse.
 - Scheitert das Ablegen (etwa Datenbankfehler oder Mail über 12 MB), geht die Mail ersatzweise mit `[Spam]` im
-  Betreff an die Betreiber, nie an die im Formular eingetragene Adresse. Eine verlorene Einsendung wiegt schwerer
-  als eine Spam-Mail im Fehlerfall.
+  Betreff an die Betreiber statt an die im Formular eingetragene Adresse; nur ohne Administrator-Adresse bleibt der
+  ursprüngliche Empfänger. Eine verlorene Einsendung wiegt schwerer als eine Spam-Mail im Fehlerfall.
 - Die Ablage enthält personenbezogene Daten der Einsendung; sie gehört mit 90 Tagen Speicherdauer in die
   Datenschutzerklärung.
 
