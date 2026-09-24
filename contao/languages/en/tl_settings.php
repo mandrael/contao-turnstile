@@ -18,8 +18,8 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
-    'Behaviour when the Turnstile check fails',
-    'By default the form is rejected. A fallback stage stands in for Turnstile only during a confirmed Cloudflare outage (siteverify unreachable for at least 30 seconds). A missing or rejected token never opens it – that is Turnstile\'s verdict on the sender.',
+    'Behaviour without a valid Turnstile token',
+    'By default the form is rejected. Recommended for registration, booking and contact forms is the fallback stage: it checks submissions without a token mechanically (hidden fields, minimum time, proof of work) and then accepts them. Only if several independent signals (content, sender address, Tor network) together clearly indicate spam, no confirmation goes to the entered address; the site operator still receives the submission with [Spam] in the subject.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -50,8 +50,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
     'block' => 'Block: prevent form submission (default)',
-    'filter' => 'During a Cloudflare outage: honeypot & timing check only (weak protection, deprecated)',
-    'altcha' => 'During a Cloudflare outage: honeypot/timing, then an ALTCHA proof-of-work challenge',
+    'altcha' => 'Fallback stage: mechanical check with proof of work, then accept (recommended for important forms)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [
@@ -71,3 +70,22 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearanceOptions'] = [
     'interaction-only' => 'Show only when interaction is required',
     'execute' => 'Show after form interaction',
 ];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigest'] = [
+    'Send a daily digest',
+    'Sends one daily mail listing new entries in the spam archive (date, source, score, signals, subject - no message content). Off by default; a digest is not mandatory.',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigestEmail'] = [
+    'Digest recipient',
+    'Address for the daily digest. Empty uses the administrator e-mail address.',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
+    'AI classification',
+    'Set up via TURNSTILE_AI_KEY in .env.local; the key is never shown here.',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'active - %s, %s, %d of %d used today';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'off';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Set up via TURNSTILE_AI_KEY in .env.local.';

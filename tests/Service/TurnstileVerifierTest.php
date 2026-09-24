@@ -7,7 +7,6 @@ namespace Mandrael\ContaoTurnstileBundle\Tests\Service;
 use Contao\Config;
 use Contao\TestCase\ContaoTestCase;
 use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
-use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -72,13 +71,20 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertStringNotContainsString('remoteip', $body);
     }
 
-    public function testLogSoftPassLogsInfoWithCategory(): void
+    public function testLogAltchaPassLogsInfo(): void
     {
-        // Fallback 'filter': durchgelassene Submission wird auf info protokolliert, Kategorie ohne Token/PII.
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('log')->with('info', $this->stringContains('missing-token'));
+        $logger->expects($this->once())->method('log')->with('info');
 
-        $this->createVerifier(new MockHttpClient(), logger: $logger)->logSoftPass('missing-token');
+        $this->createVerifier(new MockHttpClient(), logger: $logger)->logAltchaPass();
+    }
+
+    public function testLogAltchaBlockLogsInfoWithCategory(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('log')->with('info', $this->stringContains('altcha-invalid'));
+
+        $this->createVerifier(new MockHttpClient(), logger: $logger)->logAltchaBlock('altcha-invalid');
     }
 
     public function testLogAltchaUnavailableLogsErrorWithCategory(): void
@@ -331,119 +337,6 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertStringNotContainsString('remoteip', $body);
     }
 
-    public function testOutageProbeReachableIsCachedAndNeverConfirms(): void
-    {
-        $calls = 0;
-        $client = new MockHttpClient(static function () use (&$calls): MockResponse {
-            ++$calls;
-
-            return new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['invalid-input-response']]));
-        });
-
-        $verifier = $this->createVerifier($client);
-
-        $this->assertFalse($verifier->isCloudflareOutageConfirmed());
-        $this->assertFalse($verifier->isCloudflareOutageConfirmed());
-        $this->assertSame(1, $calls);
-    }
-
-    /**
-     * Antworten, die zeigen, dass Cloudflare antwortet – auch Rate-Limit und HTML-Fehlerseiten unter 500,
-     * die ein Angreifer etwa per Bot-Welle selbst auslösen könnte.
-     *
-     * @return iterable<string, array{MockResponse}>
-     */
-    public static function reachableResponses(): iterable
-    {
-        yield 'HTML 403' => [new MockResponse('<html>blocked</html>', ['http_code' => 403])];
-        yield 'Rate-Limit 429' => [new MockResponse('<html>slow down</html>', ['http_code' => 429])];
-        yield '302 mit nur internal-error' => [new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error']]), ['http_code' => 302])];
-        yield '429 mit nur internal-error' => [new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error']]), ['http_code' => 429])];
-        yield 'internal-error mit Ablehnung' => [new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error', 'invalid-input-response']]))];
-    }
-
-    #[\PHPUnit\Framework\Attributes\DataProvider('reachableResponses')]
-    public function testOutageProbeCountsClientResponsesAsReachable(MockResponse $response): void
-    {
-        $this->assertFalse($this->createVerifier(new MockHttpClient($response), cache: $this->cacheWithOutageSince(time() - 31))->isCloudflareOutageConfirmed());
-    }
-
-    /**
-     * @return iterable<string, array{\Closure(): MockResponse}>
-     */
-    public static function unreachableResponses(): iterable
-    {
-        yield 'Transportfehler' => [static function (): MockResponse {
-            throw new TransportException('Cloudflare not reachable');
-        }];
-        yield 'HTTP 503' => [static fn (): MockResponse => new MockResponse('<html>down</html>', ['http_code' => 503])];
-        yield 'nur internal-error' => [static fn (): MockResponse => new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['internal-error']]))];
-    }
-
-    /**
-     * @param \Closure(): MockResponse $response
-     */
-    #[\PHPUnit\Framework\Attributes\DataProvider('unreachableResponses')]
-    public function testOutageConfirmedOnlyAfterThirtySeconds(\Closure $response): void
-    {
-        // Erster Fehlschlag öffnet nichts (etwa ein lastbedingter Timeout) ...
-        $fresh = new ArrayAdapter();
-        $this->assertFalse($this->createVerifier(new MockHttpClient($response), cache: $fresh)->isCloudflareOutageConfirmed());
-        $this->assertTrue($fresh->getItem('mandrael_turnstile.probe_outage_since')->isHit());
-
-        // ... erst ein seit 30 s anhaltender Ausfall.
-        $this->assertTrue($this->createVerifier(new MockHttpClient($response), cache: $this->cacheWithOutageSince(time() - 31))->isCloudflareOutageConfirmed());
-    }
-
-    public function testSuccessfulProbeEndsOutage(): void
-    {
-        $cache = $this->cacheWithOutageSince(time() - 31);
-        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['invalid-input-response']])));
-
-        $this->assertFalse($this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed());
-        $this->assertFalse($cache->getItem('mandrael_turnstile.probe_outage_since')->isHit());
-    }
-
-    public function testOutageProbeWithBrokenCacheFailsClosedWithoutRequest(): void
-    {
-        $client = $this->createMock(HttpClientInterface::class);
-        $client->expects($this->never())->method('request');
-
-        $cache = $this->createMock(CacheItemPoolInterface::class);
-        $cache->method('getItem')->willThrowException(new \RuntimeException('Cache nicht verfügbar'));
-
-        $this->assertFalse($this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed());
-    }
-
-    public function testOutageProbeSendsPlaceholderWithoutRemoteIp(): void
-    {
-        $captured = null;
-        $client = new MockHttpClient(static function (string $method, string $url, array $options) use (&$captured): MockResponse {
-            $captured = $options['body'];
-
-            return new MockResponse((string) json_encode(['success' => false]));
-        });
-
-        $requestStack = new RequestStack();
-        $requestStack->push(new Request([], [], [], [], [], ['REMOTE_ADDR' => '203.0.113.5']));
-
-        $this->createVerifier($client, requestStack: $requestStack)->isCloudflareOutageConfirmed();
-
-        $body = \is_string($captured) ? $captured : http_build_query((array) $captured);
-        $this->assertStringContainsString('response=mandrael-turnstile-outage-probe', $body);
-        $this->assertStringNotContainsString('remoteip', $body);
-    }
-
-    public function testOutageProbeWarnsOnConfigError(): void
-    {
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('log')->with('warning');
-
-        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['invalid-input-secret']])));
-
-        $this->assertFalse($this->createVerifier($client, logger: $logger)->isCloudflareOutageConfirmed());
-    }
-
     public function testNonJsonClientErrorOnTokenFailsClosed(): void
     {
         $client = new MockHttpClient(new MockResponse('<html>blocked</html>', ['http_code' => 403]));
@@ -451,50 +344,7 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertFalse($this->createVerifier($client)->validate('a-token'));
     }
 
-    public function testOutageWithNonIntegerSinceStartsFresh(): void
-    {
-        $cache = new ArrayAdapter();
-        $cache->save($cache->getItem('mandrael_turnstile.probe_outage_since')->set('1970'));
-        $client = new MockHttpClient(new MockResponse('<html>down</html>', ['http_code' => 503]));
-
-        $this->assertFalse($this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed());
-        $this->assertIsInt($cache->getItem('mandrael_turnstile.probe_outage_since')->get());
-    }
-
-    public function testOutageNotConfirmedWhenOutageStartCannotBeSaved(): void
-    {
-        $cache = $this->cacheWithOutageSince(time() - 31);
-        $cache->failSave = true;
-        $client = new MockHttpClient(new MockResponse('<html>down</html>', ['http_code' => 503]));
-
-        $this->assertFalse($this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed());
-    }
-
-    public function testReachableIsNotCachedWhenOutageStartCannotBeDeleted(): void
-    {
-        // Sonst stünde ein alter Ausfallbeginn hinter „erreichbar", und nach dessen Ablauf öffnete schon
-        // ein einzelner Fehlschlag.
-        $cache = $this->cacheWithOutageSince(time() - 31);
-        $cache->failDelete = true;
-        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => false, 'error-codes' => ['invalid-input-response']])));
-
-        $this->assertFalse($this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed());
-        $this->assertFalse($cache->getItem('mandrael_turnstile.probe_reachable')->isHit());
-    }
-
-    public function testOutageStartExpiresAfterTwoMinutesWithoutNewFailure(): void
-    {
-        $cache = new FailingArrayAdapter();
-        $client = new MockHttpClient(new MockResponse('<html>down</html>', ['http_code' => 503]));
-
-        $this->createVerifier($client, cache: $cache)->isCloudflareOutageConfirmed();
-
-        $this->assertNotNull($cache->lastSaved);
-        $expiry = (new \ReflectionProperty($cache->lastSaved, 'expiry'))->getValue($cache->lastSaved);
-        $this->assertEqualsWithDelta(time() + 120, $expiry, 2);
-    }
-
-    public function testThrowingLoggerNeverBreaksVerificationOrProbe(): void
+    public function testThrowingLoggerNeverBreaksVerification(): void
     {
         $logger = $this->createMock(LoggerInterface::class);
         $logger->method('log')->willThrowException(new \RuntimeException('Log nicht beschreibbar'));
@@ -505,21 +355,11 @@ class TurnstileVerifierTest extends ContaoTestCase
 
         $this->assertFalse($this->createVerifier($down, logger: $logger)->validate('a-token'));
         $this->assertFalse($this->createVerifier($down, logger: $logger)->validate(''));
-        $this->assertTrue($this->createVerifier($down, logger: $logger, cache: $this->cacheWithOutageSince(time() - 31))->isCloudflareOutageConfirmed());
+
         $quiet = $this->createVerifier($down, logger: $logger);
-        $quiet->logFallbackWithheld();
-        $quiet->logSoftPass('missing-token');
         $quiet->logAltchaPass();
         $quiet->logAltchaBlock('altcha-empty');
         $quiet->logAltchaUnavailable();
-    }
-
-    public function testLogFallbackWithheldNamesCategory(): void
-    {
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('log')->with('info', $this->stringContains('fallback-withheld'));
-
-        $this->createVerifier(new MockHttpClient(), logger: $logger)->logFallbackWithheld();
     }
 
     public function testNonJsonResponseOnTokenIsLogged(): void
@@ -530,14 +370,6 @@ class TurnstileVerifierTest extends ContaoTestCase
         $client = new MockHttpClient(new MockResponse('<html>captive portal</html>', ['http_code' => 200]));
 
         $this->assertFalse($this->createVerifier($client, logger: $logger)->validate('a-token'));
-    }
-
-    private function cacheWithOutageSince(int $since): FailingArrayAdapter
-    {
-        $cache = new FailingArrayAdapter();
-        $cache->save($cache->getItem('mandrael_turnstile.probe_outage_since')->set($since));
-
-        return $cache;
     }
 
     /**
@@ -551,28 +383,5 @@ class TurnstileVerifierTest extends ContaoTestCase
         $framework = $this->mockContaoFramework([Config::class => $adapter]);
 
         return new TurnstileVerifier($client, $logger ?? new NullLogger(), $requestStack ?? new RequestStack(), $framework, $cache ?? new ArrayAdapter());
-    }
-}
-
-/**
- * ArrayAdapter, dessen save()/deleteItem() auf Wunsch false liefern – PSR-6 meldet so einen Fehlschlag,
- * ohne zu werfen.
- */
-class FailingArrayAdapter extends ArrayAdapter
-{
-    public bool $failSave = false;
-    public bool $failDelete = false;
-    public ?CacheItemInterface $lastSaved = null;
-
-    public function save(CacheItemInterface $item): bool
-    {
-        $this->lastSaved = $item;
-
-        return !$this->failSave && parent::save($item);
-    }
-
-    public function deleteItem(mixed $key): bool
-    {
-        return !$this->failDelete && parent::deleteItem($key);
     }
 }

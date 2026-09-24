@@ -18,8 +18,8 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
-    'Verhalten, wenn Turnstile-Prüfung fehlschlägt',
-    'Standard ist, dass das Formular abgewiesen wird. Eine Ersatzstufe vertritt Turnstile nur bei einem bestätigten Ausfall von Cloudflare (siteverify seit mindestens 30 Sekunden nicht erreichbar). Ein fehlendes oder abgelehntes Token öffnet sie nie – das ist Turnstiles Urteil über den Absender.',
+    'Verhalten ohne gültiges Turnstile-Token',
+    'Standard ist, dass das Formular abgewiesen wird. Empfohlen für Anmelde-, Buchungs- und Kontaktformulare ist die Ersatzstufe: Sie prüft Einsendungen ohne Token mechanisch (versteckte Felder, Mindestzeit, Rechenaufgabe) und nimmt sie danach an. Nur wenn mehrere unabhängige Signale (Inhalt, Absenderadresse, Tor-Netz) zusammen sicher auf Spam deuten, geht keine Bestätigung an die eingetragene Adresse; der Betreiber erhält die Einsendung dann mit [Spam] im Betreff.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -50,8 +50,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
     'block' => 'Blockieren: Formular-Absenden wird verhindert (Standard)',
-    'filter' => 'Bei Cloudflare-Ausfall: nur Honeypot & Zeitprüfung (schwacher Schutz, veraltet)',
-    'altcha' => 'Bei Cloudflare-Ausfall: Honeypot/Zeitprüfung, danach ALTCHA-Rechenaufgabe (Proof of Work)',
+    'altcha' => 'Ersatzstufe: mechanische Prüfung mit Rechenaufgabe, danach annehmen (empfohlen für wichtige Formulare)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [
@@ -71,3 +70,22 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearanceOptions'] = [
     'interaction-only' => 'Nur bei erforderlicher Interaktion anzeigen',
     'execute' => 'Nach Formular-Interaktion anzeigen',
 ];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigest'] = [
+    'Tageszusammenfassung versenden',
+    'Verschickt einmal täglich eine Mail mit den neuen Einträgen der Spam-Ablage (Datum, Quelle, Punkte, Signale, Betreff – ohne Inhalt der Einsendung). Standardmäßig aus, eine Zusammenfassung ist nicht zwingend.',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigestEmail'] = [
+    'Empfänger der Zusammenfassung',
+    'Adresse für die Tageszusammenfassung. Leer verwendet die Administrator-E-Mail-Adresse.',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
+    'KI-Einordnung',
+    'Einrichtung über TURNSTILE_AI_KEY in .env.local; der Schlüssel wird hier nie angezeigt.',
+];
+
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'aktiv – %s, %s, heute %d von %d genutzt';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'aus';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Einrichtung über TURNSTILE_AI_KEY in .env.local.';

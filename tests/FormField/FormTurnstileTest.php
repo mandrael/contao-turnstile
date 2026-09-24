@@ -7,6 +7,7 @@ namespace Mandrael\ContaoTurnstileBundle\Tests\FormField;
 use Contao\System;
 use Contao\TestCase\ContaoTestCase;
 use Contao\Widget;
+use Mandrael\ContaoTurnstileBundle\EventListener\SubmissionListener;
 use Mandrael\ContaoTurnstileBundle\FormField\FormTurnstile;
 use Mandrael\ContaoTurnstileBundle\Service\AltchaVerifier;
 use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
@@ -59,6 +60,16 @@ class FormTurnstileTest extends ContaoTestCase
         yield 'optin Feld-off greift nicht' => ['optin', 'off', false];
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideFallbackModes(): iterable
+    {
+        yield 'altcha' => ['altcha'];
+        // 'filter' verhält sich seit 0.8.0 identisch zu 'altcha' (inkl. PoW-Pflicht).
+        yield 'gespeichertes filter' => ['filter'];
+    }
+
     public function testValidateReadsPerInstanceToken(): void
     {
         $verifier = $this->createMock(TurnstileVerifier::class);
@@ -105,117 +116,18 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertTrue($widget->hasErrors());
     }
 
-    public function testFilterModeInvalidTokenPassesWithoutError(): void
+    public function testValidTokenNeverCallsSubmissionListener(): void
     {
-        // 'filter' = Fallback: fehlgeschlagene Prüfung wird durchgelassen + protokolliert, nicht geblockt.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
+        // Gültiges Token: applyFallback() wird gar nicht erst erreicht.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::once())->method('logSoftPass')->with('verification-failed');
+        $verifier->method('validate')->willReturn(true);
 
-        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier);
-        $widget->validate();
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
 
-        self::assertFalse($widget->hasErrors());
-    }
-
-    public function testFilterModeMissingTokenPassesAndLogsCategory(): void
-    {
-        // Fehlendes Token im filter-Modus: kein Error, aber protokolliert (Kategorie missing-token).
-        // Die eigentliche Missing-Token-WARNUNG kommt aus dem Verifier (hier gemockt, separat getestet).
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->with('')->willReturn(false);
-        $verifier->expects(self::once())->method('logSoftPass')->with('missing-token');
-
-        $widget = $this->createWidget('42', [], $verifier);
-        $widget->validate();
-
-        self::assertFalse($widget->hasErrors());
-    }
-
-    public function testFilterModeHoneypotFilledBlocks(): void
-    {
-        // Befüllter Honeypot ist ein eindeutiges Bot-Signal: trotz filter-Modus blocken, nicht durchlassen.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::never())->method('logSoftPass');
-
-        $widget = $this->createWidget('42', [
-            'cf-turnstile-response-42' => 'bad-token',
-            'cf-turnstile-hp-42' => 'ich bin ein bot',
-        ], $verifier);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testFilterModeTooFastSubmissionBlocks(): void
-    {
-        // Gültig signierter, aber unmenschlich frischer Zeitstempel: blocken.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::never())->method('logSoftPass');
-
-        $widget = $this->createWidget('42', [
-            'cf-turnstile-response-42' => 'bad-token',
-            'cf-turnstile-ts-42' => self::signTime(time()),
-        ], $verifier);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testFilterModePassesWhenSlowEnoughAndHoneypotEmpty(): void
-    {
-        // Langsam genug ausgefüllt + Honeypot leer: mehrdeutiger Rest -> durchlassen + protokollieren.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::once())->method('logSoftPass')->with('verification-failed');
-
-        $widget = $this->createWidget('42', [
-            'cf-turnstile-response-42' => 'bad-token',
-            'cf-turnstile-ts-42' => self::signTime(time() - 30),
-        ], $verifier);
-        $widget->validate();
-
-        self::assertFalse($widget->hasErrors());
-    }
-
-    public function testFilterModeForgedTimingIsIgnored(): void
-    {
-        // Ungültige Signatur (z. B. Cache/Template-Override/Fälschung): Timing greift NICHT (fail-open),
-        // Honeypot leer -> durchlassen + protokollieren. Kein Fehlalarm durch kaputte Zeitstempel.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::once())->method('logSoftPass')->with('verification-failed');
-
-        $widget = $this->createWidget('42', [
-            'cf-turnstile-response-42' => 'bad-token',
-            'cf-turnstile-ts-42' => time().'.deadbeefdeadbeef',
-        ], $verifier);
+        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'a-token'], $verifier, $listener);
         $widget->validate();
 
         self::assertFalse($widget->hasErrors());
@@ -226,10 +138,11 @@ class FormTurnstileTest extends ContaoTestCase
         // Ohne gesetzte Einstellung gilt 'block': fehlgeschlagene Prüfung wird abgewiesen.
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::never())->method('isCloudflareOutageConfirmed');
-        $verifier->expects(self::never())->method('logSoftPass');
 
-        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier);
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
+
+        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier, $listener);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());
@@ -242,155 +155,42 @@ class FormTurnstileTest extends ContaoTestCase
 
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::never())->method('isCloudflareOutageConfirmed');
-        $verifier->expects(self::never())->method('logSoftPass');
 
-        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier);
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
+
+        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier, $listener);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());
     }
 
-    public function testBlockModeExplicitlyBlocks(): void
+    public function testBlockModeExplicitlyBlocksAndNeverCallsListener(): void
     {
-        // Explizit gesetzter Standardwert 'block' weist ab (nicht nur der ungesetzte Default).
+        // Explizit gesetzter Standardwert 'block' weist ab (nicht nur der ungesetzte Default);
+        // der Listener wird in diesem Modus nie gerufen.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'block';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::never())->method('isCloudflareOutageConfirmed');
-        $verifier->expects(self::never())->method('logSoftPass');
 
-        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier);
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
+
+        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'bad-token'], $verifier, $listener);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());
     }
 
-    public function testAltchaModeBlocksWithoutOutageEvenWithValidPow(): void
+    #[DataProvider('provideFallbackModes')]
+    public function testFallbackModeValidSolutionPassesAndCallsListenerOnceWithPost(string $mode): void
     {
-        // Produktionsfall 22.09.2026: Turnstile gab dem Browser-Bot kein Token, er löste den Proof-of-Work.
-        // Ohne bestätigten Cloudflare-Ausfall darf die Ersatzstufe das nicht aufheben.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+        // Turnstile schlägt fehl, aber der PoW-Zweitbeweis ist gültig -> durchlassen, Pass loggen,
+        // SubmissionListener::onTokenlessPass() genau einmal mit dem kompletten POST aufrufen.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = $mode;
 
         $verifier = $this->createMock(TurnstileVerifier::class);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::once())->method('isCloudflareOutageConfirmed')->willReturn(false);
-        $verifier->expects(self::once())->method('logFallbackWithheld');
-        $verifier->expects(self::never())->method('logAltchaPass');
-
-        $altcha = $this->createMock(AltchaVerifier::class);
-        $altcha->expects(self::never())->method('validate');
-
-        $widget = $this->createAltchaWidget('42', [
-            'altcha-42' => 'a-payload',
-            'cf-turnstile-ts-42' => self::signTime(time() - 30),
-        ], $verifier, $altcha);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testAltchaModeBlocksRejectedTokenWithoutOutage(): void
-    {
-        // Abgelehntes, nicht leeres Token: Cloudflare hat geantwortet, kein Ersatz.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        $verifier->method('validate')->with('bad-token')->willReturn(false);
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(false);
-        $verifier->expects(self::never())->method('logAltchaPass');
-
-        $altcha = $this->createMock(AltchaVerifier::class);
-        $altcha->expects(self::never())->method('validate');
-
-        $widget = $this->createAltchaWidget('42', [
-            'cf-turnstile-response-42' => 'bad-token',
-            'altcha-42' => 'a-payload',
-            'cf-turnstile-ts-42' => self::signTime(time() - 30),
-        ], $verifier, $altcha);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testFilterModeBlocksRejectedTokenWithoutOutage(): void
-    {
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(false);
-        $verifier->expects(self::once())->method('logFallbackWithheld');
-        $verifier->expects(self::never())->method('logSoftPass');
-
-        $widget = $this->createWidget('42', [
-            'cf-turnstile-response-42' => 'bad-token',
-            'cf-turnstile-ts-42' => self::signTime(time() - 30),
-        ], $verifier);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testFilterModeBlocksMissingTokenWithoutOutage(): void
-    {
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        $verifier->method('validate')->with('')->willReturn(false);
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(false);
-        $verifier->expects(self::never())->method('logSoftPass');
-
-        $widget = $this->createWidget('42', ['cf-turnstile-ts-42' => self::signTime(time() - 30)], $verifier);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testValidTokenNeverProbesForOutage(): void
-    {
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        $verifier->method('validate')->willReturn(true);
-        $verifier->expects(self::never())->method('isCloudflareOutageConfirmed');
-
-        $widget = $this->createWidget('42', ['cf-turnstile-response-42' => 'a-token'], $verifier);
-        $widget->validate();
-
-        self::assertFalse($widget->hasErrors());
-    }
-
-    public function testFilterModeHoneypotArrayBlocks(): void
-    {
-        // Manipuliertes Honeypot-Feld als Array (Nicht-String) gilt als Bot-Signal -> blocken.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'filter';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::never())->method('logSoftPass');
-
-        $widget = $this->createWidget('42', [
-            'cf-turnstile-response-42' => 'bad-token',
-            'cf-turnstile-hp-42' => ['x'],
-        ], $verifier);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testAltchaModeValidSolutionPasses(): void
-    {
-        // 'altcha': Turnstile schlägt fehl, aber der PoW-Zweitbeweis ist gültig -> durchlassen + Pass loggen.
-        // Gültig signierter, ausreichend alter Zeitstempel, damit der neue Timing-Zweig nicht blockt.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::once())->method('logAltchaPass');
         $verifier->expects(self::never())->method('logAltchaBlock');
@@ -398,23 +198,79 @@ class FormTurnstileTest extends ContaoTestCase
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::once())->method('validate')->with('a-payload')->willReturn(true);
 
-        $widget = $this->createAltchaWidget('42', [
+        $post = [
             'altcha-42' => 'a-payload',
             'cf-turnstile-ts-42' => self::signTime(time() - 30),
-        ], $verifier, $altcha);
+        ];
+
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::once())->method('onTokenlessPass')->with($post);
+
+        $widget = $this->createAltchaWidget('42', $post, $verifier, $altcha, true, $listener);
         $widget->validate();
 
         self::assertFalse($widget->hasErrors());
     }
 
-    public function testAltchaModeInvalidSolutionBlocks(): void
+    #[DataProvider('provideFallbackModes')]
+    public function testFallbackModeHoneypotBlocksBeforePowAndNeverCallsListener(string $mode): void
     {
-        // Gefülltes, aber ungültiges Payload = Angriff/Replay -> blocken, Kategorie altcha-invalid.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
+        // Billiger Filter zuerst: befüllter Honeypot blockt, der PoW-Verifier und der Listener werden
+        // gar nicht erst gerufen.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = $mode;
 
         $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::never())->method('logAltchaPass');
+        $verifier->expects(self::never())->method('logAltchaBlock');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::never())->method('validate');
+
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
+
+        $widget = $this->createAltchaWidget('42', [
+            'altcha-42' => 'a-payload',
+            'cf-turnstile-hp-42' => 'ich bin ein bot',
+        ], $verifier, $altcha, true, $listener);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    #[DataProvider('provideFallbackModes')]
+    public function testFallbackModeEmptyPowBlocksAndNeverCallsListener(string $mode): void
+    {
+        // Leeres Feld = JS/Endpoint kaputt -> blocken, Kategorie altcha-empty; der PoW-Verifier und der
+        // Listener werden nicht bemüht.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = $mode;
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
+        $verifier->method('validate')->willReturn(false);
+        $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-empty');
+
+        $altcha = $this->createMock(AltchaVerifier::class);
+        $altcha->expects(self::never())->method('validate');
+
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
+
+        $widget = $this->createAltchaWidget('42', [
+            'cf-turnstile-ts-42' => self::signTime(time() - 30),
+        ], $verifier, $altcha, true, $listener);
+        $widget->validate();
+
+        self::assertTrue($widget->hasErrors());
+    }
+
+    #[DataProvider('provideFallbackModes')]
+    public function testFallbackModeInvalidPowBlocksAndNeverCallsListener(string $mode): void
+    {
+        // Gefülltes, aber ungültiges Payload = Angriff/Replay -> blocken, Kategorie altcha-invalid.
+        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = $mode;
+
+        $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-invalid');
         $verifier->expects(self::never())->method('logAltchaPass');
@@ -422,32 +278,13 @@ class FormTurnstileTest extends ContaoTestCase
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::once())->method('validate')->with('bad')->willReturn(false);
 
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
+
         $widget = $this->createAltchaWidget('42', [
             'altcha-42' => 'bad',
             'cf-turnstile-ts-42' => self::signTime(time() - 30),
-        ], $verifier, $altcha);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testAltchaModeEmptyFieldBlocksAndLogsEmpty(): void
-    {
-        // Leeres Feld = JS/Endpoint kaputt -> blocken, Kategorie altcha-empty; der Verifier wird nicht bemüht.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-empty');
-
-        $altcha = $this->createMock(AltchaVerifier::class);
-        $altcha->expects(self::never())->method('validate');
-
-        $widget = $this->createAltchaWidget('42', [
-            'cf-turnstile-ts-42' => self::signTime(time() - 30),
-        ], $verifier, $altcha);
+        ], $verifier, $altcha, true, $listener);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());
@@ -460,8 +297,6 @@ class FormTurnstileTest extends ContaoTestCase
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-timing-invalid');
         $verifier->expects(self::never())->method('logAltchaUnavailable');
@@ -470,7 +305,10 @@ class FormTurnstileTest extends ContaoTestCase
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::never())->method('validate');
 
-        $widget = $this->createAltchaWidget('42', ['altcha-42' => 'a-payload'], $verifier, $altcha);
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
+
+        $widget = $this->createAltchaWidget('42', ['altcha-42' => 'a-payload'], $verifier, $altcha, true, $listener);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());
@@ -483,8 +321,6 @@ class FormTurnstileTest extends ContaoTestCase
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::once())->method('logAltchaBlock')->with('altcha-timing-invalid');
 
@@ -507,8 +343,6 @@ class FormTurnstileTest extends ContaoTestCase
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::once())->method('logAltchaPass');
         $verifier->expects(self::never())->method('logAltchaBlock');
@@ -516,86 +350,62 @@ class FormTurnstileTest extends ContaoTestCase
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::once())->method('validate')->with('a-payload')->willReturn(true);
 
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::once())->method('onTokenlessPass');
+
         $widget = $this->createAltchaWidget('42', [
             'altcha-42' => 'a-payload',
             'cf-turnstile-ts-42' => self::signTime(time() - 3600),
-        ], $verifier, $altcha);
+        ], $verifier, $altcha, true, $listener);
         $widget->validate();
 
         self::assertFalse($widget->hasErrors());
     }
 
-    public function testAltchaModeTooFastBlocksWithoutLog(): void
+    public function testAltchaModeTooFastBlocksWithoutLogAndNeverCallsListener(): void
     {
-        // "Zu schnell" blockt weiterhin wie bisher, aber ohne eigenes Log (kein altcha-timing-invalid).
+        // "Zu schnell" blockt, aber ohne eigenes Log (kein altcha-timing-invalid).
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::never())->method('logAltchaBlock');
         $verifier->expects(self::never())->method('logAltchaPass');
 
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::never())->method('validate');
+
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
 
         $widget = $this->createAltchaWidget('42', [
             'altcha-42' => 'a-payload',
             'cf-turnstile-ts-42' => self::signTime(time()),
-        ], $verifier, $altcha);
+        ], $verifier, $altcha, true, $listener);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());
     }
 
-    public function testAltchaModeHoneypotBlocksBeforePow(): void
-    {
-        // Billiger Filter zuerst (nach dem altchaActive-Check): befüllter Honeypot blockt, der
-        // PoW-Verifier wird gar nicht erst gerufen.
-        $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
-
-        $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
-        $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::never())->method('logAltchaPass');
-        $verifier->expects(self::never())->method('logAltchaBlock');
-        $verifier->expects(self::never())->method('logAltchaUnavailable');
-
-        $altcha = $this->createMock(AltchaVerifier::class);
-        $altcha->expects(self::never())->method('validate');
-
-        $widget = $this->createAltchaWidget('42', [
-            'altcha-42' => 'a-payload',
-            'cf-turnstile-hp-42' => 'ich bin ein bot',
-        ], $verifier, $altcha);
-        $widget->validate();
-
-        self::assertTrue($widget->hasErrors());
-    }
-
-    public function testAltchaModeUnavailableBlocksAndLogsError(): void
+    public function testAltchaModeUnavailableBlocksAndLogsErrorAndNeverCallsListener(): void
     {
         // ALTCHA nicht verfügbar (altchaActive=false: unsicherer Kontext ODER fehlende Route): fail-
-        // closed blocken + Betriebsstörung auf error loggen, nicht mehr durchlassen. Der PoW-Verifier
-        // wird nicht bemüht. Reihenfolge: dieser Zweig läuft zuerst, auch wenn zugleich der
-        // Zeitstempel fehlt (kein cf-turnstile-ts-42 im Post), bleibt logAltchaUnavailable() die
-        // Meldung, nicht logAltchaBlock('altcha-timing-invalid').
+        // closed blocken + Betriebsstörung auf error loggen. Der PoW-Verifier und der Listener werden
+        // nicht bemüht. Reihenfolge: dieser Zweig läuft zuerst, auch wenn zugleich der Zeitstempel fehlt.
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
-        // Bestätigter Cloudflare-Ausfall: nur dann greift die Ersatzstufe (seit 0.8.0).
-        $verifier->method('isCloudflareOutageConfirmed')->willReturn(true);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::once())->method('logAltchaUnavailable');
         $verifier->expects(self::never())->method('logAltchaBlock');
-        $verifier->expects(self::never())->method('logSoftPass');
 
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::never())->method('validate');
 
-        $widget = $this->createAltchaWidget('42', [], $verifier, $altcha, false);
+        $listener = $this->createMock(SubmissionListener::class);
+        $listener->expects(self::never())->method('onTokenlessPass');
+
+        $widget = $this->createAltchaWidget('42', [], $verifier, $altcha, false, $listener);
         $widget->validate();
 
         self::assertTrue($widget->hasErrors());
@@ -913,7 +723,7 @@ class FormTurnstileTest extends ContaoTestCase
     /**
      * @param array<string, mixed> $post
      */
-    private function createAltchaWidget(string $id, array $post, TurnstileVerifier $verifier, AltchaVerifier $altcha, bool $altchaActive = true): FormTurnstile
+    private function createAltchaWidget(string $id, array $post, TurnstileVerifier $verifier, AltchaVerifier $altcha, bool $altchaActive = true, ?SubmissionListener $listener = null): FormTurnstile
     {
         $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
 
@@ -928,6 +738,7 @@ class FormTurnstileTest extends ContaoTestCase
         $container->set('request_stack', $requestStack);
         $container->set(TurnstileVerifier::class, $verifier);
         $container->set(AltchaVerifier::class, $altcha);
+        $container->set(SubmissionListener::class, $listener ?? $this->createMock(SubmissionListener::class));
         System::setContainer($container);
 
         return $widget;
@@ -936,7 +747,7 @@ class FormTurnstileTest extends ContaoTestCase
     /**
      * @param array<string, mixed> $post
      */
-    private function createWidget(string $id, array $post, TurnstileVerifier $verifier): FormTurnstile
+    private function createWidget(string $id, array $post, TurnstileVerifier $verifier, ?SubmissionListener $listener = null): FormTurnstile
     {
         $widget = (new \ReflectionClass(FormTurnstile::class))->newInstanceWithoutConstructor();
 
@@ -950,6 +761,7 @@ class FormTurnstileTest extends ContaoTestCase
         $container->setParameter('kernel.secret', 'test-secret');
         $container->set('request_stack', $requestStack);
         $container->set(TurnstileVerifier::class, $verifier);
+        $container->set(SubmissionListener::class, $listener ?? $this->createMock(SubmissionListener::class));
         System::setContainer($container);
 
         return $widget;

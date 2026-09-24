@@ -25,3 +25,76 @@ services:
     # Plain invokable Controller (kein AbstractController); per Service-ID als _controller aufgerufen.
     Mandrael\ContaoTurnstileBundle\Controller\AltchaChallengeController:
         public: true
+
+    # Public: die Statusanzeige in tl_settings holt ihn per System::getContainer()->get(...).
+    Mandrael\ContaoTurnstileBundle\Service\AiSpamJudge:
+        public: true
+        arguments:
+            $httpClient: '@http_client'
+            $cache: '@cache.app'
+            $logger: '@monolog.logger.contao'
+            $provider: '%env(default::TURNSTILE_AI_PROVIDER)%'
+            $key: '%env(default::TURNSTILE_AI_KEY)%'
+            $model: '%env(default::TURNSTILE_AI_MODEL)%'
+
+    Mandrael\ContaoTurnstileBundle\Service\SpamClassifier:
+        arguments:
+            $cache: '@cache.app'
+            $logger: '@monolog.logger.contao'
+            $httpClient: '@http_client'
+
+    # Public: das Widget ruft onTokenlessPass() über System::getContainer()->get(...).
+    Mandrael\ContaoTurnstileBundle\EventListener\SubmissionListener:
+        public: true
+        arguments:
+            $requestStack: '@request_stack'
+        tags:
+            - { name: contao.hook, hook: prepareFormData, method: onPrepareFormData }
+            - { name: contao.hook, hook: addComment, method: onAddComment }
+
+    # Innerhalb von Contaos contao.mailer (der dekoriert mailer.mailer ohne Priorität; höhere Priorität liegt
+    # innen): Absender und X-Transport sind dann schon gesetzt, wenn eine Mail abgelegt wird.
+    Mandrael\ContaoTurnstileBundle\Mailer\SpamAwareMailer:
+        decorates: mailer.mailer
+        decoration_priority: 10
+        decoration_on_invalid: ignore
+        arguments:
+            $inner: '@.inner'
+            $requestStack: '@request_stack'
+            $logger: '@monolog.logger.contao'
+
+    # Public: der Backend-Controller der Spam-Ablage wird über System::importStatic() geholt.
+    Mandrael\ContaoTurnstileBundle\Service\SpamArchive:
+        public: true
+        arguments:
+            $db: '@database_connection'
+            $transports: '@mailer.transports'
+            $logger: '@monolog.logger.contao'
+            $bulkyItemStorage: '@?Terminal42\NotificationCenterBundle\BulkyItem\BulkyItemStorage'
+
+    # Public: Backend.php ruft den Schlüssel „view" über System::importStatic() aus dem Container.
+    Mandrael\ContaoTurnstileBundle\Backend\SpamArchiveController:
+        public: true
+        arguments:
+            $db: '@database_connection'
+            $requestStack: '@request_stack'
+            $router: '@router'
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $tokenStorage: '@security.token_storage'
+
+    # Public: der input_field_callback in tl_settings holt ihn über System::importStatic().
+    Mandrael\ContaoTurnstileBundle\Backend\AiStatusField:
+        public: true
+
+    Mandrael\ContaoTurnstileBundle\Cron\SpamArchiveCron:
+        arguments:
+            $mailer: '@mailer'
+            $framework: '@contao.framework'
+        tags:
+            - { name: contao.cronjob, interval: daily }
+
+    # Public: Backend::getSystemMessages() ruft den Hook über System::importStatic().
+    Mandrael\ContaoTurnstileBundle\EventListener\SpamArchiveSystemMessageListener:
+        public: true
+        tags:
+            - { name: contao.hook, hook: getSystemMessages, method: onGetSystemMessages }

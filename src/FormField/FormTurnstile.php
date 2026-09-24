@@ -8,6 +8,7 @@ use Contao\Config;
 use Contao\FormCaptcha;
 use Contao\System;
 use Mandrael\ContaoTurnstileBundle\Csp\CloudflareCspSourceRegistrar;
+use Mandrael\ContaoTurnstileBundle\EventListener\SubmissionListener;
 use Mandrael\ContaoTurnstileBundle\Service\AltchaVerifier;
 use Mandrael\ContaoTurnstileBundle\Service\TurnstileVerifier;
 
@@ -34,7 +35,8 @@ class FormTurnstile extends FormCaptcha
 
     private bool $fallbackToCaptcha = false;
 
-    // 'altcha'-Modus aktiv UND Secure Context (Web Crypto verfügbar). Steuert Template-Render + Validate.
+    // Ersatzstufe aktiv ('altcha', gespeichertes 'filter' gilt seit 0.8.0 ebenso) UND Secure Context (Web
+    // Crypto verfügbar). Steuert Template-Render + Validate.
     private bool $altchaActive = false;
 
     public function __construct($arrAttributes = null)
@@ -58,15 +60,15 @@ class FormTurnstile extends FormCaptcha
         $this->turnstileTheme = $this->configValue('turnstileTheme', 'light');
         $this->turnstileSize = $this->configValue('turnstileSize', 'normal');
         $this->turnstileAppearance = $this->configValue('turnstileAppearance', 'always');
-        // Signierter Render-Zeitstempel für den Timing-Check (Sekundärfilter im filter-Modus).
+        // Signierter Render-Zeitstempel für die Mindestzeit der Ersatzstufe.
         $this->turnstileTiming = $this->signTime(time());
 
-        // ALTCHA-Fallback nur im Modus 'altcha' UND im Secure Context (Web Crypto). Sonst kann der
+        // ALTCHA-Fallback nur in der Ersatzstufe UND im Secure Context (Web Crypto). Sonst kann der
         // Client kein Token erzeugen -> altchaActive bleibt false, applyAltchaFallback() blockiert
         // dann fail-closed (Betreiber-Entscheidung: wo altcha gewählt ist, gilt fail-closed).
         $this->turnstileAltchaUrl = '';
 
-        if ('altcha' === $this->configValue('turnstileFailureMode', 'block') && $this->isSecureContext()) {
+        if ($this->fallbackEnabled() && $this->isSecureContext()) {
             // Route + Bundle-URLs hier in PHP auflösen (NICHT via $this->asset() im Template: dort ist
             // $this auf Contao 4.13 die Widget-Instanz ohne asset()-Methode). Löst eine der drei URLs
             // nicht auf (keine Route ohne Manager-Plugin, kein Request), bleibt altcha inaktiv und
@@ -165,37 +167,21 @@ class FormTurnstile extends FormCaptcha
             return;
         }
 
-        $this->applyFallback($post, $token);
+        $this->applyFallback($post);
     }
 
     /**
-     * Verhalten, wenn die Turnstile-Prüfung fehlschlägt (Einstellung turnstileFailureMode):
-     * 'block' (Default und unbekannte Werte) weist ab. 'filter' (Honeypot/Timing) und 'altcha'
-     * (zusätzlich Proof-of-Work) vertreten Turnstile nur bei bestätigtem Cloudflare-Ausfall – sonst würde
-     * die Ersatzstufe Turnstiles Urteil über einen Bot aufheben (seit 0.8.0; vorher griff sie bei jedem
-     * Fehlschlag, und ein Browser-Bot löste einfach den Proof-of-Work).
+     * Verhalten ohne gültiges Token (Einstellung turnstileFailureMode): 'block' (Default und unbekannte Werte)
+     * weist ab. Die Ersatzstufe ('altcha'; gespeichertes 'filter' seit 0.8.0 ebenso) greift bei jedem
+     * Fehlschlag: mechanische Prüfung hier, danach die Einstufung (SubmissionListener, SpamClassifier), die
+     * nie abweist, sondern nur bei sicherem Spam die Rückmeldung an den Absender verhindert.
      *
      * @param array<string, mixed> $post
      */
-    private function applyFallback(array $post, string $token): void
+    private function applyFallback(array $post): void
     {
-        $mode = $this->configValue('turnstileFailureMode', 'block');
-
-        if ('filter' !== $mode && 'altcha' !== $mode) {
+        if (!$this->fallbackEnabled()) {
             $this->blockWithError();
-
-            return;
-        }
-
-        if (!$this->getVerifier()->isCloudflareOutageConfirmed()) {
-            $this->getVerifier()->logFallbackWithheld();
-            $this->blockWithError();
-
-            return;
-        }
-
-        if ('filter' === $mode) {
-            $this->applyFilterFallback($post, $token);
 
             return;
         }
@@ -203,25 +189,9 @@ class FormTurnstile extends FormCaptcha
         $this->applyAltchaFallback($post);
     }
 
-    /**
-     * Fallback 'filter' (nur bei bestätigtem Cloudflare-Ausfall, schwacher Schutz, veraltet): offensichtliche
-     * Bots (Honeypot befüllt oder unmenschlich schnell abgeschickt) trotzdem blocken; den Rest durchlassen
-     * + protokollieren (Kategorie ohne Token/PII). Logging läuft
-     * über den Verifier (dort ist der Contao-Logger per DI injiziert – monolog.logger.contao ist
-     * nicht public, also nicht über den Container abrufbar); der Missing-Token-Warn feuert davon
-     * unabhängig im Verifier.
-     *
-     * @param array<string, mixed> $post
-     */
-    private function applyFilterFallback(array $post, string $token): void
+    private function fallbackEnabled(): bool
     {
-        if ($this->honeypotTripped($post) || $this->submittedTooFast($post)) {
-            $this->blockWithError();
-
-            return;
-        }
-
-        $this->getVerifier()->logSoftPass('' === $token ? 'missing-token' : 'verification-failed');
+        return \in_array($this->configValue('turnstileFailureMode', 'block'), ['altcha', 'filter'], true);
     }
 
     /**
@@ -272,6 +242,7 @@ class FormTurnstile extends FormCaptcha
 
         if ('' !== $payload && $this->getAltchaVerifier()->validate($payload)) {
             $this->getVerifier()->logAltchaPass();
+            $this->getSubmissionListener()->onTokenlessPass($post);
 
             return;
         }
@@ -305,31 +276,9 @@ class FormTurnstile extends FormCaptcha
     }
 
     /**
-     * Timing für den Modus 'filter': signierter Render-Zeitstempel, schneller als MIN_FILL_SECONDS =
-     * Bot. Fehlt das Feld oder ist die Signatur ungültig (Template-Override, Cache, Fälschung), wird
-     * NICHT geblockt (fail-open) – der Honeypot bleibt als Schranke. So entstehen keine Fehlalarme
-     * durch Edge-Cases. Der Modus 'altcha' prüft denselben Zeitstempel stattdessen fail-closed über
-     * parseSignedTime() direkt in applyAltchaFallback().
-     *
-     * @param array<string, mixed> $post
-     */
-    private function submittedTooFast(array $post): bool
-    {
-        $time = $this->parseSignedTime($post);
-
-        if (null === $time) {
-            return false;
-        }
-
-        return time() - $time < self::MIN_FILL_SECONDS;
-    }
-
-    /**
      * Liest und prüft das signierte Zeitstempel-Feld cf-turnstile-ts-<id>. Liefert die Unixzeit bei
      * gültiger Signatur, sonst null (Feld fehlt, kein Punkt-Trenner, kein numerischer Zeitanteil,
-     * oder die HMAC-Signatur passt nicht). Gemeinsame Grundlage für submittedTooFast() (fail-open,
-     * Modus 'filter') und applyAltchaFallback() (fail-closed, Modus 'altcha') – keine doppelte
-     * Signaturprüfung.
+     * oder die HMAC-Signatur passt nicht). applyAltchaFallback() wertet null fail-closed.
      *
      * @param array<string, mixed> $post
      */
@@ -473,6 +422,11 @@ class FormTurnstile extends FormCaptcha
     private function getVerifier(): TurnstileVerifier
     {
         return System::getContainer()->get(TurnstileVerifier::class);
+    }
+
+    private function getSubmissionListener(): SubmissionListener
+    {
+        return System::getContainer()->get(SubmissionListener::class);
     }
 
     private function getAltchaVerifier(): AltchaVerifier

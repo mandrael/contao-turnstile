@@ -35,16 +35,6 @@ class TurnstileVerifier
     // Submit erneut loggen.
     private const TEMPLATE_OUTDATED_THROTTLE = 3600;
 
-    // Ausfallprobe (isCloudflareOutageConfirmed()): Platzhalter-Token, das der Angreifer nicht wählen kann.
-    // „Erreichbar" gilt 60 s; ein Ausfall muss mindestens 30 s ohne erfolgreiche Probe anhalten, bevor
-    // die Ersatzstufe öffnet. Ohne neuen Fehlschlag verfällt der Ausfallbeginn nach 120 s.
-    private const PROBE_TOKEN = 'mandrael-turnstile-outage-probe';
-    private const PROBE_REACHABLE_KEY = 'mandrael_turnstile.probe_reachable';
-    private const PROBE_OUTAGE_KEY = 'mandrael_turnstile.probe_outage_since';
-    private const PROBE_REACHABLE_TTL = 60;
-    private const PROBE_OUTAGE_MIN_SECONDS = 30;
-    private const PROBE_OUTAGE_GAP = 120;
-
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
@@ -87,18 +77,6 @@ class TurnstileVerifier
         $this->framework->initialize();
 
         return '' !== (string) ($this->framework->getAdapter(Config::class)->get('turnstileSendRemoteIp') ?? '1');
-    }
-
-    /**
-     * Fallback 'filter' (Brücke): protokolliert eine durchgelassene, aber fehlgeschlagene Submission auf
-     * Level info, damit die Site die Menge (Privacy-Browser-Fehlalarme vs. Bots) per Log auswerten
-     * kann. Liegt hier, weil der Logger via DI injiziert ist (FormTurnstile kann monolog.logger.contao
-     * nicht über den Container holen – nicht public). $category ist 'missing-token' oder
-     * 'verification-failed'; nie Token/Secret/PII loggen.
-     */
-    public function logSoftPass(string $category): void
-    {
-        $this->safeLog('info', 'Cloudflare Turnstile soft-pass: Verifikation fehlgeschlagen, Absenden trotzdem erlaubt ('.$category.').', ContaoContext::FORMS, __METHOD__);
     }
 
     /**
@@ -219,8 +197,8 @@ class TurnstileVerifier
 
         $result = $this->postSiteverify($payload);
 
-        // Nicht erreichbar oder unverwertbare Antwort: fail-closed. Ob die Ersatzstufe greift, entscheidet
-        // allein isCloudflareOutageConfirmed() – nie dieses Ergebnis, denn das Token wählt der Angreifer.
+        // Nicht erreichbar oder unverwertbare Antwort: fail-closed; die Ersatzstufe übernimmt dann wie bei
+        // jedem anderen Fehlschlag.
         if (null === $result || null === $result[1]) {
             return false;
         }
@@ -235,84 +213,6 @@ class TurnstileVerifier
 
         // Ungültiges/gefälschtes Token: hart blockieren (fail-closed).
         return false;
-    }
-
-    /**
-     * Bestätigter Cloudflare-Ausfall – nur dann darf die Ersatzstufe (filter/altcha) Turnstile vertreten.
-     * Ein fehlendes oder abgelehntes Token allein ist Turnstiles Urteil über den Absender und öffnet sie nie –
-     * sonst löst ein automatisierter Browser einfach den Proof-of-Work statt Turnstile.
-     *
-     * Die Probe fragt siteverify mit festem Platzhalter-Token an, also mit einer Eingabe, die der Angreifer
-     * nicht bestimmt. Gecacht wird nur „erreichbar"; bei einem Fehlschlag nur der Beginn des Ausfalls, der
-     * ohne neuen Fehlschlag nach PROBE_OUTAGE_GAP verfällt und von jeder erfolgreichen Probe gelöscht wird.
-     * Bestätigt ist der Ausfall erst, wenn die eigene Probe scheitert und der Beginn mindestens
-     * PROBE_OUTAGE_MIN_SECONDS zurückliegt. So öffnet ein einzelner, etwa lastbedingter Timeout nichts. Cache-Fehler: false, ohne Cloudflare anzufragen – ohne Cache lässt
-     * sich die Ausfalldauer nicht festhalten.
-     */
-    public function isCloudflareOutageConfirmed(): bool
-    {
-        try {
-            if ($this->cache->getItem(self::PROBE_REACHABLE_KEY)->isHit()) {
-                return false;
-            }
-
-            $outage = $this->cache->getItem(self::PROBE_OUTAGE_KEY);
-        } catch (\Throwable) {
-            return false;
-        }
-
-        if ($this->probeReachable()) {
-            // Erst den Ausfallbeginn löschen, dann „erreichbar" merken: bliebe ein alter Beginn hinter einem
-            // gecachten „erreichbar" stehen, öffnete nach dessen Ablauf schon ein einzelner Fehlschlag.
-            try {
-                if ($this->cache->deleteItem(self::PROBE_OUTAGE_KEY)) {
-                    $this->cache->save($this->cache->getItem(self::PROBE_REACHABLE_KEY)->set(true)->expiresAfter(self::PROBE_REACHABLE_TTL));
-                }
-            } catch (\Throwable) {
-                // Nur Optimierung: die nächste Anfrage probt erneut.
-            }
-
-            return false;
-        }
-
-        $since = $outage->isHit() && \is_int($outage->get()) ? $outage->get() : time();
-
-        try {
-            $saved = $this->cache->save($outage->set($since)->expiresAfter(self::PROBE_OUTAGE_GAP));
-        } catch (\Throwable) {
-            $saved = false;
-        }
-
-        return $saved && time() - $since >= self::PROBE_OUTAGE_MIN_SECONDS;
-    }
-
-    /**
-     * Unerreichbar nur bei Transportfehler, HTTP ≥ 500 oder HTTP 2xx mit internal-error als einzigem Code. Jede
-     * andere Antwort (auch 4xx, Rate-Limit, Nicht-JSON unter 500, Fehlkonfiguration) beweist, dass Cloudflare
-     * antwortet – ein 429 etwa könnte eine Bot-Welle selbst auslösen.
-     */
-    private function probeReachable(): bool
-    {
-        $result = $this->postSiteverify(['secret' => $this->getSecretKey(), 'response' => self::PROBE_TOKEN]);
-
-        if (null === $result) {
-            return false;
-        }
-
-        [$status, $data] = $result;
-
-        // internal-error zählt nur mit HTTP 2xx: ein 4xx/429 beweist eine Antwort, auch mit diesem Code.
-        if ($status >= 500 || ($status < 300 && ['internal-error'] === array_values((array) ($data['error-codes'] ?? [])))) {
-            $this->safeLog('error', \sprintf('Cloudflare Turnstile: siteverify meldet eine Störung (HTTP %d).', $status), ContaoContext::ERROR, __METHOD__);
-
-            return false;
-        }
-
-        if (null !== $data) {
-            $this->warnOnConfigError($data);
-        }
-
-        return true;
     }
 
     /**
@@ -360,15 +260,6 @@ class TurnstileVerifier
         if ([] !== array_intersect(['invalid-input-secret', 'invalid-input-sitekey'], (array) ($data['error-codes'] ?? []))) {
             $this->safeLog('warning', 'Cloudflare Turnstile lehnt die Konfiguration ab – Site Key/Secret Key prüfen.', ContaoContext::ERROR, __METHOD__);
         }
-    }
-
-    /**
-     * Ersatzstufe konfiguriert, aber nicht freigegeben, weil kein Cloudflare-Ausfall bestätigt ist. Info
-     * statt error: der Normalfall bei Bots. Zeigt im Prod-Log, dass die Sperre greift.
-     */
-    public function logFallbackWithheld(): void
-    {
-        $this->safeLog('info', 'Cloudflare Turnstile: Ersatzstufe nicht freigegeben, kein Cloudflare-Ausfall bestätigt – Absenden blockiert (fallback-withheld).', ContaoContext::FORMS, __METHOD__);
     }
 
     /**

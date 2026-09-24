@@ -7,23 +7,44 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 
 ## [0.8.0] - UNRELEASED
 
-### Sicherheit
-- **Die Ersatzstufe hebt Turnstiles Urteil nicht mehr auf.** Bisher griffen `filter` und `altcha`
-  bei jedem Fehlschlag, auch wenn Turnstile einem Absender kein Token gab oder es ablehnte. Ein
-  Browser-Bot konnte so den Proof-of-Work lösen und durchkommen. Jetzt vertreten beide Stufen
-  Turnstile nur noch bei einem bestätigten Cloudflare-Ausfall: Eine serverseitige Probe mit
-  Platzhalter-Token muss scheitern (Transportfehler, HTTP ≥ 500 oder HTTP 2xx mit nur
-  `internal-error`), und seit mindestens 30 Sekunden darf keine Probe gelungen sein. Sonst wird
-  blockiert, im Log mit der Kategorie `fallback-withheld`. „Erreichbar" wird 60 Sekunden gemerkt,
-  „unerreichbar" nie; gespeichert wird nur der Beginn eines Ausfalls, und er verfällt nach
-  120 Sekunden ohne neuen Fehlschlag. Der Modus `block` fragt Cloudflare nie zusätzlich an.
-- Log-Aufrufe auf dem Prüfpfad können die Formularseite nicht mehr mit HTTP 500 beenden (etwa bei
-  nicht beschreibbarem Logverzeichnis).
+### Hinzugefügt
+- **Einstufung in der Ersatzstufe.** Eine Einsendung ohne gültiges Turnstile-Token, die die
+  mechanische Prüfung besteht, wird angenommen und eingestuft. Signale aus drei Gruppen:
+  Inhalt (Zeichensalat, Link, derselbe Text aus mehreren Netzen), Adresse (punktzerstückelte
+  Mailadresse, Domain ohne MX-Eintrag) und Tor (Einsendung von einem Tor-Ausgangsknoten, Liste von
+  `check.torproject.org`, 6 Stunden gecacht); viele tokenlose Einsendungen aus einem Netz geben nur
+  Zusatzpunkte. „Spam sicher" gilt bei mindestens 7 Punkten **und** Signalen aus mindestens zwei
+  Gruppen; über Tor braucht es zusätzlich ein Signal ab 3 Punkten. Dann
+  geht keine Mail an die im Formular eingetragene Adresse (Kopie, Notification-Center-Bestätigung),
+  alle übrigen Mails tragen `[Spam]` im Betreff. Die Formularempfänger, die Admin-Adresse und Adressen
+  auf der Domain der Website werden nie unterdrückt. Sonst läuft alles normal. Betroffene Mails werden vor dem Einreihen in
+  die Mail-Warteschlange geändert, synchron wie asynchron. Log-Kategorien `fallback-pass`,
+  `fallback-spam`, `confirmation-suppressed`.
+- Registrierung: Die Aktivierungsmail bleibt immer erhalten; bei „Spam sicher" trägt nur die
+  Admin-Benachrichtigung `[Spam]`. Kommentare: bei „Spam sicher" unveröffentlicht, ohne
+  Benachrichtigung der Abonnenten.
+- Höchstens drei Mails je eingetragener Adresse und Tag bei Einsendungen ohne Token im
+  Formulargenerator und bei Kommentaren, damit ein Formular nicht als Versender an fremde Postfächer
+  dient.
+- Optionale KI-Einordnung für den Graubereich (Mistral oder Anthropic, per Umgebungsvariable
+  `TURNSTILE_AI_KEY`, Standard aus). Sie entscheidet nur, wenn die Punkte allein nicht reichen, und nur, wenn zwei
+  Signalgruppen vertreten sind; nur ein sicheres Spam-Urteil verhindert die Rückmeldung; Fehler, Zeitüberschreitung und das
+  Tagesbudget von 150 Anfragen führen zur normalen Verarbeitung.
+- Selbstprüfung gegen veraltete Template-Overrides – beim Rendern wird geprüft, ob das
+  erzeugte HTML die Pflichtfelder enthält; fehlt etwas, steht höchstens einmal je Stunde
+  ein Fehler der Kategorie `template-outdated` mit den fehlenden Markern im System-Log.
+  Die Prüfung ändert weder Ausgabe noch Validierung. Der Solver meldet Fehler jetzt per
+  `console.warn` in der Browser-Konsole.
+
 
 ### Geändert
-- Wer Cloudflare nur clientseitig nicht erreicht (Tor, Privacy-Browser, Firmen-Firewall), wird
-  auch in `filter` und `altcha` abgewiesen. `filter` gilt als veraltet: Im Ausfall schützt es nur
-  per Honeypot und Mindestzeit.
+- `filter` entfällt als eigene Option und wirkt wie `altcha`: Ohne gelöste Rechenaufgabe wird eine
+  Einsendung ohne Token jetzt abgewiesen (vorher durchgelassen). Gespeicherte Werte bleiben gültig.
+- Die Fehlermeldung nennt einen Ausweg (Seite neu laden, sonst direkt per E-Mail oder Telefon).
+- Log-Aufrufe auf dem Prüfpfad können die Formularseite nicht mehr mit HTTP 500 beenden (etwa bei
+  nicht beschreibbarem Logverzeichnis).
+- Neue Abhängigkeiten `symfony/mailer` und `symfony/mime` (in Contao ohnehin enthalten);
+  `symfony/asset` entfällt.
 
 ### Behoben
 - Liefert eine Installation Assets von einer anderen Domain (Startpunkt-Einstellung
@@ -32,13 +53,6 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   verschluckte den Fehler, das ALTCHA-Feld blieb leer und der Fallback `altcha` war
   wirkungslos; seit 0.7.1 wurde damit jeder gescheiterte Turnstile-Versuch blockiert. Beide
   Adressen werden jetzt same-origin aus dem Basis-Pfad des Requests gebildet.
-
-### Hinzugefügt
-- Selbstprüfung gegen veraltete Template-Overrides – beim Rendern wird geprüft, ob das
-  erzeugte HTML die Pflichtfelder enthält; fehlt etwas, steht höchstens einmal je Stunde
-  ein Fehler der Kategorie `template-outdated` mit den fehlenden Markern im System-Log.
-  Die Prüfung ändert weder Ausgabe noch Validierung. Der Solver meldet Fehler jetzt per
-  `console.warn` in der Browser-Konsole.
 
 ## [0.7.1] - 2026-09-19
 

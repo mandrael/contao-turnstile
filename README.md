@@ -113,21 +113,46 @@ connect-src 'self';
 Unter Contao 5 trägt das Bundle diese im `altcha`-Modus automatisch ein; unter Contao 4.13 (keine CSP-API)
 ergänzt sie ein Integrator mit eigener strikter CSP selbst.
 
-## Verhalten bei Cloudflare-Ausfall
+## Verhalten ohne gültiges Token
 
 - **Netzwerk-/Timeout-Fehler** (Cloudflare nicht erreichbar, 5 s Timeout) → die Prüfung gilt als
-  fehlgeschlagen (fail-closed) und ein Fehler wird ins Contao-System-Log geschrieben. Im
-  Standardmodus `block` sind Formulare für die Dauer des Ausfalls gesperrt.
-- **Ersatzstufe `altcha` (oder veraltet `filter`)** → vertritt Turnstile nur bei einem **bestätigten**
-  Ausfall: Eine serverseitige Probe gegen siteverify muss seit mindestens 30 Sekunden scheitern.
-  Fehlt das Token oder lehnt Cloudflare es ab, wird ohne bestätigten Ausfall blockiert (Log-Kategorie
-  `fallback-withheld`) – sonst könnte ein Browser-Bot, dem Turnstile kein Token gibt, einfach den
-  Proof-of-Work lösen (so geschehen vor 0.8.0).
-- **Ungültiges/gefälschtes Token** (`success: false`) → das Formular wird **blockiert**
-  (fail-closed). Dazu zählt auch ein falscher oder abgelaufener Site/Secret Key – dann blockieren
-  alle Formulare, bis die Keys korrigiert sind (eine entsprechende Warnung landet im System-Log).
+  fehlgeschlagen (fail-closed) und ein Fehler wird ins Contao-System-Log geschrieben.
+- **Ungültiges/gefälschtes Token** (`success: false`) → ebenfalls fehlgeschlagen. Dazu zählt auch ein
+  falscher oder abgelaufener Site/Secret Key (eine entsprechende Warnung landet im System-Log).
+- **Modus `block`** (Standard) → jede fehlgeschlagene Prüfung weist das Formular ab.
+- **Modus `altcha`** (empfohlen für Anmelde-, Buchungs- und Kontaktformulare) → niemand wird allein
+  wegen eines Turnstile-Fehlalarms abgewiesen. Zuerst eine mechanische Prüfung: verstecktes Feld,
+  signierter Zeitstempel, Mindestzeit von 3 Sekunden, eine im Browser gelöste Rechenaufgabe (ALTCHA).
+  Sie kann weiterhin abweisen, etwa ohne JavaScript; die Meldung nennt dann einen Ausweg. Wer sie
+  besteht, dessen Einsendung wird angenommen und eingestuft:
+  - Inhaltssignale: Zeichensalat in Textfeldern (ein Feld, das nur aus einem Zufallswort ab 16 Groß- und
+    Kleinbuchstaben besteht, wie `KqWbTzeHuRNmoPLxa`, oder Silbenketten wie „qexira vubot lomeza" ohne gängige Funktionswörter),
+    Link oder Auszeichnung im Text, derselbe Text aus mehreren Netzen binnen 24 Stunden.
+  - Adresssignale: punktzerstückelte Mailadresse (bei Gmail ab vier Punkten und drei
+    Einzelzeichen, etwa `q.w.er.t.zu.7@gmail.com`; sonst ab sechs Punkten und vier Einzelzeichen), Domain ohne MX-Eintrag.
+  - Herkunftssignal: Die Einsendung kommt von einem Tor-Ausgangsknoten. Die Liste lädt das Bundle von
+    `check.torproject.org` (ohne Nutzerdaten, 6 Stunden gecacht; bei Fehler kein Treffer).
+  - Nur Zusatzpunkte, nie allein ausreichend: mehr als fünf tokenlose Einsendungen aus einem Netz
+    binnen einer Stunde (hinter einem Reverse-Proxy nur mit korrekt gesetzten `trusted_proxies`).
+  - **„Spam sicher"** bei mindestens 7 Punkten **und** Signalen aus mindestens zwei der drei Gruppen
+    Inhalt, Adresse, Tor. Tor wiegt schwer: Dazu genügt ein deutliches Signal aus Inhalt oder Adresse (Zeichensalat in
+    mehreren Feldern, punktzerstückelte Adresse, Wiederholung); Tor mit nur einem Link oder fehlendem MX-Eintrag bleibt
+    Graubereich. Dann geht
+    keine Mail an die im Formular eingetragene Adresse, alle übrigen Mails tragen `[Spam]` im Betreff.
+    Die Formularempfänger, die Admin-Adresse und Adressen auf der Domain der Website werden nie
+    unterdrückt; die verbleibende Mail an den Betreiber trägt immer `[Spam]`. Registrierung: alle Mails an die registrierte Adresse bleiben (Aktivierung),
+    Admin-Mail mit `[Spam]`. Kommentare: unveröffentlicht, ohne Mail an Abonnenten.
+  - Sonst läuft alles normal, einschließlich Bestätigung an den Absender. Im Formulargenerator und bei
+    Kommentaren gehen höchstens drei Mails je eingetragener Adresse und Tag hinaus.
+- **Optionale KI-Einordnung** für den Graubereich (zwei Gruppen vertreten, aber nicht „Spam
+  sicher“): `TURNSTILE_AI_KEY` in `.env.local`, `TURNSTILE_AI_PROVIDER` (`mistral` oder
+  `anthropic`), wahlweise `TURNSTILE_AI_MODEL`. Ist sie eingerichtet, führt dort auch ein sicheres
+  KI-Urteil zu „Spam sicher"; jedes andere Urteil zur normalen Verarbeitung; Fehler, Zeitüberschreitung (5 s) und das Tagesbudget (150) führen zur normalen
+  Verarbeitung. Übermittelt werden nur Textfelder und Mailadresse, nie die IP; der Anbieter gehört als
+  Auftragsverarbeiter in die Datenschutzerklärung.
 
-Secret Key und interne Daten werden niemals ins Log geschrieben.
+Secret Key und interne Daten werden niemals ins Log geschrieben. Formularinhalte auch nicht; die
+Einstufung protokolliert nur Punkte und Signalnamen (`fallback-pass`, `fallback-spam`).
 
 ## Warum Turnstile statt ALTCHA?
 
@@ -137,7 +162,7 @@ und für Betreiber sinnvoll, die ohnehin Cloudflare nutzen. Beide existieren als
 Feldtypen nebeneinander; Contaos **eigenen** ALTCHA-Feldtyp berührt dieses Bundle nicht.
 
 Seit **0.7.0** kann Turnstile optional auf eine **selbst gerechnete** ALTCHA-Proof-of-Work-Aufgabe als
-Fallback zurückgreifen, seit **0.8.0** nur noch bei einem bestätigten Cloudflare-Ausfall (`turnstileFailureMode = altcha`) – unabhängig
+Fallback zurückgreifen (`turnstileFailureMode = altcha`), seit **0.8.0** mit anschließender Einstufung – unabhängig
 von Contaos internem, ab 5.4 verfügbarem ALTCHA und daher auf 4.13 wie 5.x identisch. Details siehe
 [`UPGRADE.md`](UPGRADE.md).
 
@@ -177,7 +202,7 @@ System-Log; die Ausgabe selbst bleibt unverändert. Die genaue Liste der Pflicht
 - **Deklaratives Rendering ohne Inline-JavaScript:** Es wird ausschließlich das offizielle externe `api.js` von Cloudflare eingebunden. Das ist CSP-freundlich (keine `nonce`/`unsafe-inline` erforderlich); unter Contao 5 wird der Cloudflare-Host automatisch zur Content-Security-Policy hinzugefügt.
 - **Eindeutiger Template-Name:** Das Frontend-Template trägt einen eindeutigen Namen und kollidiert daher nicht mit Templates anderer Erweiterungen oder vorhandenen Projekt-Templates.
 - **Verlustfreier Konfigurations-Fallback:** Sind keine Keys hinterlegt, ist Turnstile global deaktiviert oder pro Feld abgewählt, verwendet das Feld automatisch die Standard-Sicherheitsfrage von Contao – kein Funktionsverlust.
-- **Fail-closed bei jedem Fehler:** Transport-/Timeout-Fehler in der Kommunikation mit Cloudflare und ein ungültiges Token führen beide zu einer fehlgeschlagenen Prüfung; eine Ersatzstufe greift nur bei bestätigtem Cloudflare-Ausfall. Der Secret Key wird zu keinem Zeitpunkt protokolliert.
+- **Fail-closed bei jedem Fehler:** Transport-/Timeout-Fehler in der Kommunikation mit Cloudflare und ein ungültiges Token führen beide zu einer fehlgeschlagenen Prüfung; danach entscheidet der gewählte Modus (`block` oder `altcha`). Der Secret Key wird zu keinem Zeitpunkt protokolliert.
 
 **Umgang mit den Schlüsseln**
 

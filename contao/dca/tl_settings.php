@@ -3,6 +3,7 @@
 use Contao\Config;
 use Contao\CoreBundle\DataContainer\PaletteManipulator;
 use Contao\StringUtil;
+use Mandrael\ContaoTurnstileBundle\Backend\AiStatusField;
 
 PaletteManipulator::create()
     ->addLegend('turnstile_legend', 'global_legend', PaletteManipulator::POSITION_AFTER)
@@ -14,6 +15,9 @@ PaletteManipulator::create()
     ->addField('turnstileSize', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileAppearance', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileSendRemoteIp', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
+    ->addField('turnstileSpamDigest', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
+    ->addField('turnstileSpamDigestEmail', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
+    ->addField('turnstileAiStatus', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->applyToPalette('default', 'tl_settings');
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSiteKey'] = [
@@ -52,10 +56,13 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileMode'] = [
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileFailureMode'] = [
     'inputType' => 'select',
-    'options' => ['block', 'filter', 'altcha'],
+    'options' => ['block', 'altcha'],
     'reference' => &$GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'],
     'eval' => ['tl_class' => 'w50', 'includeBlankOption' => false],
     'default' => 'block',
+    // Bis 0.7.1 gab es 'filter'; es wirkt seit 0.8.0 wie 'altcha' und wird so angezeigt, damit das nächste
+    // Speichern nicht still auf 'block' zurückfällt.
+    'load_callback' => [static fn ($value) => 'filter' === $value ? 'altcha' : $value],
 ];
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileTheme'] = [
@@ -84,4 +91,21 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSendRemoteIp'] = [
     'inputType' => 'checkbox',
     'eval' => ['tl_class' => 'w50 clr m12'],
     'default' => true,
+];
+
+$GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSpamDigest'] = [
+    'inputType' => 'checkbox',
+    'eval' => ['tl_class' => 'w50 clr m12'],
+    'default' => false,
+];
+
+$GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSpamDigestEmail'] = [
+    'inputType' => 'text',
+    'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'rgxp' => 'email', 'decodeEntities' => true],
+];
+
+// Reine Anzeige, nichts gespeichert: kein 'sql', kein Wert in localconfig.php.
+$GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiStatus'] = [
+    'input_field_callback' => [AiStatusField::class, 'render'],
+    'eval' => ['tl_class' => 'clr'],
 ];

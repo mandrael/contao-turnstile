@@ -2,24 +2,51 @@
 
 ## 0.7.1 → 0.8.0
 
-**Keine Migration, keine neuen Einstellungen. Eine Verhaltensänderung in den Modi `filter` und `altcha`.**
+**Keine Datenbank-Migration.** Zwei Verhaltensänderungen in der Ersatzstufe, eine neue optionale
+Umgebungsvariable.
 
-**Die Ersatzstufe greift nur noch bei einem bestätigten Cloudflare-Ausfall.** Bis 0.7.1 sprang sie bei
-jedem Fehlschlag ein, auch wenn Turnstile einem Absender kein Token gab oder es ablehnte. Ein
-Browser-Bot konnte so den Proof-of-Work lösen und durchkommen. Jetzt fragt der Server siteverify mit
-einem Platzhalter-Token selbst an; erst wenn das seit mindestens 30 Sekunden scheitert, öffnet die
-Ersatzstufe. Sonst wird blockiert, im System-Log mit der Kategorie `fallback-withheld`.
+**Einsendungen ohne Token werden angenommen und eingestuft.** Im Modus `altcha` greift nach einem
+gescheiterten Turnstile-Versuch wie bisher die mechanische Prüfung (Honeypot, signierter Zeitstempel,
+Mindestzeit, Rechenaufgabe). Wer sie besteht, wird jetzt zusätzlich eingestuft. Nur bei „Spam sicher"
+(mindestens 7 Punkte aus mindestens zwei der Gruppen Inhalt, Adresse und Tor, über Tor mit einem
+Signal ab 3 Punkten, oder mit eingerichteter KI deren sicheres Urteil im Graubereich) geht keine Mail an
+die im Formular eingetragene Adresse, und alle übrigen Mails derselben Einsendung tragen `[Spam]` im Betreff.
+Diese Mail ist die einzige vollständige Kopie der Einsendung, sofern das Formular nicht speichert: eine
+Mailregel sollte sie in einen eigenen Ordner verschieben, nicht löschen, und der Ordner gelegentlich
+durchgesehen werden. Sonst läuft alles wie bisher, einschließlich Bestätigung an den Absender.
 
 Folgen für Betreiber:
 
-- Besucher, die Cloudflare nur selbst nicht erreichen (Tor, manche Privacy-Browser, Firmen-Firewalls),
-  werden auch in `filter`/`altcha` abgewiesen.
-- Ein Template-Override ohne Token-Feld oder ein JavaScript-Fehler sperrt die Formulare jetzt auch in
-  `filter`/`altcha` vollständig, solange Cloudflare erreichbar ist. Häufen sich nach dem Update
-  `fallback-withheld`-Einträge zusammen mit „kein Token im Request", zuerst den Override prüfen
-  (siehe unten); Notbremse ist `turnstileMode = off` (Rückfall auf die Contao-Sicherheitsfrage).
-- `filter` gilt als veraltet: Im Ausfall schützt es nur per Honeypot und Mindestzeit. Empfohlen ist
-  `altcha` oder `block`.
+- **Empfohlen für Anmelde-, Buchungs- und Kontaktformulare ist `altcha`.** Standard bleibt `block`;
+  bestehende Installationen werden nicht umgestellt.
+- **`filter` entfällt als eigene Option und wirkt wie `altcha`.** Das ist eine Verschärfung: Ohne
+  gelöste Rechenaufgabe wird eine Einsendung ohne Token jetzt abgewiesen. Ein gespeichertes `filter`
+  wird im Backend als `altcha` angezeigt.
+- **Notification Center:** Unterdrückt werden Mails, deren Empfänger die im Formular eingetragene
+  Adresse ist, über einen Dekorator des Symfony-Mailers. Mit Notification Center 2.7 geprüft; mit
+  1.x ungeprüft. Adressen aus dem Empfängerfeld des Formulars, die Admin-Adresse und jede Adresse auf
+  der Domain der Website werden nie unterdrückt. Eine Notification-Center-Empfängeradresse auf einer
+  fremden Domain kennt das Bundle nicht: Trägt ein Bot genau diese Adresse ein, entfällt die Mail
+  dorthin. Abhilfe: eine Empfängeradresse auf der Domain der Website oder die Admin-Adresse verwenden.
+- **Registrierung:** Mails an die registrierte Adresse (Aktivierung) werden nie unterdrückt; bei
+  „Spam sicher" trägt die Admin-Benachrichtigung `[Spam]`. **Kommentare:** bei „Spam sicher" unveröffentlicht, ohne
+  Benachrichtigung der Abonnenten.
+- **Mailbegrenzung:** Bei Einsendungen ohne Token gehen im Formulargenerator und bei Kommentaren
+  höchstens drei Mails je eingetragener Adresse und Tag hinaus; die Mail an den Betreiber bleibt immer.
+- **Hinter einem Reverse-Proxy** zählen Netz-Häufung und Tor-Erkennung nur richtig, wenn
+  `trusted_proxies` gesetzt ist.
+- **Tor-Liste:** Bei einer Einsendung ohne Token lädt das Bundle die Liste der Tor-Ausgangsknoten von
+  `check.torproject.org` (6 Stunden zwischengespeichert, nach einem Fehlschlag 10 Minuten Pause). Es werden
+  keine Nutzerdaten übertragen. Ohne ausgehende Verbindung fehlt nur dieses Signal.
+- **Optionale KI-Einordnung** (Standard aus): `TURNSTILE_AI_KEY` in `.env.local` aktiviert sie,
+  `TURNSTILE_AI_PROVIDER` wählt `mistral` (Standard) oder `anthropic`, `TURNSTILE_AI_MODEL`
+  überschreibt das Modell (Standard `mistral-small-2603` bzw. `claude-sonnet-5`). Übermittelt werden
+  nur Textfelder und Mailadresse einer tokenlosen Einsendung im Graubereich, nie die IP. Der Anbieter
+  ist Auftragsverarbeiter und gehört in die Datenschutzerklärung.
+- Die Fehlermeldung `$GLOBALS['TL_LANG']['ERR']['turnstile']` nennt jetzt einen Ausweg („direkt per
+  E-Mail oder Telefon"); wer eine eigene Übersetzung pflegt, sollte das übernehmen.
+- Empfehlung für die Danke-Seite kritischer Formulare: ein Satz wie „Keine Bestätigung erhalten? Bitte
+  melden Sie sich direkt unter …".
 
 ### Template-Overrides
 

@@ -112,21 +112,45 @@ connect-src 'self';
 On Contao 5 the bundle adds these automatically in `altcha` mode; on Contao 4.13 (no CSP API) an
 integrator with a strict CSP of their own adds them manually.
 
-## Failure behaviour
+## Behaviour without a valid token
 
 - **Network/timeout errors** (Cloudflare unreachable, 5 s timeout) → the check counts as failed
-  (fail-closed) and an error is written to the Contao system log. In the default `block` mode,
-  forms are locked for the duration of the outage.
-- **Fallback `altcha` (or the deprecated `filter`)** → stands in for Turnstile only during a
-  **confirmed** outage: a server-side probe against siteverify must have been failing for at least
-  30 seconds. Without a confirmed outage, a missing or rejected token is blocked (log category `fallback-withheld`) –
-  otherwise a browser bot denied a token by Turnstile could simply solve the proof of work (as
-  happened before 0.8.0).
-- **Invalid/forged token** (`success: false`) → the submission is **blocked** (fail-closed). This
-  also covers a wrong or expired site/secret key – then all forms block until the keys are fixed
-  (a corresponding warning is written to the system log).
+  (fail-closed) and an error is written to the Contao system log.
+- **Invalid/forged token** (`success: false`) → also failed. This includes a wrong or expired
+  site/secret key (a corresponding warning is written to the system log).
+- **Mode `block`** (default) → every failed check rejects the form.
+- **Mode `altcha`** (recommended for registration, booking and contact forms) → nobody is rejected
+  merely because of a Turnstile false positive. First a mechanical check: hidden field, signed
+  timestamp, minimum time of 3 seconds, a proof of work solved in the browser (ALTCHA). It can still
+  reject, for example without JavaScript; the message then names a way out. Whoever passes is accepted
+  and classified:
+  - Content signals: gibberish in text fields (a field consisting only of one random word of 16 or more
+    mixed upper and lower case letters like `KqWbTzeHuRNmoPLxa`, or syllable chains like "qexira vubot lomeza" without common function words),
+    link or markup in the text, the same text from several networks within 24 hours.
+  - Address signals: dot-stuffed e-mail address (Gmail from four dots and three single
+    characters, e.g. `q.w.er.t.zu.7@gmail.com`; otherwise from six dots and four single characters), domain without an MX record.
+  - Origin signal: the submission comes from a Tor exit node. The bundle fetches the list from
+    `check.torproject.org` (no user data, cached for 6 hours; on error no match).
+  - Extra points only, never sufficient on their own: more than five token-less submissions from one
+    network within an hour (behind a reverse proxy only with correct `trusted_proxies`).
+  - **"Certain spam"** with at least 7 points **and** signals from at least two of the three groups
+    content, address, Tor. Tor weighs heavily: one clear content or address signal on top suffices (gibberish in several
+    fields, dot-stuffed address, repetition); Tor with only a link or a missing MX record stays in the grey zone. Then no
+    mail goes to the address entered in the form, all other mails carry `[Spam]` in the subject.
+    The form recipients, the admin address and addresses on the website's domain are never suppressed;
+    the remaining mail to the operator always carries `[Spam]`. Registration: all mails to the registered address stay (activation), admin mail with
+    `[Spam]`. Comments: unpublished, no mail to subscribers.
+  - Otherwise everything runs normally, including the confirmation to the sender. In the form generator
+    and for comments, at most three mails per entered address and day are sent.
+- **Optional AI classification** for the grey zone (two groups present but not "certain spam"):
+  `TURNSTILE_AI_KEY` in `.env.local`, `TURNSTILE_AI_PROVIDER` (`mistral` or `anthropic`), optionally
+  `TURNSTILE_AI_MODEL`. If configured, a certain AI spam verdict also leads to "certain spam" there; any
+  other verdict leads to normal processing; errors, timeouts (5 s)
+  and the daily budget (150) lead to normal processing. Only text fields and the e-mail address are
+  sent, never the IP; the provider is a data processor and belongs in the privacy policy.
 
-The secret key and internal data are never written to the log.
+The secret key and internal data are never written to the log. Neither are form contents; the
+classification only logs points and signal names (`fallback-pass`, `fallback-spam`).
 
 ## Why Turnstile instead of ALTCHA?
 
@@ -136,7 +160,7 @@ already using Cloudflare. Both exist side by side as separate field types; this 
 touch Contao's **own** ALTCHA field type.
 
 As of **0.7.0** the bundle can optionally fall back to a **self-computed** ALTCHA proof-of-work
-challenge, since **0.8.0** only during a confirmed Cloudflare outage (`turnstileFailureMode = altcha`) – independent of
+challenge (`turnstileFailureMode = altcha`), since **0.8.0** followed by a classification – independent of
 Contao's internal ALTCHA (available from 5.4) and therefore identical on 4.13 and 5.x. See
 [`UPGRADE.md`](UPGRADE.md) for details.
 
@@ -176,7 +200,7 @@ reports its own errors via `console.warn` in the browser console.
 - **Declarative rendering, no inline JavaScript:** Only Cloudflare's official external `api.js` is loaded. This is CSP-friendly (no `nonce`/`unsafe-inline` required); on Contao 5 the Cloudflare host is added to the Content Security Policy automatically.
 - **Unique template name:** The front-end template uses a unique name and therefore does not collide with templates from other extensions or existing project templates.
 - **Lossless configuration fallback:** With no keys configured, Turnstile globally disabled, or deselected per field, the field automatically uses Contao's default security question – no loss of function.
-- **Fail-closed on every error:** Transport/timeout errors when communicating with Cloudflare and an invalid token both count as a failed check; a fallback stage only applies during a confirmed Cloudflare outage. The secret key is never written to the log.
+- **Fail-closed on every error:** Transport/timeout errors when communicating with Cloudflare and an invalid token both count as a failed check; the selected mode (`block` or `altcha`) decides what happens next. The secret key is never written to the log.
 
 **Handling of the keys**
 
