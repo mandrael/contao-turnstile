@@ -6,3 +6,5 @@ composer.lock
 .php-cs-fixer.cache
 HANDOVER-contao-turnstile.md
 status.md
+/docs/
+status.md.bak-*
