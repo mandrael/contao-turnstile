@@ -71,6 +71,7 @@ class SpamArchiveCronTest extends ContaoTestCase
             ->with(self::callback(static function (RawMessage $message): bool {
                 self::assertInstanceOf(Email::class, $message);
                 self::assertSame('digest@example.com', $message->getTo()[0]->getAddress());
+                self::assertSame('digest@example.com', $message->getFrom()[0]->getAddress());
 
                 return true;
             }));
@@ -99,6 +100,8 @@ class SpamArchiveCronTest extends ContaoTestCase
             ->with(self::callback(static function (RawMessage $message): bool {
                 self::assertInstanceOf(Email::class, $message);
                 self::assertSame('admin@example.com', $message->getTo()[0]->getAddress());
+                self::assertSame('Institut', $message->getFrom()[0]->getName());
+                self::assertSame('admin@example.com', $message->getFrom()[0]->getAddress());
 
                 return true;
             }));
@@ -107,7 +110,7 @@ class SpamArchiveCronTest extends ContaoTestCase
         $config->method('get')->willReturnMap([
             ['turnstileSpamDigest', true],
             ['turnstileSpamDigestEmail', ''],
-            ['adminEmail', 'admin@example.com'],
+            ['adminEmail', 'Institut [admin@example.com]'],
         ]);
 
         $framework = $this->createContaoFrameworkMock([Config::class => $config]);

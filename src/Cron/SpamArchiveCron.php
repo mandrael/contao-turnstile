@@ -7,8 +7,10 @@ namespace Mandrael\ContaoTurnstileBundle\Cron;
 use Contao\Config;
 use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\Date;
+use Contao\StringUtil;
 use Mandrael\ContaoTurnstileBundle\Service\SpamArchive;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -41,10 +43,11 @@ class SpamArchiveCron
             return;
         }
 
-        $to = trim((string) $this->framework->getAdapter(Config::class)->get('turnstileSpamDigestEmail'));
-        $to = '' !== $to ? $to : (string) $this->framework->getAdapter(Config::class)->get('adminEmail');
+        $config = $this->framework->getAdapter(Config::class);
+        $admin = self::address((string) $config->get('adminEmail'));
+        $to = self::address((string) $config->get('turnstileSpamDigestEmail')) ?? $admin;
 
-        if ('' === $to) {
+        if (null === $to) {
             return;
         }
 
@@ -62,11 +65,23 @@ class SpamArchiveCron
 
         $body = \sprintf("%d neue Einsendungen in der Spam-Ablage:\n\n%s\n\nBackend → System → Spam-Ablage.", \count($entries), implode("\n", $lines));
 
+        // Absender ausdrücklich: Contaos Mailer ergänzt keinen, ohne From landet die Mail in der Fehlerwarteschlange.
         $this->mailer->send((new Email())
+            ->from($admin ?? $to)
             ->to($to)
             ->subject(\sprintf('%d neue Einsendungen in der Spam-Ablage', \count($entries)))
             ->text($body));
 
         $this->archive->markDigested(array_column($entries, 'id'));
+    }
+
+    /**
+     * Contao speichert Adressen auch als „Name [adresse]".
+     */
+    private static function address(string $value): ?Address
+    {
+        [$name, $email] = StringUtil::splitFriendlyEmail(trim($value));
+
+        return '' === $email ? null : new Address($email, $name);
     }
 }

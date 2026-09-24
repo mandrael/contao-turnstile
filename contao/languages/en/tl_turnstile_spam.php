@@ -5,7 +5,7 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['source'] = ['Source', 'Form, comment o
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['score'] = ['Score', 'Classification score.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasons'] = ['Signals', 'Signals that led to the classification.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['subject'] = ['Subject', 'Subject of the first archived mail.'];
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Label', 'unreviewed = not checked yet, ham = "deliver anyway" was triggered.'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Status', 'Unreviewed, not spam ("deliver anyway" triggered) or delivered.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ruleVersion'] = ['Rule version', 'Bundle version at the time of classification.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['preview'] = ['Preview', 'Text of the first mail, truncated.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['recipients'] = 'Recipients';
@@ -20,7 +20,6 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['retryUnclear'] = 'Send again anyway - 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['delivered'] = '%d mail(s) sent, %d failed, %d unclear.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['alreadyDelivered'] = 'Already delivered on %s.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['notFound'] = 'Entry not found.';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['systemMessage'] = '%d unreviewed entries in the spam archive (deleted after 90 days).';
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnreviewed'] = 'unreviewed';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] = 'not spam, still open';
@@ -37,3 +36,6 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['status'] = [
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['view'] = ['View', 'View entry %s'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['delete'] = ['Delete', 'Delete entry %s'];
+
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['sources'] = ['form' => 'Form', 'comment' => 'Comment', 'registration' => 'Registration'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['labels'] = ['unreviewed' => 'unreviewed', 'ham' => 'not spam'];

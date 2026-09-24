@@ -2,18 +2,20 @@
 
 ## 0.7.1 → 0.8.0
 
-**Keine Datenbank-Migration.** Zwei Verhaltensänderungen in der Ersatzstufe, eine neue optionale
-Umgebungsvariable.
+**Datenbank-Migration nötig:** `contao:migrate` (bzw. Contao Manager) legt die zwei Tabellen der Spam-Ablage
+(`tl_turnstile_spam`, `tl_turnstile_spam_message`) und die neuen Einstellungsfelder an. Zwei Verhaltensänderungen in
+der Ersatzstufe, eine neue optionale Umgebungsvariable.
 
 **Einsendungen ohne Token werden angenommen und eingestuft.** Im Modus `altcha` greift nach einem
 gescheiterten Turnstile-Versuch wie bisher die mechanische Prüfung (Honeypot, signierter Zeitstempel,
 Mindestzeit, Rechenaufgabe). Wer sie besteht, wird jetzt zusätzlich eingestuft. Nur bei „Spam sicher"
 (mindestens 7 Punkte aus mindestens zwei der Gruppen Inhalt, Adresse und Tor, über Tor mit einem
-Signal ab 3 Punkten, oder mit eingerichteter KI deren sicheres Urteil im Graubereich) geht keine Mail an
-die im Formular eingetragene Adresse, und alle übrigen Mails derselben Einsendung tragen `[Spam]` im Betreff.
-Diese Mail ist die einzige vollständige Kopie der Einsendung, sofern das Formular nicht speichert: eine
-Mailregel sollte sie in einen eigenen Ordner verschieben, nicht löschen, und der Ordner gelegentlich
-durchgesehen werden. Sonst läuft alles wie bisher, einschließlich Bestätigung an den Absender.
+Signal ab 3 Punkten, oder mit eingerichteter KI deren sicheres Urteil im Graubereich) geht keine Mail
+der Einsendung hinaus; alle landen in der Spam-Ablage (Backend: System → Spam-Ablage) und lassen sich dort mit
+„Doch zustellen" nachträglich versenden. Die Ablage löscht Einträge nach 90 Tagen; sie ist die einzige
+vollständige Kopie der Einsendung, sofern das Formular nicht speichert. Ungeprüfte Einträge meldet eine
+Systemnachricht, auf Wunsch zusätzlich eine Tageszusammenfassung (Einstellungen, Standard aus). Sonst läuft alles
+wie bisher, einschließlich Bestätigung an den Absender.
 
 Folgen für Betreiber:
 
@@ -22,14 +24,16 @@ Folgen für Betreiber:
 - **`filter` entfällt als eigene Option und wirkt wie `altcha`.** Das ist eine Verschärfung: Ohne
   gelöste Rechenaufgabe wird eine Einsendung ohne Token jetzt abgewiesen. Ein gespeichertes `filter`
   wird im Backend als `altcha` angezeigt.
-- **Notification Center:** Unterdrückt werden Mails, deren Empfänger die im Formular eingetragene
-  Adresse ist, über einen Dekorator des Symfony-Mailers. Mit Notification Center 2.7 geprüft; mit
-  1.x ungeprüft. Adressen aus dem Empfängerfeld des Formulars, die Admin-Adresse und jede Adresse auf
-  der Domain der Website werden nie unterdrückt. Eine Notification-Center-Empfängeradresse auf einer
-  fremden Domain kennt das Bundle nicht: Trägt ein Bot genau diese Adresse ein, entfällt die Mail
-  dorthin. Abhilfe: eine Empfängeradresse auf der Domain der Website oder die Admin-Adresse verwenden.
-- **Registrierung:** Mails an die registrierte Adresse (Aktivierung) werden nie unterdrückt; bei
-  „Spam sicher" trägt die Admin-Benachrichtigung `[Spam]`. **Kommentare:** bei „Spam sicher" unveröffentlicht, ohne
+- **Notification Center:** Abgefangen wird über einen Dekorator des Symfony-Mailers, also auch Mails des
+  Notification Centers samt Anhängen. Mit Notification Center 2.7 geprüft; mit 1.x ungeprüft.
+- **Rückfallweg:** Scheitert das Ablegen (Datenbankfehler, Mail über 12 MB), geht die Mail mit `[Spam]` im Betreff
+  an die Betreiber; die im Formular eingetragene Adresse wird gestrichen. Adressen aus dem Empfängerfeld des
+  Formulars, die Admin-Adresse und jede Adresse auf der Domain der Website werden dabei nie gestrichen. Eine
+  Notification-Center-Empfängeradresse auf einer fremden Domain kennt das Bundle nicht: Trägt ein Bot genau diese
+  Adresse ein, entfällt auf dem Rückfallweg die Mail dorthin. Abhilfe: eine Empfängeradresse auf der Domain der
+  Website oder die Admin-Adresse verwenden. Dieselbe Regel gilt für die Mailbegrenzung unten.
+- **Registrierung:** Die Mail an die registrierte Adresse (Aktivierung) geht bei „Spam sicher" trotzdem hinaus;
+  die übrigen Mails, etwa die Admin-Benachrichtigung, landen in der Ablage. **Kommentare:** bei „Spam sicher" unveröffentlicht, ohne
   Benachrichtigung der Abonnenten.
 - **Mailbegrenzung:** Bei Einsendungen ohne Token gehen im Formulargenerator und bei Kommentaren
   höchstens drei Mails je eingetragener Adresse und Tag hinaus; die Mail an den Betreiber bleibt immer.
@@ -42,7 +46,9 @@ Folgen für Betreiber:
   `TURNSTILE_AI_PROVIDER` wählt `mistral` (Standard) oder `anthropic`, `TURNSTILE_AI_MODEL`
   überschreibt das Modell (Standard `mistral-small-2603` bzw. `claude-sonnet-5`). Übermittelt werden
   nur Textfelder und Mailadresse einer tokenlosen Einsendung im Graubereich, nie die IP. Der Anbieter
-  ist Auftragsverarbeiter und gehört in die Datenschutzerklärung.
+  ist Auftragsverarbeiter und gehört in die Datenschutzerklärung. Ob sie aktiv ist, zeigen die Einstellungen.
+- **Datenschutz:** Die Spam-Ablage speichert die zurückgehaltenen Mails 90 Tage lang in der Datenbank; das gehört
+  in die Datenschutzerklärung.
 - Die Fehlermeldung `$GLOBALS['TL_LANG']['ERR']['turnstile']` nennt jetzt einen Ausweg („direkt per
   E-Mail oder Telefon"); wer eine eigene Übersetzung pflegt, sollte das übernehmen.
 - Empfehlung für die Danke-Seite kritischer Formulare: ein Satz wie „Keine Bestätigung erhalten? Bitte

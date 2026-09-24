@@ -136,10 +136,9 @@ integrator with a strict CSP of their own adds them manually.
   - **"Certain spam"** with at least 7 points **and** signals from at least two of the three groups
     content, address, Tor. Tor weighs heavily: one clear content or address signal on top suffices (gibberish in several
     fields, dot-stuffed address, repetition); Tor with only a link or a missing MX record stays in the grey zone. Then no
-    mail goes to the address entered in the form, all other mails carry `[Spam]` in the subject.
-    The form recipients, the admin address and addresses on the website's domain are never suppressed;
-    the remaining mail to the operator always carries `[Spam]`. Registration: all mails to the registered address stay (activation), admin mail with
-    `[Spam]`. Comments: unpublished, no mail to subscribers.
+    mail of the submission is sent; all of them go to the **spam archive** (see below). Registration: the mail to
+    the registered address (activation) is still sent, so a human hit by a false positive is not locked out; the
+    other mails go to the archive. Comments: unpublished, no mail to subscribers.
   - Otherwise everything runs normally, including the confirmation to the sender. In the form generator
     and for comments, at most three mails per entered address and day are sent.
 - **Optional AI classification** for the grey zone (two groups present but not "certain spam"):
@@ -148,6 +147,24 @@ integrator with a strict CSP of their own adds them manually.
   other verdict leads to normal processing; errors, timeouts (5 s)
   and the daily budget (150) lead to normal processing. Only text fields and the e-mail address are
   sent, never the IP; the provider is a data processor and belongs in the privacy policy.
+
+### Spam archive
+
+Back end under **System → Spam archive**: list of submissions classified as "certain spam" with date, source,
+points, signals and subject. The detail view shows the withheld mails and their recipients; **"Deliver anyway"**
+sends them afterwards unchanged, including attachments. If the outcome of a delivery is unclear (e.g. after an
+abort), the view offers a resend only after 15 minutes, with a warning about possible duplicate delivery.
+
+- Entries are deleted automatically after **90 days** (daily cron job).
+- A system message on the back-end start page reports unreviewed entries.
+- **Daily digest** (settings, off by default): one mail per day with date, source, points, signals and subject of
+  the new entries, without the submission's content. Recipient is the configured address, otherwise the
+  administrator address.
+- If archiving fails (e.g. database error or a mail over 12 MB), the mail goes to the operators with `[Spam]` in
+  the subject instead, never to the address entered in the form. A lost submission weighs more than a spam mail
+  in the error case.
+- The archive contains personal data from the submission; with its 90-day retention it belongs in the privacy
+  policy.
 
 The secret key and internal data are never written to the log. Neither are form contents; the
 classification only logs points and signal names (`fallback-pass`, `fallback-spam`).
@@ -210,7 +227,7 @@ reports its own errors via `console.warn` in the browser console.
 **Compatibility & quality**
 
 - **Three Contao LTS versions from one code base:** Contao 4.13 LTS, 5.3 LTS and 5.7 LTS (including the intermediate 5.x releases), PHP 8.1+ – verified under real conditions on 4.13, 5.3 and 5.7.
-- **Clean install and uninstall:** no `runonce`/install scripts, no writes to the project file system; back-end fields are provided via the DCA (and removed with the bundle), the database column via `contao:migrate`.
+- **Clean install and uninstall:** no `runonce`/install scripts, no writes to the project file system; back-end fields are provided via the DCA (and removed with the bundle), the database columns and the two spam archive tables via `contao:migrate`.
 - **Convenient key management** directly in the back end – no YAML or `.env` editing required.
 - **Fine-grained control:** global activation mode (everywhere / only selected forms / off) plus per-field override.
 - **Tested and maintained:** PHPUnit, PHPStan (level 5), CI across PHP 8.1–8.4; MIT license; adds no tracking whatsoever.

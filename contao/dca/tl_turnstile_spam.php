@@ -70,6 +70,7 @@ $GLOBALS['TL_DCA']['tl_turnstile_spam'] = [
         'source' => [
             'label' => &$GLOBALS['TL_LANG']['tl_turnstile_spam']['source'],
             'filter' => true,
+            'reference' => &$GLOBALS['TL_LANG']['tl_turnstile_spam']['sources'],
             'sorting' => true,
             'sql' => "varchar(16) NOT NULL default ''",
         ],
@@ -102,6 +103,7 @@ $GLOBALS['TL_DCA']['tl_turnstile_spam'] = [
         'label' => [
             'label' => &$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'],
             'filter' => true,
+            'reference' => &$GLOBALS['TL_LANG']['tl_turnstile_spam']['labels'],
             'sorting' => true,
             'sql' => "varchar(16) NOT NULL default 'unreviewed'",
         ],
@@ -127,9 +129,11 @@ class tl_turnstile_spam extends Backend
 {
     public function formatColumns(array $row, string|array $label, DataContainer $dc, array $args): array
     {
-        $args['reasons'] = StringUtil::substr((string) $row['reasons'], 60);
+        // $args ist nach der Reihenfolge von label.fields indiziert, nicht nach Feldnamen.
+        $args[1] = $GLOBALS['TL_LANG']['tl_turnstile_spam']['sources'][$row['source']] ?? $row['source'];
+        $args[3] = StringUtil::substr((string) $row['reasons'], 60);
 
-        $args['label'] = match (true) {
+        $args[5] = match (true) {
             (int) $row['delivered'] > 0 => \sprintf($GLOBALS['TL_LANG']['tl_turnstile_spam']['statusDelivered'] ?? '%s', Date::parse(Date::getNumericDateFormat(), (int) $row['delivered'])),
             'ham' === $row['label'] => $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] ?? 'ham',
             default => $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnreviewed'] ?? 'unreviewed',

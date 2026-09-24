@@ -29,6 +29,6 @@ class SpamArchiveSystemMessageListener
             return '';
         }
 
-        return '<p class="tl_info">'.\sprintf($GLOBALS['TL_LANG']['tl_turnstile_spam']['systemMessage'] ?? '%d unreviewed entries in the spam archive (deleted after 90 days).', $count).'</p>';
+        return '<p class="tl_info">'.\sprintf($GLOBALS['TL_LANG']['MSC']['turnstileSpamSystemMessage'] ?? '%d unreviewed entries in the spam archive (deleted after 90 days).', $count).'</p>';
     }
 }

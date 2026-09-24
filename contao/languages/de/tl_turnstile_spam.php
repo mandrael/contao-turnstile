@@ -5,7 +5,7 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['source'] = ['Quelle', 'Formular, Komme
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['score'] = ['Punkte', 'Punktzahl der Einstufung.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasons'] = ['Signale', 'Verdachtssignale, die zur Einstufung geführt haben.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['subject'] = ['Betreff', 'Betreff der ersten abgelegten Mail.'];
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Etikett', 'unreviewed = noch nicht geprüft, ham = „Doch zustellen" ausgelöst.'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Status', 'Ungeprüft, kein Spam („Doch zustellen" ausgelöst) oder zugestellt.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ruleVersion'] = ['Regelversion', 'Bundle-Version zum Zeitpunkt der Einstufung.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['preview'] = ['Vorschau', 'Text der ersten Mail, gekürzt.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['recipients'] = 'Empfänger';
@@ -20,7 +20,6 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['retryUnclear'] = 'Trotzdem erneut send
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['delivered'] = '%d Mail(s) versendet, %d fehlgeschlagen, %d Ergebnis unklar.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['alreadyDelivered'] = 'Bereits zugestellt am %s.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['notFound'] = 'Eintrag nicht gefunden.';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['systemMessage'] = '%d ungeprüfte Einträge in der Spam-Ablage (werden nach 90 Tagen gelöscht).';
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnreviewed'] = 'ungeprüft';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] = 'kein Spam, noch offen';
@@ -37,3 +36,6 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['status'] = [
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['view'] = ['Ansehen', 'Eintrag %s ansehen'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['delete'] = ['Löschen', 'Eintrag %s löschen'];
+
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['sources'] = ['form' => 'Formular', 'comment' => 'Kommentar', 'registration' => 'Registrierung'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['labels'] = ['unreviewed' => 'ungeprüft', 'ham' => 'kein Spam'];

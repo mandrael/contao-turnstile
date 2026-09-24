@@ -1,7 +1,7 @@
 {
     "name": "mandrael/contao-turnstile",
     "type": "contao-bundle",
-    "description": "Ersetzt das Standard-CAPTCHA von Contao global durch Cloudflare Turnstile. Die Keys werden im Contao-Backend eingetragen.",
+    "description": "Ersetzt das Standard-CAPTCHA von Contao global durch Cloudflare Turnstile. Ohne gültiges Token wird eine Einsendung eingestuft statt abgewiesen; sicherer Spam landet in einer Backend-Ablage.",
     "keywords": ["contao", "captcha", "cloudflare", "turnstile", "spam"],
     "license": "MIT",
     "authors": [

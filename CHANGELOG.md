@@ -15,14 +15,19 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   `check.torproject.org`, 6 Stunden gecacht); viele tokenlose Einsendungen aus einem Netz geben nur
   Zusatzpunkte. „Spam sicher" gilt bei mindestens 7 Punkten **und** Signalen aus mindestens zwei
   Gruppen; über Tor braucht es zusätzlich ein Signal ab 3 Punkten. Dann
-  geht keine Mail an die im Formular eingetragene Adresse (Kopie, Notification-Center-Bestätigung),
-  alle übrigen Mails tragen `[Spam]` im Betreff. Die Formularempfänger, die Admin-Adresse und Adressen
-  auf der Domain der Website werden nie unterdrückt. Sonst läuft alles normal. Betroffene Mails werden vor dem Einreihen in
-  die Mail-Warteschlange geändert, synchron wie asynchron. Log-Kategorien `fallback-pass`,
-  `fallback-spam`, `confirmation-suppressed`.
-- Registrierung: Die Aktivierungsmail bleibt immer erhalten; bei „Spam sicher" trägt nur die
-  Admin-Benachrichtigung `[Spam]`. Kommentare: bei „Spam sicher" unveröffentlicht, ohne
+  geht keine Mail der Einsendung hinaus; alle landen in der Spam-Ablage. Sonst läuft alles normal.
+  Betroffene Mails werden vor dem Einreihen in die Mail-Warteschlange abgefangen, synchron wie asynchron.
+  Log-Kategorien `fallback-pass`, `fallback-spam`, `spam-archived`, `confirmation-suppressed`.
+- **Spam-Ablage im Backend** (System → Spam-Ablage): zurückgehaltene Mails ansehen und mit „Doch
+  zustellen" unverändert nachträglich versenden, einschließlich Anhängen. Löschung nach 90 Tagen per
+  täglichem Cronjob, Systemnachricht bei ungeprüften Einträgen, optionale Tageszusammenfassung ohne Inhalt
+  der Einsendung (Einstellungen, Standard aus). Scheitert das Ablegen, geht die Mail mit `[Spam]` im Betreff
+  an die Betreiber, nie an die im Formular eingetragene Adresse.
+- Registrierung: Die Aktivierungsmail geht bei „Spam sicher" trotzdem an die registrierte Adresse, die
+  übrigen Mails landen in der Ablage. Kommentare: bei „Spam sicher" unveröffentlicht, ohne
   Benachrichtigung der Abonnenten.
+- Anzeige der KI-Einordnung in den Einstellungen (aktiv/aus, Anbieter, Modell, heutige Nutzung); der
+  Schlüssel wird nie angezeigt.
 - Höchstens drei Mails je eingetragener Adresse und Tag bei Einsendungen ohne Token im
   Formulargenerator und bei Kommentaren, damit ein Formular nicht als Versender an fremde Postfächer
   dient.

@@ -137,11 +137,10 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
   - **„Spam sicher"** bei mindestens 7 Punkten **und** Signalen aus mindestens zwei der drei Gruppen
     Inhalt, Adresse, Tor. Tor wiegt schwer: Dazu genügt ein deutliches Signal aus Inhalt oder Adresse (Zeichensalat in
     mehreren Feldern, punktzerstückelte Adresse, Wiederholung); Tor mit nur einem Link oder fehlendem MX-Eintrag bleibt
-    Graubereich. Dann geht
-    keine Mail an die im Formular eingetragene Adresse, alle übrigen Mails tragen `[Spam]` im Betreff.
-    Die Formularempfänger, die Admin-Adresse und Adressen auf der Domain der Website werden nie
-    unterdrückt; die verbleibende Mail an den Betreiber trägt immer `[Spam]`. Registrierung: alle Mails an die registrierte Adresse bleiben (Aktivierung),
-    Admin-Mail mit `[Spam]`. Kommentare: unveröffentlicht, ohne Mail an Abonnenten.
+    Graubereich. Dann geht keine Mail der Einsendung hinaus; alle landen in der **Spam-Ablage** (siehe unten).
+    Registrierung: Die Mail an die registrierte Adresse (Aktivierung) geht trotzdem hinaus, damit ein Mensch im
+    Fehlalarm nicht ausgesperrt ist; die übrigen Mails landen in der Ablage. Kommentare: unveröffentlicht, ohne
+    Mail an Abonnenten.
   - Sonst läuft alles normal, einschließlich Bestätigung an den Absender. Im Formulargenerator und bei
     Kommentaren gehen höchstens drei Mails je eingetragener Adresse und Tag hinaus.
 - **Optionale KI-Einordnung** für den Graubereich (zwei Gruppen vertreten, aber nicht „Spam
@@ -150,6 +149,25 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
   KI-Urteil zu „Spam sicher"; jedes andere Urteil zur normalen Verarbeitung; Fehler, Zeitüberschreitung (5 s) und das Tagesbudget (150) führen zur normalen
   Verarbeitung. Übermittelt werden nur Textfelder und Mailadresse, nie die IP; der Anbieter gehört als
   Auftragsverarbeiter in die Datenschutzerklärung.
+
+### Spam-Ablage
+
+Backend unter **System → Spam-Ablage**: Liste der als „Spam sicher" eingestuften Einsendungen mit Datum,
+Quelle, Punkten, Signalen und Betreff. Die Einzelansicht zeigt die zurückgehaltenen Mails samt Empfängern;
+**„Doch zustellen"** verschickt sie nachträglich unverändert, einschließlich Anhängen. Ist der Ausgang eines
+Versands unklar (etwa nach einem Abbruch), bietet die Ansicht erst nach 15 Minuten ein erneutes Senden an, mit
+Hinweis auf mögliche Doppelzustellung.
+
+- Einträge werden nach **90 Tagen** automatisch gelöscht (täglicher Cronjob).
+- Ungeprüfte Einträge meldet eine Systemnachricht auf der Backend-Startseite.
+- **Tageszusammenfassung** (Einstellungen, Standard aus): eine Mail je Tag mit Datum, Quelle, Punkten,
+  Signalen und Betreff der neuen Einträge, ohne Inhalt der Einsendung. Empfänger ist die eingetragene Adresse,
+  sonst die Administrator-Adresse.
+- Scheitert das Ablegen (etwa Datenbankfehler oder Mail über 12 MB), geht die Mail ersatzweise mit `[Spam]` im
+  Betreff an die Betreiber, nie an die im Formular eingetragene Adresse. Eine verlorene Einsendung wiegt schwerer
+  als eine Spam-Mail im Fehlerfall.
+- Die Ablage enthält personenbezogene Daten der Einsendung; sie gehört mit 90 Tagen Speicherdauer in die
+  Datenschutzerklärung.
 
 Secret Key und interne Daten werden niemals ins Log geschrieben. Formularinhalte auch nicht; die
 Einstufung protokolliert nur Punkte und Signalnamen (`fallback-pass`, `fallback-spam`).
@@ -212,7 +230,7 @@ System-Log; die Ausgabe selbst bleibt unverändert. Die genaue Liste der Pflicht
 **Kompatibilität & Qualität**
 
 - **Drei Contao-LTS-Versionen aus einer Codebasis:** Contao 4.13 LTS, 5.3 LTS und 5.7 LTS (inkl. der dazwischenliegenden 5.x-Releases), PHP 8.1+ – auf 4.13, 5.3 und 5.7 unter realen Bedingungen verifiziert.
-- **Rückstandsarme Installation und Deinstallation:** keine `runonce`-/Installationsskripte, keine Schreibzugriffe auf das Projekt-Dateisystem; Backend-Felder werden über die DCA bereitgestellt (und mit dem Bundle wieder entfernt), die Datenbankspalte über `contao:migrate`.
+- **Rückstandsarme Installation und Deinstallation:** keine `runonce`-/Installationsskripte, keine Schreibzugriffe auf das Projekt-Dateisystem; Backend-Felder werden über die DCA bereitgestellt (und mit dem Bundle wieder entfernt), die Datenbankspalten und die zwei Tabellen der Spam-Ablage über `contao:migrate`.
 - **Komfortable Schlüsselverwaltung** direkt im Backend – ohne YAML- oder `.env`-Bearbeitung.
 - **Feingranulare Steuerung:** globaler Aktivierungsmodus (überall / nur ausgewählte Formulare / aus) plus Überschreibung je Formular-Element.
 - **Getestet und gepflegt:** PHPUnit, PHPStan (Level 5), CI über PHP 8.1–8.4; MIT-Lizenz; fügt keinerlei Tracking hinzu.
