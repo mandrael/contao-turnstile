@@ -188,6 +188,9 @@ Contao's internal ALTCHA (available from 5.4) and therefore identical on 4.13 an
   **automatically**. On **Contao 4.13 and 5.3** the captcha is hardcoded to `FormCaptcha` in the
   core; there the default security question remains (no loss of function). The newsletter module
   also has its own core option to disable the captcha.
+- **Spam archive:** deletion and the daily digest run via the Contao cron, which must be triggered regularly (cron job
+  or visitor requests). The Notification Center's delivery logs show archived mails as sent. Mails created only in a
+  background process are not classified.
 
 ### Template overrides
 

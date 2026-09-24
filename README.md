@@ -191,6 +191,9 @@ von Contaos internem, ab 5.4 verfügbarem ALTCHA und daher auf 4.13 wie 5.x iden
   **automatisch** mit. Auf **Contao 4.13 und 5.3** ist das Captcha im Core fest auf `FormCaptcha`
   verdrahtet; dort bleibt die Standard-Sicherheitsfrage (kein Funktionsverlust). Das Newsletter-Modul
   hat zudem eine eigene Core-Option „Captcha deaktivieren".
+- **Spam-Ablage:** Löschung und Tageszusammenfassung laufen über den Contao-Cron; er muss regelmäßig ausgelöst werden
+  (Cronjob oder Besucheraufrufe). Die Zustellprotokolle des Notification Centers zeigen abgelegte Mails als versendet.
+  Mails, die erst in einem Hintergrundprozess entstehen, werden nicht eingestuft.
 
 ### Template-Overrides
 

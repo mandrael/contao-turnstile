@@ -70,35 +70,38 @@ class SpamArchive
 
             $now = time();
 
-            if (null === $archiveId) {
-                $this->db->insert(self::TABLE, [
+            // Kopf- und Mailzeile gemeinsam, damit ein Fehler beim zweiten INSERT keinen leeren Eintrag hinterlässt.
+            return $this->db->transactional(function () use ($archiveId, $meta, $prepared, $now): int {
+                if (null === $archiveId) {
+                    $this->db->insert(self::TABLE, [
+                        'tstamp' => $now,
+                        'created' => $now,
+                        'source' => substr((string) ($meta['source'] ?? ''), 0, 16),
+                        'score' => (int) ($meta['score'] ?? 0),
+                        'reasons' => substr(implode(', ', $meta['reasons'] ?? []), 0, 255),
+                        'subject' => mb_substr($prepared['subject'], 0, 255),
+                        'recipients' => implode(', ', $prepared['recipients']),
+                        'preview' => $prepared['preview'],
+                        'label' => 'unreviewed',
+                        'rule_version' => self::RULE_VERSION,
+                    ]);
+                    $archiveId = (int) $this->db->lastInsertId();
+                } else {
+                    $this->db->executeStatement('UPDATE '.self::TABLE.' SET tstamp = ? WHERE id = ?', [$now, $archiveId]);
+                }
+
+                $this->db->insert(self::MESSAGE_TABLE, [
+                    'pid' => $archiveId,
                     'tstamp' => $now,
-                    'created' => $now,
-                    'source' => substr((string) ($meta['source'] ?? ''), 0, 16),
-                    'score' => (int) ($meta['score'] ?? 0),
-                    'reasons' => substr(implode(', ', $meta['reasons'] ?? []), 0, 255),
-                    'subject' => mb_substr($prepared['subject'], 0, 255),
+                    'mime' => $prepared['mime'],
+                    'sender' => $prepared['sender'],
                     'recipients' => implode(', ', $prepared['recipients']),
-                    'preview' => $prepared['preview'],
-                    'label' => 'unreviewed',
-                    'rule_version' => self::RULE_VERSION,
+                    'transport' => $prepared['transport'],
+                    'status' => 'stored',
                 ]);
-                $archiveId = (int) $this->db->lastInsertId();
-            } else {
-                $this->db->executeStatement('UPDATE '.self::TABLE.' SET tstamp = ? WHERE id = ?', [$now, $archiveId]);
-            }
 
-            $this->db->insert(self::MESSAGE_TABLE, [
-                'pid' => $archiveId,
-                'tstamp' => $now,
-                'mime' => $prepared['mime'],
-                'sender' => $prepared['sender'],
-                'recipients' => implode(', ', $prepared['recipients']),
-                'transport' => $prepared['transport'],
-                'status' => 'stored',
-            ]);
-
-            return $archiveId;
+                return $archiveId;
+            });
         } catch (\Throwable $e) {
             $this->log('error', 'Spam-Ablage fehlgeschlagen ('.$e::class.'), Mail geht auf dem Rückfallweg hinaus.');
 
@@ -333,6 +336,9 @@ class SpamArchive
             return false;
         }
 
+        $files = [];
+        $bytes = 0;
+
         foreach ($header->getAttachmentItems() as $item) {
             $file = $this->bulkyItemStorage->retrieve($item->getVoucher());
 
@@ -342,6 +348,18 @@ class SpamArchive
                 return false;
             }
 
+            $bytes += method_exists($file, 'getSize') ? (int) $file->getSize() : 0;
+            $files[] = [$item, $file];
+        }
+
+        // Vor dem Laden prüfen: große Anhänge erst in den Speicher zu holen, könnte das Speicherlimit sprengen.
+        if ($bytes > self::MAX_BYTES) {
+            $this->log('error', 'Spam-Ablage: Anhänge größer als '.intdiv(self::MAX_BYTES, 1048576).' MB, Mail geht auf dem Rückfallweg hinaus.');
+
+            return false;
+        }
+
+        foreach ($files as [$item, $file]) {
             $message->attach($file->getContents(), $item->getFilename() ?? $file->getName(), $file->getMimeType());
         }
 

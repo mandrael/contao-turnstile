@@ -131,7 +131,9 @@ class tl_turnstile_spam extends Backend
     {
         // $args ist nach der Reihenfolge von label.fields indiziert, nicht nach Feldnamen.
         $args[1] = $GLOBALS['TL_LANG']['tl_turnstile_spam']['sources'][$row['source']] ?? $row['source'];
-        $args[3] = StringUtil::substr((string) $row['reasons'], 60);
+        // Contao gibt Listenwerte ungefiltert aus; Betreff und Signale stammen aus fremden Mails.
+        $args[3] = StringUtil::specialchars(StringUtil::substr((string) $row['reasons'], 60));
+        $args[4] = StringUtil::specialchars((string) $row['subject']);
 
         $args[5] = match (true) {
             (int) $row['delivered'] > 0 => \sprintf($GLOBALS['TL_LANG']['tl_turnstile_spam']['statusDelivered'] ?? '%s', Date::parse(Date::getNumericDateFormat(), (int) $row['delivered'])),

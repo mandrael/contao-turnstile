@@ -26,23 +26,24 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 - Registrierung: Die Aktivierungsmail geht bei „Spam sicher" trotzdem an die registrierte Adresse, die
   übrigen Mails landen in der Ablage. Kommentare: bei „Spam sicher" unveröffentlicht, ohne
   Benachrichtigung der Abonnenten.
-- Anzeige der KI-Einordnung in den Einstellungen (aktiv/aus, Anbieter, Modell, heutige Nutzung); der
-  Schlüssel wird nie angezeigt.
 - Höchstens drei Mails je eingetragener Adresse und Tag bei Einsendungen ohne Token im
   Formulargenerator und bei Kommentaren, damit ein Formular nicht als Versender an fremde Postfächer
   dient.
 - Optionale KI-Einordnung für den Graubereich (Mistral oder Anthropic, per Umgebungsvariable
   `TURNSTILE_AI_KEY`, Standard aus). Sie entscheidet nur, wenn die Punkte allein nicht reichen, und nur, wenn zwei
-  Signalgruppen vertreten sind; nur ein sicheres Spam-Urteil verhindert die Rückmeldung; Fehler, Zeitüberschreitung und das
+  Signalgruppen vertreten sind; nur ein sicheres Spam-Urteil führt zur Ablage; Fehler, Zeitüberschreitung und das
   Tagesbudget von 150 Anfragen führen zur normalen Verarbeitung.
+  Die Einstellungen zeigen, ob sie aktiv ist (Anbieter, Modell, heutige Nutzung); der Schlüssel wird nie
+  angezeigt.
 - Selbstprüfung gegen veraltete Template-Overrides – beim Rendern wird geprüft, ob das
   erzeugte HTML die Pflichtfelder enthält; fehlt etwas, steht höchstens einmal je Stunde
   ein Fehler der Kategorie `template-outdated` mit den fehlenden Markern im System-Log.
   Die Prüfung ändert weder Ausgabe noch Validierung. Der Solver meldet Fehler jetzt per
   `console.warn` in der Browser-Konsole.
 
-
 ### Geändert
+- Datenbank-Migration nötig: zwei neue Tabellen für die Spam-Ablage und neue Einstellungsfelder
+  (`contao:migrate` bzw. Contao Manager).
 - `filter` entfällt als eigene Option und wirkt wie `altcha`: Ohne gelöste Rechenaufgabe wird eine
   Einsendung ohne Token jetzt abgewiesen (vorher durchgelassen). Gespeicherte Werte bleiben gültig.
 - Die Fehlermeldung nennt einen Ausweg (Seite neu laden, sonst direkt per E-Mail oder Telefon).

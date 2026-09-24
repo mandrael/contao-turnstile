@@ -19,7 +19,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
     'Behaviour without a valid Turnstile token',
-    'By default the form is rejected. Recommended for registration, booking and contact forms is the fallback stage: it checks submissions without a token mechanically (hidden fields, minimum time, proof of work) and then accepts them. Only if several independent signals (content, sender address, Tor network) together clearly indicate spam, no confirmation goes to the entered address; the site operator still receives the submission with [Spam] in the subject.',
+    'By default the form is rejected. Recommended for registration, booking and contact forms is the fallback stage: it checks submissions without a token mechanically (hidden fields, minimum time, proof of work) and then accepts them. Only if several independent signals (content, sender address, Tor network) together clearly indicate spam, no mail is sent; the submission goes to the spam archive (System → Spam archive) and can be delivered from there anyway.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [

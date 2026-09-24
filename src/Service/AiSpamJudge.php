@@ -13,7 +13,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Optionale KI-Einordnung für den Graubereich der Einstufung. Standard aus: aktiv nur, wenn die
  * Umgebungsvariable TURNSTILE_AI_KEY gesetzt ist. Jeder Fehler, jede Zeitüberschreitung und ein
  * aufgebrauchtes Tagesbudget ergeben kein Urteil (null) – der Aufrufer behandelt die Einsendung dann als
- * sauber. Die KI darf eine Rückmeldung nur verhindern, wenn sie sich ausdrücklich sicher ist.
+ * sauber. Die KI darf nur dann zur Ablage führen, wenn sie sich ausdrücklich sicher ist.
  *
  * Übermittelt werden nur Textfelder, Mailadressen und die Namen der Verdachtssignale, keine IP. Der
  * Anbieter ist Auftragsverarbeiter und gehört in die Datenschutzerklärung.

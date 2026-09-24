@@ -27,7 +27,7 @@ use Symfony\Component\Mime\RawMessage;
  * - mode 'clean': nichts ändern außer gedrosselten Adressen
  *
  * Scheitert das Ablegen, nimmt die Mail den Rückfallweg: eingetragene Adressen gestrichen, Rest mit „[Spam]" an
- * die Betreiber; bliebe kein Empfänger, an die Admin-Adresse. Eine verlorene Einsendung wiegt schwerer als eine
+ * die Betreiber; bliebe kein Empfänger, an die Admin-Adresse, ohne diese unverändert mit „[Spam]". Eine verlorene Einsendung wiegt schwerer als eine
  * Spam-Mail im Fehlerfall. Betreiberadressen werden dabei nie gestrichen: die Formularempfänger (protected),
  * TL_ADMIN_EMAIL und jede Adresse auf der Domain der aufgerufenen Website.
  */
@@ -165,17 +165,21 @@ class SpamAwareMailer implements MailerInterface
             if ([] === array_filter(self::recipients($message, $envelope), $keep)) {
                 $admin = trim((string) ($GLOBALS['TL_ADMIN_EMAIL'] ?? ''));
 
-                if (!$fallback || '' === $admin) {
+                if (!$fallback) {
                     $this->log('Mail an die im Formular eingetragene Adresse nicht versendet (confirmation-suppressed).');
 
                     return;
                 }
 
-                $message = clone $message;
-                $message->getHeaders()->remove('Cc');
-                $message->getHeaders()->remove('Bcc');
-                $message->to($admin);
-                $envelope = null;
+                if ('' !== $admin) {
+                    $message = clone $message;
+                    $message->getHeaders()->remove('Cc');
+                    $message->getHeaders()->remove('Bcc');
+                    $message->to($admin);
+                    $envelope = null;
+                }
+
+                // Ohne Admin-Adresse bleibt nur der ursprüngliche Empfänger: lieber eine Spam-Mail als eine verlorene.
             } else {
                 [$message, $envelope] = self::restrict($message, $envelope, $keep);
                 $this->log('Mail an die im Formular eingetragene Adresse nicht versendet (confirmation-suppressed).');

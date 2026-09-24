@@ -112,10 +112,12 @@ class SpamAwareMailerTest extends TestCase
         $mailer->send($message, new Envelope(new Address('institut@nk.at'), [new Address('bot@fake.example')]));
     }
 
-    public function testFallbackPureSenderMailWithoutAdminIsDropped(): void
+    public function testFallbackPureSenderMailWithoutAdminIsSentUnchangedWithPrefix(): void
     {
         $inner = $this->createMock(MailerInterface::class);
-        $inner->expects(self::never())->method('send');
+        $inner->expects(self::once())->method('send')->with(self::callback(static function (Email $sent): bool {
+            return ['bot@fake.example'] === self::addresses($sent->getTo()) && '[Spam] Ihre Anmeldung' === $sent->getSubject();
+        }));
 
         $mailer = new SpamAwareMailer($inner, $this->stack(['mode' => 'suppress', 'addresses' => ['bot@fake.example']]), new NullLogger(), $this->archive(null));
         $mailer->send((new Email())->from('institut@nk.at')->to('bot@fake.example')->subject('Ihre Anmeldung'));

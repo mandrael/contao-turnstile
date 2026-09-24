@@ -174,7 +174,7 @@ class FormTurnstile extends FormCaptcha
      * Verhalten ohne gültiges Token (Einstellung turnstileFailureMode): 'block' (Default und unbekannte Werte)
      * weist ab. Die Ersatzstufe ('altcha'; gespeichertes 'filter' seit 0.8.0 ebenso) greift bei jedem
      * Fehlschlag: mechanische Prüfung hier, danach die Einstufung (SubmissionListener, SpamClassifier), die
-     * nie abweist, sondern nur bei sicherem Spam die Rückmeldung an den Absender verhindert.
+     * nie abweist, sondern bei sicherem Spam die Mails in die Spam-Ablage legt.
      *
      * @param array<string, mixed> $post
      */

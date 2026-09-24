@@ -105,6 +105,24 @@ class SpamArchiveTest extends TestCase
         self::assertStringNotContainsString('Notification-Center-Bulky-Item-Storage-Attachments', $mime);
     }
 
+    public function testStoreRejectsOversizedNotificationCenterAttachmentsBeforeLoading(): void
+    {
+        $message = self::email();
+        $message->getHeaders()->add(new FakeNcAttachmentsHeader([new FakeNcItem('v1', 'gross.pdf')]));
+        $storage = new FakeBulkyStorage(['v1' => new FakeNcFile('klein', 'x.pdf', 'application/pdf', SpamArchive::MAX_BYTES + 1)]);
+
+        self::assertNull($this->archive(storage: $storage)->store(null, [], $message, null));
+        self::assertSame(0, (int) $this->db->fetchOne('SELECT COUNT(*) FROM tl_turnstile_spam'));
+    }
+
+    public function testStoreLeavesNoHeadRowWhenMessageInsertFails(): void
+    {
+        $this->db->executeStatement('DROP TABLE tl_turnstile_spam_message');
+
+        self::assertNull($this->archive()->store(null, [], self::email(), null));
+        self::assertSame(0, (int) $this->db->fetchOne('SELECT COUNT(*) FROM tl_turnstile_spam'));
+    }
+
     public function testStoreFailsWhenNotificationCenterAttachmentIsMissing(): void
     {
         $message = self::email();
@@ -304,13 +322,18 @@ class FakeNcAttachmentsHeader extends AbstractHeader
 
 class FakeNcFile
 {
-    public function __construct(private readonly string $contents, private readonly string $name, private readonly string $mimeType)
+    public function __construct(private readonly string $contents, private readonly string $name, private readonly string $mimeType, private readonly ?int $size = null)
     {
     }
 
     public function getContents(): string
     {
         return $this->contents;
+    }
+
+    public function getSize(): int
+    {
+        return $this->size ?? \strlen($this->contents);
     }
 
     public function getName(): string

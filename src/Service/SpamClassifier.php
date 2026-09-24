@@ -444,7 +444,7 @@ class SpamClassifier
     {
         $message = \sprintf(
             'Cloudflare Turnstile: Einsendung ohne Token eingestuft als %s (%d Punkte: %s).',
-            $spam ? 'Spam, keine Rückmeldung an den Absender (fallback-spam)' : 'sauber (fallback-pass)',
+            $spam ? 'Spam, Mails gehen in die Spam-Ablage (fallback-spam)' : 'sauber (fallback-pass)',
             $score,
             [] === $reasons ? 'keine Signale' : implode(', ', $reasons)
         );

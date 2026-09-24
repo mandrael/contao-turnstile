@@ -19,7 +19,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
     'Verhalten ohne gültiges Turnstile-Token',
-    'Standard ist, dass das Formular abgewiesen wird. Empfohlen für Anmelde-, Buchungs- und Kontaktformulare ist die Ersatzstufe: Sie prüft Einsendungen ohne Token mechanisch (versteckte Felder, Mindestzeit, Rechenaufgabe) und nimmt sie danach an. Nur wenn mehrere unabhängige Signale (Inhalt, Absenderadresse, Tor-Netz) zusammen sicher auf Spam deuten, geht keine Bestätigung an die eingetragene Adresse; der Betreiber erhält die Einsendung dann mit [Spam] im Betreff.',
+    'Standard ist, dass das Formular abgewiesen wird. Empfohlen für Anmelde-, Buchungs- und Kontaktformulare ist die Ersatzstufe: Sie prüft Einsendungen ohne Token mechanisch (versteckte Felder, Mindestzeit, Rechenaufgabe) und nimmt sie danach an. Nur wenn mehrere unabhängige Signale (Inhalt, Absenderadresse, Tor-Netz) zusammen sicher auf Spam deuten, geht keine Mail hinaus; die Einsendung landet in der Spam-Ablage (System → Spam-Ablage) und lässt sich dort doch zustellen.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
