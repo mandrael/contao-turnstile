@@ -163,7 +163,7 @@ abort), the view offers a resend only after 15 minutes, with a warning about pos
 - **Learning auto-confirmation:** every entry has a signal pattern (e.g. "gibberish, link, Tor"). After **20 manual
   confirmations** of a pattern without a single "Not spam", new entries with that pattern are confirmed as spam
   automatically ("spam, auto-confirmed") and remain deliverable for 90 days. The learning progress is shown on the
-  unreviewed entry ("pattern 12 of 20 confirmed"). A single "Not spam" blocks the pattern for good and returns its
+  unreviewed entry ("pattern 12/20 confirmed, then automatically spam"). A single "Not spam" blocks the pattern for good and returns its
   auto-confirmed entries to unreviewed. The learning state survives the 90-day cleanup.
 - Entries are deleted automatically after **90 days** (daily cron job).
 - A system message on the back-end start page reports unreviewed entries.

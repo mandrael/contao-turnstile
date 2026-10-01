@@ -4,22 +4,22 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstile_legend'] = 'Cloudflare Turnstile';
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSiteKey'] = [
     'Site Key',
-    'Öffentlicher Site Key aus dem Cloudflare-Dashboard. Alle Domains der Installation müssen im Turnstile-Widget hinterlegt sein, sonst schlägt die Prüfung fehl.',
+    'Aus dem Cloudflare-Dashboard; dort alle Domains dieser Installation eintragen.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSecretKey'] = [
     'Secret Key',
-    'Geheimer Schlüssel aus dem Cloudflare-Dashboard. Der Server prüft damit das Token bei Cloudflare; er wird nie an den Browser ausgeliefert.',
+    'Aus dem Cloudflare-Dashboard. Bleibt auf dem Server.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
-    'Turnstile-Aktivierung',
-    'Gilt Turnstile für alle Formulare oder nur für ausgewählte.',
+    'Turnstile einsetzen',
+    'Einzelne Formularfelder lassen sich abweichend einstellen.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
-    'Verhalten ohne gültiges Turnstile-Token',
-    'Standard ist, dass das Formular abgewiesen wird. Empfohlen für Anmelde-, Buchungs- und Kontaktformulare ist die Ersatzstufe: Sie prüft Einsendungen ohne Token mechanisch (versteckte Felder, Mindestzeit, Rechenaufgabe) und nimmt sie danach an. Nur wenn mehrere unabhängige Signale (Inhalt, Absenderadresse, Tor-Netz) zusammen sicher auf Spam deuten, geht keine Mail hinaus; die Einsendung landet in der Spam-Ablage (System → Spam-Ablage) und lässt sich dort doch zustellen.',
+    'Wenn Turnstile scheitert',
+    'Ohne gültiges Token: Prüfung per ALTCHA, sicherer Spam geht in die Spam-Ablage.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -34,23 +34,23 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSize'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearance'] = [
     'Widget-Anzeige',
-    'Wann das Widget sichtbar wird. „Nach Formular-Interaktion anzeigen“ greift nur mit dafür vorbereitetem Formular.',
+    '„Nach Formular-Interaktion“ braucht ein dafür vorbereitetes Formular.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSendRemoteIp'] = [
     'Besucher-IP an Cloudflare senden',
-    'Sendet die Besucher-IP zur Prüfung an Cloudflare (Standard). Hinter NAT/VPN/iCloud Private Relay kann Abschalten helfen; Cloudflare prüft die IP nicht strikt. Hygiene-Option, kein garantierter Safari-Fix.',
+    'Standard: an. Bei häufigen Fehlschlägen hinter VPN oder iCloud Private Relay abschalten.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
-    'optout' => 'Standardmäßig für alle Formulare aktivieren',
-    'optin' => 'Nur bei ausgewählten Formularen aktivieren',
-    'off' => 'Überall deaktivieren',
+    'optout' => 'In allen Formularen',
+    'optin' => 'Nur in ausgewählten Formularen',
+    'off' => 'Nirgends',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
-    'block' => 'Blockieren: Formular-Absenden wird verhindert (Standard)',
-    'altcha' => 'Ersatzstufe: mechanische Prüfung mit Rechenaufgabe, danach annehmen (empfohlen für wichtige Formulare)',
+    'block' => 'Einsendung ablehnen (Standard)',
+    'altcha' => 'Ersatzprüfung mit ALTCHA und Spam-Einstufung (empfohlen)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [
@@ -73,7 +73,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAppearanceOptions'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigest'] = [
     'Tageszusammenfassung versenden',
-    'Verschickt einmal täglich eine Mail mit den neuen Einträgen der Spam-Ablage (Datum, Quelle, Punkte, Signale, Betreff – ohne Inhalt der Einsendung). Standardmäßig aus, eine Zusammenfassung ist nicht zwingend.',
+    'Einmal täglich eine Mail mit den neuen Einträgen der Spam-Ablage, ohne Inhalt der Einsendungen.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigestEmail'] = [
@@ -82,14 +82,14 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigestEmail'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiKey'] = [
-    'Mistral-API-Schlüssel (KI-Spamerkennung)',
-    'Optional. Schlüssel von console.mistral.ai; die KI prüft nur Grenzfälle der Spam-Einstufung. Leer = aus. Mistral als Auftragsverarbeiter in die Datenschutzerklärung aufnehmen.',
+    'Mistral-API-Schlüssel',
+    'Optional, von console.mistral.ai. Mistral dann in die Datenschutzerklärung aufnehmen.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
-    'Mistral-KI-Spamerkennung',
-    'Status der KI-Einordnung; der Schlüssel wird hier nie angezeigt.',
+    'KI-Spamerkennung',
+    'Status der KI-Einordnung.',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'Eingeschaltet: Anbieter %s, Modell %s. Heute %d von %d Anfragen genutzt.';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Ausgeschaltet, weil kein Schlüssel eingetragen ist. Zum Einschalten den Schlüssel im Feld „Mistral-API-Schlüssel“ eintragen; TURNSTILE_AI_KEY in .env.local hat Vorrang.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'An: %s, Modell %s, heute %d von %d Anfragen genutzt.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Aus: kein Schlüssel eingetragen. TURNSTILE_AI_KEY in .env.local hat Vorrang vor dem Feld.';

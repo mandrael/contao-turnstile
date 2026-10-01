@@ -5,7 +5,7 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['source'] = ['Source', 'Form, comment o
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['score'] = ['Score', 'Classification score.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasons'] = ['Signals', 'Signals that led to the classification.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['subject'] = ['Subject', 'Subject of the first archived mail.'];
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Status', 'Unreviewed, confirmed spam, not spam ("deliver anyway" triggered) or delivered.'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Status', 'Unreviewed, spam, not spam or delivered.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ruleVersion'] = ['Rule version', 'Bundle version at the time of classification.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['preview'] = ['Preview', 'Text of the first mail, truncated.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['recipients'] = 'Recipients';
@@ -22,7 +22,7 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['alreadyDelivered'] = 'Already delivere
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['notFound'] = 'Entry not found.';
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnreviewed'] = 'unreviewed';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] = 'not spam, still open';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] = 'not spam, not yet delivered';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusDelivered'] = 'delivered on %s';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnclear'] = 'unclear result';
 
@@ -72,5 +72,5 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasonLabels'] = [
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['done'] = ['spam' => 'Confirmed as spam', 'delete' => 'Deleted'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ajaxUnclear'] = 'Unclear result – please reload the page.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpamAuto'] = 'spam, auto-confirmed on %s';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternProgress'] = 'pattern %d of %d confirmed – then automatic';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'pattern never automatic (marked not spam before)';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternProgress'] = 'pattern %d/%d confirmed, then automatically spam';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'never confirmed automatically (marked not spam once)';

@@ -167,7 +167,7 @@ Hinweis auf mögliche Doppelzustellung.
 - **Lernende Auto-Bestätigung:** Jeder Eintrag hat ein Signalmuster (z. B. „Zeichensalat, Link, Tor“). Nach
   **20 manuellen Bestätigungen** eines Musters ohne ein einziges „Kein Spam“ werden neue Einträge mit diesem Muster
   automatisch als Spam bestätigt („Spam, automatisch bestätigt“), bleiben aber 90 Tage zustellbar. Der Lernstand
-  steht am ungeprüften Eintrag („Muster 12 von 20 bestätigt“). Ein einziges „Kein Spam“ sperrt das Muster
+  steht am ungeprüften Eintrag („Muster 12/20 bestätigt, danach automatisch Spam“). Ein einziges „Kein Spam“ sperrt das Muster
   dauerhaft und setzt dessen automatisch bestätigte Einträge zurück auf ungeprüft. Der Lernstand überdauert das
   Löschen nach 90 Tagen.
 - Einträge werden nach **90 Tagen** automatisch gelöscht (täglicher Cronjob).

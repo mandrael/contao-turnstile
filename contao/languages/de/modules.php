@@ -1,3 +1,3 @@
 <?php
 
-$GLOBALS['TL_LANG']['MOD']['turnstile_spam'] = ['Spam-Ablage', 'Als „Spam sicher" eingestufte Einsendungen ansehen und bei Bedarf doch zustellen.'];
+$GLOBALS['TL_LANG']['MOD']['turnstile_spam'] = ['Spam-Ablage', 'Zurückgehaltene Einsendungen prüfen, als Spam bestätigen oder doch zustellen.'];

@@ -5,14 +5,14 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['source'] = ['Quelle', 'Formular, Komme
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['score'] = ['Punkte', 'Punktzahl der Einstufung.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasons'] = ['Signale', 'Verdachtssignale, die zur Einstufung geführt haben.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['subject'] = ['Betreff', 'Betreff der ersten abgelegten Mail.'];
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Status', 'Ungeprüft, als Spam bestätigt, kein Spam („Doch zustellen" ausgelöst) oder zugestellt.'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Status', 'Ungeprüft, Spam, kein Spam oder zugestellt.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ruleVersion'] = ['Regelversion', 'Bundle-Version zum Zeitpunkt der Einstufung.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['preview'] = ['Vorschau', 'Text der ersten Mail, gekürzt.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['recipients'] = 'Empfänger';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['messages'] = 'Mails dieser Einsendung';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['error'] = 'Fehler';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['sentAt'] = 'Versendet am';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['sentMeansAccepted'] = '„Versendet" heißt: vom Mailserver angenommen.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['sentMeansAccepted'] = '„Versendet“ heißt: vom Mailserver angenommen.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['commentHint'] = 'Zustellen verschickt nur die Mails; veröffentlicht wird weiterhin im Kommentar-Modul, Abonnenten werden nicht nachträglich benachrichtigt.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['backToList'] = 'Zurück zur Liste';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['deliver'] = 'Doch zustellen';
@@ -22,7 +22,7 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['alreadyDelivered'] = 'Bereits zugestel
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['notFound'] = 'Eintrag nicht gefunden.';
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnreviewed'] = 'ungeprüft';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] = 'kein Spam, noch offen';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] = 'kein Spam, noch nicht zugestellt';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusDelivered'] = 'zugestellt am %s';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnclear'] = 'Ergebnis unklar';
 
@@ -72,5 +72,5 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasonLabels'] = [
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['done'] = ['spam' => 'Als Spam bestätigt', 'delete' => 'Gelöscht'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ajaxUnclear'] = 'Ergebnis unklar – bitte Seite neu laden.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpamAuto'] = 'Spam, automatisch bestätigt am %s';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternProgress'] = 'Muster %d von %d bestätigt – danach automatisch';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'Muster nie automatisch (schon einmal Kein Spam)';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternProgress'] = 'Muster %d/%d bestätigt, danach automatisch Spam';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'Wird nie automatisch bestätigt (einmal als Kein Spam markiert)';

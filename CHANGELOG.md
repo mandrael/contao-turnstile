@@ -16,6 +16,7 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   `TURNSTILE_AI_KEY` in `.env.local` hat weiter Vorrang. Die Statusanzeige heißt jetzt „Mistral-KI-Spamerkennung“.
 
 ### Geändert
+- Einstellungen und Spam-Ablage: Beschriftungen und Hilfetexte gekürzt und präzisiert, etwa „Wenn Turnstile scheitert“ mit „Einsendung ablehnen“ oder „Ersatzprüfung mit ALTCHA und Spam-Einstufung“.
 - Tageszusammenfassung: von Hand bestätigter Spam wird nur gezählt; automatisch bestätigte Einträge stehen markiert mit Betreff drin (Kontrolle); ohne neue Einträge außer Handbestätigten keine Mail.
 
 ## [0.8.2] - 2026-10-01
