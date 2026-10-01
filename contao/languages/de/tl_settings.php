@@ -91,6 +91,5 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
     'Status der KI-Einordnung; der Schlüssel wird hier nie angezeigt.',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'aktiv – %s, %s, heute %d von %d genutzt';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'aus';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Schlüssel im Feld „Mistral-API-Schlüssel“ eintragen (alternativ TURNSTILE_AI_KEY in .env.local, hat Vorrang).';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'Eingeschaltet: Anbieter %s, Modell %s. Heute %d von %d Anfragen genutzt.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Ausgeschaltet, weil kein Schlüssel eingetragen ist. Zum Einschalten den Schlüssel im Feld „Mistral-API-Schlüssel“ eintragen; TURNSTILE_AI_KEY in .env.local hat Vorrang.';

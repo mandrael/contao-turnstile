@@ -91,6 +91,5 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
     'Status of the AI classification; the key is never shown here.',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'active - %s, %s, %d of %d used today';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'off';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Enter the key in the "Mistral API key" field (or TURNSTILE_AI_KEY in .env.local, which takes precedence).';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'Enabled: provider %s, model %s. %d of %d requests used today.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Disabled because no key is set. To enable it, enter the key in the "Mistral API key" field; TURNSTILE_AI_KEY in .env.local takes precedence.';

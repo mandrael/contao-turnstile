@@ -20,6 +20,7 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 
 ### Behoben
 - Einstellungen: Die KI-Infobox rutschte unter die Felder, ihr (i) stand über „Site Key“.
+- Einstellungen: Der KI-Status steht als ganzer Satz statt „aus“ plus Hinweiszeile; „Besucher-IP an Cloudflare senden“ steht rechts neben „Widget-Anzeige“ statt in einer eigenen Zeile.
 
 ## [0.8.1] - 2026-10-01
 
