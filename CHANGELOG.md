@@ -5,6 +5,13 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
+## [0.8.2] - 2026-10-01
+
+### Behoben
+- Einstellungen: Die Statusanzeige der KI-Einordnung rutschte unter die Felder, ihr (i) stand über „Site Key“ und
+  „aus“ stand ohne Beschriftung. Sie steht jetzt als eigenes Feld mit ganzem Satz unter den übrigen Feldern.
+- Einstellungen: „Besucher-IP an Cloudflare senden“ steht rechts neben „Widget-Anzeige“ statt in einer eigenen Zeile.
+
 ## [0.8.1] - 2026-10-01
 
 ### Hinzugefügt

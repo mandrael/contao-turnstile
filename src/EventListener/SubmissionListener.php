@@ -95,7 +95,7 @@ class SubmissionListener
 
         // Wie der Core (Form::processFormData): Kommaliste, auch „Name <adresse>".
         $protected = array_map(
-            static fn (string $r): string => (string) (StringUtil::splitFriendlyEmail($r)[1] ?? ''),
+            static fn (string $r): string => (string) StringUtil::splitFriendlyEmail($r)[1],
             self::strings(StringUtil::splitCsv((string) $form->recipient))
         );
 

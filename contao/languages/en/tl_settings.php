@@ -86,6 +86,5 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
     'Set up via TURNSTILE_AI_KEY in .env.local; the key is never shown here.',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'active - %s, %s, %d of %d used today';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'off';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Set up via TURNSTILE_AI_KEY in .env.local.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'Enabled: provider %s, model %s. %d of %d requests used today.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Disabled because no key is set up. To enable it, set TURNSTILE_AI_KEY in .env.local.';

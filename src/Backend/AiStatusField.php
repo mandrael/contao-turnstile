@@ -24,9 +24,12 @@ class AiStatusField
         $lang = &$GLOBALS['TL_LANG']['tl_settings'];
 
         $text = $status['active']
-            ? \sprintf($lang['turnstileAiStatusActive'] ?? 'active - %s, %s, %d of %d used today', $status['provider'], $status['model'], $status['used'], $status['budget'])
-            : ($lang['turnstileAiStatusOff'] ?? 'off');
+            ? \sprintf($lang['turnstileAiStatusActive'] ?? 'Enabled: provider %s, model %s. %d of %d requests used today.', $status['provider'], $status['model'], $status['used'], $status['budget'])
+            : ($lang['turnstileAiStatusOff'] ?? 'Disabled because no key is set up.');
 
-        return '<div class="tl_info" style="margin-bottom:1em">'.StringUtil::specialchars($text).'<br>'.($lang['turnstileAiStatusHint'] ?? 'Set up via TURNSTILE_AI_KEY in .env.local.').'</div>';
+        // input_field_callback übernimmt kein tl_class: Widget-Hülle mit clr selbst setzen, sonst rutscht die
+        // Infobox unter die gefloateten w50-Felder und ihr (i) landet oben links im Abschnitt.
+        return '<div class="widget clr"><h3><label>'.($lang['turnstileAiStatus'][0] ?? 'AI classification').'</label></h3>'
+            .'<p class="tl_info">'.StringUtil::specialchars($text).'</p></div>';
     }
 }

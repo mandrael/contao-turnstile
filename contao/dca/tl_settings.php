@@ -89,7 +89,7 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAppearance'] = [
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSendRemoteIp'] = [
     'inputType' => 'checkbox',
-    'eval' => ['tl_class' => 'w50 clr m12'],
+    'eval' => ['tl_class' => 'w50 m12'],
     'default' => true,
 ];
 
