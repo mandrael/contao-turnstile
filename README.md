@@ -144,7 +144,7 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
   - Sonst läuft alles normal, einschließlich Bestätigung an den Absender. Im Formulargenerator und bei
     Kommentaren gehen höchstens drei Mails je eingetragener Adresse und Tag hinaus.
 - **Optionale KI-Einordnung** für den Graubereich (zwei Gruppen vertreten, aber nicht „Spam
-  sicher“): Schlüssel im Feld „Mistral-API-Schlüssel (KI-Spamerkennung)“ der Turnstile-Einstellungen
+  sicher“): Schlüssel im Feld „Mistral-API-Schlüssel“ der Turnstile-Einstellungen
   oder `TURNSTILE_AI_KEY` in `.env.local` (hat Vorrang), `TURNSTILE_AI_PROVIDER` (`mistral` oder
   `anthropic`), wahlweise `TURNSTILE_AI_MODEL`. Ist sie eingerichtet, führt dort auch ein sicheres
   KI-Urteil zu „Spam sicher"; jedes andere Urteil zur normalen Verarbeitung; Fehler, Zeitüberschreitung (5 s) und das Tagesbudget (150) führen zur normalen

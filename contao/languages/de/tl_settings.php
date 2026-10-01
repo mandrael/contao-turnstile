@@ -92,4 +92,5 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'An: %s, Modell %s, heute %d von %d Anfragen genutzt.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Ergänzt die Prüfung, ersetzt nichts: Turnstile, ALTCHA und die Punktwertung laufen immer. Mistral wird nur bei Grenzfällen gefragt (verdächtig, aber nicht sicher Spam). Urteilt Mistral „sicher Spam“, kommt die Einsendung in die Spam-Ablage, sonst läuft sie normal weiter, auch bei Fehler oder Zeitüberschreitung. Übermittelt werden Textfelder und Mailadresse, nie die IP. Höchstens %d Anfragen am Tag.';
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Aus: kein Schlüssel eingetragen. TURNSTILE_AI_KEY in .env.local hat Vorrang vor dem Feld.';

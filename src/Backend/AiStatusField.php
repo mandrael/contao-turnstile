@@ -30,6 +30,7 @@ class AiStatusField
         // input_field_callback übernimmt kein tl_class: Widget-Hülle mit clr selbst setzen, sonst rutscht die
         // Infobox unter die gefloateten w50-Felder und ihr (i) landet oben links im Abschnitt.
         return '<div class="widget clr"><h3><label>'.($lang['turnstileAiStatus'][0] ?? 'AI spam detection').'</label></h3>'
-            .'<p class="tl_info">'.StringUtil::specialchars($text).'</p></div>';
+            .'<p class="tl_info">'.StringUtil::specialchars($text).'<br>'
+            .StringUtil::specialchars(\sprintf($lang['turnstileAiExplain'] ?? 'Only borderline cases are sent to the AI; at most %d requests per day.', $status['budget'])).'</p></div>';
     }
 }

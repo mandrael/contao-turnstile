@@ -92,4 +92,5 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'On: %s, model %s, %d of %d requests used today.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Adds to the checks, replaces nothing: Turnstile, ALTCHA and the scoring always run. Mistral is only asked about borderline cases (suspicious, but not certain spam). If Mistral judges “certain spam”, the submission goes to the spam archive, otherwise it is processed normally, also on errors or timeouts. Only text fields and the e-mail address are sent, never the IP. At most %d requests per day.';
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Off: no key set. TURNSTILE_AI_KEY in .env.local takes precedence over the field.';
