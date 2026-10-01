@@ -29,6 +29,7 @@ class SpamArchiveTest extends TestCase
         $this->db = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
         $this->db->executeStatement('CREATE TABLE tl_turnstile_spam (id INTEGER PRIMARY KEY AUTOINCREMENT, tstamp INT NOT NULL DEFAULT 0, created INT NOT NULL DEFAULT 0, source TEXT NOT NULL DEFAULT \'\', score INT NOT NULL DEFAULT 0, reasons TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\', recipients TEXT, preview TEXT, digested INT NOT NULL DEFAULT 0, delivered INT NOT NULL DEFAULT 0, label TEXT NOT NULL DEFAULT \'unreviewed\', label_by INT NOT NULL DEFAULT 0, label_at INT NOT NULL DEFAULT 0, rule_version TEXT NOT NULL DEFAULT \'\')');
         $this->db->executeStatement('CREATE TABLE tl_turnstile_spam_message (id INTEGER PRIMARY KEY AUTOINCREMENT, pid INT NOT NULL DEFAULT 0, tstamp INT NOT NULL DEFAULT 0, mime BLOB, sender TEXT NOT NULL DEFAULT \'\', recipients TEXT, transport TEXT NOT NULL DEFAULT \'\', status TEXT NOT NULL DEFAULT \'stored\', claimed_at INT NOT NULL DEFAULT 0, sent_at INT NOT NULL DEFAULT 0, error TEXT NOT NULL DEFAULT \'\')');
+        $this->db->executeStatement('CREATE TABLE tl_turnstile_spam_pattern (id INTEGER PRIMARY KEY AUTOINCREMENT, tstamp INT NOT NULL DEFAULT 0, pattern TEXT NOT NULL DEFAULT \'\' UNIQUE, confirmed INT NOT NULL DEFAULT 0, rejected INT NOT NULL DEFAULT 0)');
     }
 
     public function testStoreKeepsFinishedMailWithMetaAndWithoutTransportHeader(): void
@@ -250,6 +251,106 @@ class SpamArchiveTest extends TestCase
         self::assertSame(0, (int) $this->db->fetchOne('SELECT COUNT(*) FROM tl_turnstile_spam_message WHERE pid = ?', [$a]));
         self::assertSame(['ham' => 1], $archive->countByLabel());
         self::assertSame(0, $archive->markSpam([], 7));
+    }
+
+    public function testPatternIsLearnedAndAutoConfirmedFromThreshold(): void
+    {
+        $archive = $this->archive();
+        $meta = ['reasons' => ['gibberish-many', 'link', 'tor-exit']];
+        $ids = [];
+
+        for ($i = 0; $i < SpamArchive::AUTO_CONFIRM_MIN; ++$i) {
+            $ids[] = $archive->store(null, $meta, self::email(), null);
+        }
+
+        // Bis zur Schwelle bleibt alles ungeprüft; ein anderes Muster zählt nicht mit.
+        self::assertSame(SpamArchive::AUTO_CONFIRM_MIN, $archive->countUnreviewed());
+        $other = $archive->store(null, ['reasons' => ['link']], self::email(), null);
+
+        self::assertSame(SpamArchive::AUTO_CONFIRM_MIN - 1, $archive->markSpam(\array_slice($ids, 1), 7));
+        self::assertSame(['gibberish-many, link, tor-exit' => ['confirmed' => SpamArchive::AUTO_CONFIRM_MIN - 1, 'rejected' => 0]], $archive->patterns());
+        self::assertSame('unreviewed', $this->label($archive->store(null, $meta, self::email(), null)), 'eine Bestätigung zu wenig');
+
+        // Erneutes Bestätigen derselben Einträge zählt nicht doppelt.
+        self::assertSame(0, $archive->markSpam(\array_slice($ids, 1), 7));
+        self::assertSame(1, $archive->markSpam([$ids[0]], 7));
+
+        $auto = $archive->store(null, $meta, self::email(), null);
+        $head = $this->db->fetchAssociative('SELECT label, label_by, label_at FROM tl_turnstile_spam WHERE id = ?', [$auto]);
+        self::assertSame('spam', $head['label']);
+        self::assertSame(0, (int) $head['label_by']);
+        self::assertGreaterThan(0, (int) $head['label_at']);
+        self::assertSame('unreviewed', $this->label($other));
+        self::assertSame('unreviewed', $this->label($archive->store(null, ['reasons' => ['link']], self::email(), null)));
+        // Angehängte Mails eines bestehenden Eintrags ändern dessen Etikett nicht.
+        self::assertSame($other, $archive->store($other, $meta, self::email(), null));
+        self::assertSame('unreviewed', $this->label($other));
+    }
+
+    public function testNotSpamBlocksPatternForeverAndRevertsAutoConfirmed(): void
+    {
+        $archive = $this->archive();
+        $meta = ['reasons' => ['tor-exit', 'dotted-address']];
+        $this->db->insert('tl_turnstile_spam_pattern', ['pattern' => 'tor-exit, dotted-address', 'confirmed' => SpamArchive::AUTO_CONFIRM_MIN]);
+
+        $a = $archive->store(null, $meta, self::email(), null);
+        $b = $archive->store(null, $meta, self::email(), null);
+        $manual = $archive->store(null, ['reasons' => ['link']], self::email(), null);
+        self::assertSame(['spam', 'spam'], [$this->label($a), $this->label($b)]);
+
+        $archive->deliver($a, 7);
+        // Zweites Zustellen desselben Eintrags zählt kein zweites „Kein Spam".
+        $archive->deliver($a, 7);
+
+        self::assertSame('ham', $this->label($a));
+        self::assertSame('unreviewed', $this->label($b), 'automatisch bestätigt -> zurück zur Prüfung');
+        self::assertSame(1, $archive->patterns()['tor-exit, dotted-address']['rejected']);
+        self::assertSame('unreviewed', $this->label($archive->store(null, $meta, self::email(), null)));
+
+        // Von Hand bestätigter Spam bleibt bestätigt.
+        $archive->markSpam([$manual], 7);
+        $archive->deliver($b, 7);
+        self::assertSame('spam', $this->label($manual));
+    }
+
+    public function testRevertedEntryReturnsToDigestAndLostRejectionStillBlocks(): void
+    {
+        $archive = $this->archive();
+        $meta = ['reasons' => ['link', 'no-mx']];
+        $this->db->insert('tl_turnstile_spam_pattern', ['pattern' => 'link, no-mx', 'confirmed' => SpamArchive::AUTO_CONFIRM_MIN]);
+
+        $a = $archive->store(null, $meta, self::email(), null);
+        $b = $archive->store(null, $meta, self::email(), null);
+        self::assertTrue($archive->undigested()[0]['auto']);
+        $archive->markDigested([$a, $b]);
+
+        $archive->deliver($a, 7);
+        self::assertSame([$b], array_column($archive->undigested(), 'id'), 'zurückgesetzt -> wieder in der Zusammenfassung');
+        self::assertFalse($archive->undigested()[0]['auto']);
+
+        // Zähler verloren (z. B. Fehler beim Schreiben): der Ham-Eintrag sperrt trotzdem.
+        $this->db->executeStatement('UPDATE tl_turnstile_spam_pattern SET rejected = 0');
+        self::assertSame('unreviewed', $this->label($archive->store(null, $meta, self::email(), null)));
+    }
+
+    public function testMissingPatternTableNeverBreaksArchive(): void
+    {
+        $this->db->executeStatement('DROP TABLE tl_turnstile_spam_pattern');
+        $archive = $this->archive();
+
+        $id = $archive->store(null, ['reasons' => ['tor-exit']], self::email(), null);
+        self::assertIsInt($id);
+        self::assertSame('unreviewed', $this->label($id));
+        self::assertSame(1, $archive->markSpam([$id], 7));
+        self::assertSame([], $archive->patterns());
+
+        $ham = $archive->store(null, ['reasons' => ['tor-exit']], self::email(), null);
+        self::assertSame(1, $archive->deliver((int) $ham, 7)['sent']);
+    }
+
+    private function label(?int $id): string
+    {
+        return (string) $this->db->fetchOne('SELECT label FROM tl_turnstile_spam WHERE id = ?', [$id]);
     }
 
     private function archive(?TransportInterface $transport = null, ?object $storage = null): SpamArchive

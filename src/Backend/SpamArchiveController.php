@@ -78,7 +78,7 @@ class SpamArchiveController
         // Nach Aktionen kann die letzte Seite leer werden: auf die tatsächlich letzte Seite zurückfallen.
         $page = min($page, max(1, (int) ceil($total / self::PER_PAGE)));
         $rows = $this->db->fetchAllAssociative(
-            'SELECT id, created, source, score, reasons, subject, recipients, preview, label, label_at, delivered FROM '.SpamArchive::TABLE
+            'SELECT id, created, source, score, reasons, subject, recipients, preview, label, label_by, label_at, delivered FROM '.SpamArchive::TABLE
             .' WHERE '.$where.' ORDER BY created DESC, id DESC LIMIT '.self::PER_PAGE.' OFFSET '.(($page - 1) * self::PER_PAGE),
         );
 
@@ -142,9 +142,10 @@ class SpamArchiveController
         }
 
         $cards = '';
+        $patterns = $this->archive->patterns();
 
         foreach ($rows as $row) {
-            $cards .= $this->renderCard($row);
+            $cards .= $this->renderCard($row, $patterns);
         }
 
         if ('' === $cards) {
@@ -174,7 +175,10 @@ class SpamArchiveController
     /**
      * @param array<string, mixed> $row
      */
-    private function renderCard(array $row): string
+    /**
+     * @param array<string, array{confirmed: int, rejected: int}> $patterns Lernstand je Muster
+     */
+    private function renderCard(array $row, array $patterns = []): string
     {
         $lang = &$GLOBALS['TL_LANG']['tl_turnstile_spam'];
         $id = (int) $row['id'];
@@ -184,6 +188,7 @@ class SpamArchiveController
 
         $status = match (true) {
             $delivered > 0 => \sprintf($lang['statusDelivered'] ?? '%s', $date($delivered, '')),
+            'spam' === $label && 0 === (int) ($row['label_by'] ?? 1) => \sprintf($lang['statusSpamAuto'] ?? '%s', $date((int) $row['label_at'], '')),
             'spam' === $label => \sprintf($lang['statusSpam'] ?? '%s', $date((int) $row['label_at'], '')),
             'ham' === $label => $lang['statusHam'] ?? 'ham',
             default => $lang['statusUnreviewed'] ?? 'unreviewed',
@@ -194,6 +199,14 @@ class SpamArchiveController
         foreach (array_filter(array_map('trim', explode(',', (string) $row['reasons']))) as $reason) {
             $reasons .= '<li>'.StringUtil::specialchars($lang['reasonLabels'][$reason] ?? $reason).'</li>';
         }
+
+        // Lernstand des Musters, damit sichtbar ist, wann die Automatik greift.
+        $stats = $patterns[(string) $row['reasons']] ?? ['confirmed' => 0, 'rejected' => 0];
+        $learning = 'unreviewed' === $label && 0 === $delivered
+            ? ($stats['rejected'] > 0
+                ? ($lang['patternBlocked'] ?? 'pattern blocked')
+                : \sprintf($lang['patternProgress'] ?? '%d of %d', min($stats['confirmed'], SpamArchive::AUTO_CONFIRM_MIN), SpamArchive::AUTO_CONFIRM_MIN))
+            : '';
 
         $actions = [];
 
@@ -213,7 +226,7 @@ class SpamArchiveController
             .StringUtil::specialchars((string) ($lang['sources'][$row['source']] ?? $row['source'])).' · '
             .\sprintf($lang['points'] ?? '%d points', (int) $row['score'])
             .' <span class="tsa-badge">'.StringUtil::specialchars($status).'</span></header>'
-            .('' !== $reasons ? '<ul class="tsa-reasons">'.$reasons.'</ul>' : '')
+            .('' !== $reasons ? '<ul class="tsa-reasons">'.$reasons.('' !== $learning ? '<li class="tsa-learning">'.StringUtil::specialchars($learning).'</li>' : '').'</ul>' : '')
             .'<dl><dt>'.($lang['recipients'] ?? 'To').'</dt><dd>'.StringUtil::specialchars((string) $row['recipients']).'</dd>'
             .'<dt>'.($lang['subject'][0] ?? 'Subject').'</dt><dd>'.StringUtil::specialchars((string) $row['subject']).'</dd></dl>'
             .'<pre class="tsa-text">'.StringUtil::specialchars((string) $row['preview']).'</pre>'

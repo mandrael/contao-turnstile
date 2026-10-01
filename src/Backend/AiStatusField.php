@@ -10,7 +10,7 @@ use Mandrael\ContaoTurnstileBundle\Service\AiSpamJudge;
 
 /**
  * Reine Anzeige in den Turnstile-Einstellungen (input_field_callback, kein sql/Wert): zeigt, ob die
- * KI-Einordnung aktiv ist, ohne den Schlüssel preiszugeben. Einrichtung läuft über .env.local.
+ * KI-Einordnung aktiv ist, ohne den Schlüssel preiszugeben. Einrichtung über das Feld turnstileAiKey oder .env.local.
  */
 class AiStatusField
 {
@@ -27,6 +27,9 @@ class AiStatusField
             ? \sprintf($lang['turnstileAiStatusActive'] ?? 'active - %s, %s, %d of %d used today', $status['provider'], $status['model'], $status['used'], $status['budget'])
             : ($lang['turnstileAiStatusOff'] ?? 'off');
 
-        return '<div class="tl_info" style="margin-bottom:1em">'.StringUtil::specialchars($text).'<br>'.($lang['turnstileAiStatusHint'] ?? 'Set up via TURNSTILE_AI_KEY in .env.local.').'</div>';
+        // input_field_callback übernimmt kein tl_class: Widget-Hülle mit clr selbst setzen, sonst rutscht die
+        // Infobox unter die gefloateten w50-Felder und ihr (i) landet oben links im Abschnitt.
+        return '<div class="widget clr"><h3><label>'.($lang['turnstileAiStatus'][0] ?? 'Mistral AI spam detection').'</label></h3>'
+            .'<p class="tl_info">'.StringUtil::specialchars($text).'<br>'.($lang['turnstileAiStatusHint'] ?? 'Enter the key in the Mistral API key field.').'</p></div>';
     }
 }

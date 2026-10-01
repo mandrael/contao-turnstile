@@ -57,8 +57,8 @@ class SpamArchiveCronTest extends ContaoTestCase
     public function testDigestOnWithEntriesSendsOneMailAndMarksDigested(): void
     {
         $entries = [
-            ['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 9, 'reasons' => 'tor', 'subject' => 'A'],
-            ['id' => 2, 'created' => 2000, 'source' => 'comment', 'score' => 5, 'reasons' => 'links', 'subject' => 'B'],
+            ['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 9, 'reasons' => 'tor', 'subject' => 'A', 'label' => 'unreviewed', 'auto' => false],
+            ['id' => 2, 'created' => 2000, 'source' => 'comment', 'score' => 5, 'reasons' => 'links', 'subject' => 'B', 'label' => 'unreviewed', 'auto' => false],
         ];
 
         $archive = $this->createMock(SpamArchive::class);
@@ -87,10 +87,63 @@ class SpamArchiveCronTest extends ContaoTestCase
         (new SpamArchiveCron($archive, $mailer, $framework))();
     }
 
+    public function testDigestListsOpenAndAutoConfirmedEntriesAndCountsManual(): void
+    {
+        $entries = [
+            ['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 11, 'reasons' => 'tor', 'subject' => 'Hand', 'label' => 'spam', 'auto' => false],
+            ['id' => 2, 'created' => 2000, 'source' => 'form', 'score' => 7, 'reasons' => 'link', 'subject' => 'Offen', 'label' => 'unreviewed', 'auto' => false],
+            ['id' => 3, 'created' => 3000, 'source' => 'form', 'score' => 11, 'reasons' => 'tor', 'subject' => 'Gelernt', 'label' => 'spam', 'auto' => true],
+        ];
+
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->method('undigested')->willReturn($entries);
+        $archive->expects(self::once())->method('markDigested')->with([1, 2, 3]);
+
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::once())->method('send')
+            ->with(self::callback(static function (RawMessage $message): bool {
+                self::assertInstanceOf(Email::class, $message);
+                self::assertSame('2 neue Einsendungen in der Spam-Ablage', $message->getSubject());
+                self::assertStringContainsString('Offen', (string) $message->getTextBody());
+                self::assertStringContainsString('[automatisch als Spam bestätigt] ', (string) $message->getTextBody());
+                self::assertStringContainsString('Gelernt', (string) $message->getTextBody());
+                self::assertStringNotContainsString('Hand', (string) $message->getTextBody());
+                self::assertStringContainsString('Außerdem 1 bereits als Spam bestätigt', (string) $message->getTextBody());
+
+                return true;
+            }));
+
+        $config = $this->createAdapterMock(['get']);
+        $config->method('get')->willReturnMap([
+            ['turnstileSpamDigest', true],
+            ['turnstileSpamDigestEmail', 'digest@example.com'],
+        ]);
+
+        (new SpamArchiveCron($archive, $mailer, $this->createContaoFrameworkMock([Config::class => $config])))();
+    }
+
+    public function testDigestWithOnlyManuallyConfirmedEntriesSendsNoMail(): void
+    {
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->method('undigested')->willReturn([['id' => 3, 'created' => 1000, 'source' => 'form', 'score' => 11, 'reasons' => 'tor', 'subject' => 'Auto', 'label' => 'spam', 'auto' => false]]);
+        $archive->expects(self::once())->method('markDigested')->with([3]);
+
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::never())->method('send');
+
+        $config = $this->createAdapterMock(['get']);
+        $config->method('get')->willReturnMap([
+            ['turnstileSpamDigest', true],
+            ['turnstileSpamDigestEmail', 'digest@example.com'],
+        ]);
+
+        (new SpamArchiveCron($archive, $mailer, $this->createContaoFrameworkMock([Config::class => $config])))();
+    }
+
     public function testFailedDigestSendLeavesEntriesUndigested(): void
     {
         $archive = $this->createMock(SpamArchive::class);
-        $archive->method('undigested')->willReturn([['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 9, 'reasons' => 'tor', 'subject' => 'A']]);
+        $archive->method('undigested')->willReturn([['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 9, 'reasons' => 'tor', 'subject' => 'A', 'label' => 'unreviewed', 'auto' => false]]);
         $archive->expects(self::never())->method('markDigested');
 
         $mailer = $this->createMock(MailerInterface::class);
@@ -108,7 +161,7 @@ class SpamArchiveCronTest extends ContaoTestCase
 
     public function testEmptyDigestAddressFallsBackToAdminEmail(): void
     {
-        $entries = [['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 9, 'reasons' => 'tor', 'subject' => 'A']];
+        $entries = [['id' => 1, 'created' => 1000, 'source' => 'form', 'score' => 9, 'reasons' => 'tor', 'subject' => 'A', 'label' => 'unreviewed', 'auto' => false]];
 
         $archive = $this->createMock(SpamArchive::class);
         $archive->method('undigested')->willReturn($entries);

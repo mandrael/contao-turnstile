@@ -37,9 +37,17 @@ class SpamArchiveCron
             return;
         }
 
-        $entries = $this->archive->undigested();
+        $all = $this->archive->undigested();
+        // Von Hand bestätigter Spam braucht keine Prüfung mehr: nur zählen. Automatisch bestätigte bleiben mit
+        // Betreff in der Liste, damit eine echte Anfrage in einem gelernten Muster nicht unbemerkt liegen bleibt.
+        $entries = array_values(array_filter($all, static fn (array $e): bool => 'spam' !== $e['label'] || $e['auto']));
+        $confirmed = \count($all) - \count($entries);
 
         if ([] === $entries) {
+            if ([] !== $all) {
+                $this->archive->markDigested(array_column($all, 'id'));
+            }
+
             return;
         }
 
@@ -53,7 +61,8 @@ class SpamArchiveCron
 
         $lines = array_map(
             static fn (array $e): string => \sprintf(
-                '%s – %s – %d – %s – %s',
+                '%s%s – %s – %d – %s – %s',
+                $e['auto'] ? '[automatisch als Spam bestätigt] ' : '',
                 Date::parse(Date::getNumericDateFormat(), $e['created']),
                 $e['source'],
                 $e['score'],
@@ -63,7 +72,7 @@ class SpamArchiveCron
             $entries,
         );
 
-        $body = \sprintf("%d neue Einsendungen in der Spam-Ablage:\n\n%s\n\nBackend → System → Spam-Ablage.", \count($entries), implode("\n", $lines));
+        $body = \sprintf("%d neue Einsendungen in der Spam-Ablage:\n\n%s\n\n%sBackend → System → Spam-Ablage.", \count($entries), implode("\n", $lines), $confirmed > 0 ? \sprintf("Außerdem %d bereits als Spam bestätigt.\n\n", $confirmed) : '');
 
         // Absender ausdrücklich: Contaos Mailer ergänzt keinen, ohne From landet die Mail in der Fehlerwarteschlange.
         $this->mailer->send((new Email())
@@ -72,7 +81,7 @@ class SpamArchiveCron
             ->subject(\sprintf('%d neue Einsendungen in der Spam-Ablage', \count($entries)))
             ->text($body));
 
-        $this->archive->markDigested(array_column($entries, 'id'));
+        $this->archive->markDigested(array_column($all, 'id'));
     }
 
     /**

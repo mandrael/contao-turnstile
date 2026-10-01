@@ -36,6 +36,7 @@ services:
             $provider: '%env(default::TURNSTILE_AI_PROVIDER)%'
             $key: '%env(default::TURNSTILE_AI_KEY)%'
             $model: '%env(default::TURNSTILE_AI_MODEL)%'
+            $framework: '@contao.framework'
 
     Mandrael\ContaoTurnstileBundle\Service\SpamClassifier:
         arguments:

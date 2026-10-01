@@ -71,3 +71,6 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasonLabels'] = [
 ];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['done'] = ['spam' => 'Als Spam bestätigt', 'delete' => 'Gelöscht'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ajaxUnclear'] = 'Ergebnis unklar – bitte Seite neu laden.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpamAuto'] = 'Spam, automatisch bestätigt am %s';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternProgress'] = 'Muster %d von %d bestätigt – danach automatisch';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'Muster nie automatisch (schon einmal Kein Spam)';

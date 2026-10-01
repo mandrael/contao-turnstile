@@ -149,6 +149,7 @@ class tl_turnstile_spam extends Backend
 
         $args[5] = match (true) {
             (int) $row['delivered'] > 0 => \sprintf($GLOBALS['TL_LANG']['tl_turnstile_spam']['statusDelivered'] ?? '%s', Date::parse(Date::getNumericDateFormat(), (int) $row['delivered'])),
+            'spam' === $row['label'] && 0 === (int) $row['label_by'] => \sprintf($GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpamAuto'] ?? '%s', Date::parse(Date::getNumericDateFormat(), (int) $row['label_at'])),
             'spam' === $row['label'] => \sprintf($GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpam'] ?? '%s', Date::parse(Date::getNumericDateFormat(), (int) $row['label_at'])),
             'ham' === $row['label'] => $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] ?? 'ham',
             default => $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnreviewed'] ?? 'unreviewed',

@@ -144,7 +144,8 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
   - Sonst läuft alles normal, einschließlich Bestätigung an den Absender. Im Formulargenerator und bei
     Kommentaren gehen höchstens drei Mails je eingetragener Adresse und Tag hinaus.
 - **Optionale KI-Einordnung** für den Graubereich (zwei Gruppen vertreten, aber nicht „Spam
-  sicher“): `TURNSTILE_AI_KEY` in `.env.local`, `TURNSTILE_AI_PROVIDER` (`mistral` oder
+  sicher“): Schlüssel im Feld „Mistral-API-Schlüssel (KI-Spamerkennung)“ der Turnstile-Einstellungen
+  oder `TURNSTILE_AI_KEY` in `.env.local` (hat Vorrang), `TURNSTILE_AI_PROVIDER` (`mistral` oder
   `anthropic`), wahlweise `TURNSTILE_AI_MODEL`. Ist sie eingerichtet, führt dort auch ein sicheres
   KI-Urteil zu „Spam sicher"; jedes andere Urteil zur normalen Verarbeitung; Fehler, Zeitüberschreitung (5 s) und das Tagesbudget (150) führen zur normalen
   Verarbeitung. Übermittelt werden nur Textfelder und Mailadresse, nie die IP; der Anbieter gehört als
@@ -163,10 +164,17 @@ zurückgehaltener Mail Empfänger und Status;
 Versands unklar (etwa nach einem Abbruch), bietet die Ansicht erst nach 15 Minuten ein erneutes Senden an, mit
 Hinweis auf mögliche Doppelzustellung.
 
+- **Lernende Auto-Bestätigung:** Jeder Eintrag hat ein Signalmuster (z. B. „Zeichensalat, Link, Tor“). Nach
+  **20 manuellen Bestätigungen** eines Musters ohne ein einziges „Kein Spam“ werden neue Einträge mit diesem Muster
+  automatisch als Spam bestätigt („Spam, automatisch bestätigt“), bleiben aber 90 Tage zustellbar. Der Lernstand
+  steht am ungeprüften Eintrag („Muster 12 von 20 bestätigt“). Ein einziges „Kein Spam“ sperrt das Muster
+  dauerhaft und setzt dessen automatisch bestätigte Einträge zurück auf ungeprüft. Der Lernstand überdauert das
+  Löschen nach 90 Tagen.
 - Einträge werden nach **90 Tagen** automatisch gelöscht (täglicher Cronjob).
 - Ungeprüfte Einträge meldet eine Systemnachricht auf der Backend-Startseite.
 - **Tageszusammenfassung** (Einstellungen, Standard aus): eine Mail je Tag mit Datum, Quelle, Punkten,
-  Signalen und Betreff der neuen Einträge, ohne Inhalt der Einsendung. Empfänger ist die eingetragene Adresse,
+  Signalen und Betreff der neuen Einträge, ohne Inhalt der Einsendung; automatisch bestätigte sind zur Kontrolle
+  markiert, von Hand bestätigte werden nur gezählt. Sind alle neuen schon von Hand bestätigt, geht keine Mail hinaus. Empfänger ist die eingetragene Adresse,
   sonst die Administrator-Adresse.
 - Scheitert das Ablegen (etwa Datenbankfehler oder Mail über 12 MB), geht die Mail ersatzweise mit `[Spam]` im
   Betreff an die Betreiber statt an die im Formular eingetragene Adresse; nur ohne Administrator-Adresse bleibt der
@@ -238,7 +246,7 @@ System-Log; die Ausgabe selbst bleibt unverändert. Die genaue Liste der Pflicht
 **Kompatibilität & Qualität**
 
 - **Drei Contao-LTS-Versionen aus einer Codebasis:** Contao 4.13 LTS, 5.3 LTS und 5.7 LTS (inkl. der dazwischenliegenden 5.x-Releases), PHP 8.1+ – auf 4.13, 5.3 und 5.7 unter realen Bedingungen verifiziert.
-- **Rückstandsarme Installation und Deinstallation:** keine `runonce`-/Installationsskripte, keine Schreibzugriffe auf das Projekt-Dateisystem; Backend-Felder werden über die DCA bereitgestellt (und mit dem Bundle wieder entfernt), die Datenbankspalten und die zwei Tabellen der Spam-Ablage über `contao:migrate`.
+- **Rückstandsarme Installation und Deinstallation:** keine `runonce`-/Installationsskripte, keine Schreibzugriffe auf das Projekt-Dateisystem; Backend-Felder werden über die DCA bereitgestellt (und mit dem Bundle wieder entfernt), die Datenbankspalten und die drei Tabellen der Spam-Ablage über `contao:migrate`.
 - **Komfortable Schlüsselverwaltung** direkt im Backend – ohne YAML- oder `.env`-Bearbeitung.
 - **Feingranulare Steuerung:** globaler Aktivierungsmodus (überall / nur ausgewählte Formulare / aus) plus Überschreibung je Formular-Element.
 - **Getestet und gepflegt:** PHPUnit, PHPStan (Level 5), CI über PHP 8.1–8.4; MIT-Lizenz; fügt keinerlei Tracking hinzu.

@@ -81,11 +81,16 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigestEmail'] = [
     'Address for the daily digest. Empty uses the administrator e-mail address.',
 ];
 
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiKey'] = [
+    'Mistral API key (AI spam detection)',
+    'Optional. Key from console.mistral.ai; the AI only judges borderline cases of the spam classification. Empty = off. Add Mistral as a processor to your privacy policy.',
+];
+
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
-    'AI classification',
-    'Set up via TURNSTILE_AI_KEY in .env.local; the key is never shown here.',
+    'Mistral AI spam detection',
+    'Status of the AI classification; the key is never shown here.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'active - %s, %s, %d of %d used today';
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'off';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Set up via TURNSTILE_AI_KEY in .env.local.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Enter the key in the "Mistral API key" field (or TURNSTILE_AI_KEY in .env.local, which takes precedence).';

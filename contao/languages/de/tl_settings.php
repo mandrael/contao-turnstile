@@ -81,11 +81,16 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigestEmail'] = [
     'Adresse für die Tageszusammenfassung. Leer verwendet die Administrator-E-Mail-Adresse.',
 ];
 
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiKey'] = [
+    'Mistral-API-Schlüssel (KI-Spamerkennung)',
+    'Optional. Schlüssel von console.mistral.ai; die KI prüft nur Grenzfälle der Spam-Einstufung. Leer = aus. Mistral als Auftragsverarbeiter in die Datenschutzerklärung aufnehmen.',
+];
+
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
-    'KI-Einordnung',
-    'Einrichtung über TURNSTILE_AI_KEY in .env.local; der Schlüssel wird hier nie angezeigt.',
+    'Mistral-KI-Spamerkennung',
+    'Status der KI-Einordnung; der Schlüssel wird hier nie angezeigt.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'aktiv – %s, %s, heute %d von %d genutzt';
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'aus';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Einrichtung über TURNSTILE_AI_KEY in .env.local.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusHint'] = 'Schlüssel im Feld „Mistral-API-Schlüssel“ eintragen (alternativ TURNSTILE_AI_KEY in .env.local, hat Vorrang).';

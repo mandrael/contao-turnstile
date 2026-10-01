@@ -1,5 +1,17 @@
 # Upgrade
 
+## 0.8.1 → 0.9.0
+
+**Datenbank-Update nötig:** neue Tabelle `tl_turnstile_spam_pattern` (Lernstand je Signalmuster). Nach dem Update
+`contao:migrate` ausführen bzw. im Contao Manager die Datenbank aktualisieren. Bis dahin läuft die Spam-Ablage
+unverändert weiter, nur ohne Lernen und Auto-Bestätigung.
+
+- Gezählt werden Bestätigungen ab 0.9.0. Schon vorher bestätigte Einträge lassen sich einmalig übernehmen:
+  `INSERT INTO tl_turnstile_spam_pattern (tstamp, pattern, confirmed, rejected) SELECT UNIX_TIMESTAMP(), reasons,
+  SUM(label = 'spam' AND label_by > 0), SUM(label = 'ham') FROM tl_turnstile_spam WHERE reasons <> '' GROUP BY reasons`
+  (nur auf eine leere Tabelle anwenden).
+- Die Tageszusammenfassung zählt von Hand bestätigten Spam nur noch und markiert automatisch bestätigte Einträge; sie entfällt, wenn alle neuen Einträge schon von Hand bestätigt sind.
+
 ## 0.8.0 → 0.8.1
 
 **Keine Datenbank-Migration nötig.** Neue Backend-Dateien (`spam-archive.css`, `spam-archive.js`) installiert

@@ -14,6 +14,7 @@
 .tsa-badge { float: right; color: var(--gray, #999); }
 .tsa-reasons { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; padding: 0; list-style: none; }
 .tsa-reasons li { padding: 1px 8px; border-radius: 10px; background: var(--error-bg, #fdecea); }
+.tsa-reasons li.tsa-learning { background: var(--info-bg, #e8f0f7); }
 .tsa-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 0 0 8px; }
 .tsa-card dt { color: var(--gray, #999); }
 .tsa-card dd { margin: 0; overflow-wrap: anywhere; }

@@ -142,7 +142,8 @@ integrator with a strict CSP of their own adds them manually.
   - Otherwise everything runs normally, including the confirmation to the sender. In the form generator
     and for comments, at most three mails per entered address and day are sent.
 - **Optional AI classification** for the grey zone (two groups present but not "certain spam"):
-  `TURNSTILE_AI_KEY` in `.env.local`, `TURNSTILE_AI_PROVIDER` (`mistral` or `anthropic`), optionally
+  key in the "Mistral API key (AI spam detection)" field of the Turnstile settings or `TURNSTILE_AI_KEY`
+  in `.env.local` (takes precedence), `TURNSTILE_AI_PROVIDER` (`mistral` or `anthropic`), optionally
   `TURNSTILE_AI_MODEL`. If configured, a certain AI spam verdict also leads to "certain spam" there; any
   other verdict leads to normal processing; errors, timeouts (5 s)
   and the daily budget (150) lead to normal processing. Only text fields and the e-mail address are
@@ -159,10 +160,16 @@ withheld mail, its recipients and status; **"Deliver anyway"**
 sends them afterwards unchanged, including attachments. If the outcome of a delivery is unclear (e.g. after an
 abort), the view offers a resend only after 15 minutes, with a warning about possible duplicate delivery.
 
+- **Learning auto-confirmation:** every entry has a signal pattern (e.g. "gibberish, link, Tor"). After **20 manual
+  confirmations** of a pattern without a single "Not spam", new entries with that pattern are confirmed as spam
+  automatically ("spam, auto-confirmed") and remain deliverable for 90 days. The learning progress is shown on the
+  unreviewed entry ("pattern 12 of 20 confirmed"). A single "Not spam" blocks the pattern for good and returns its
+  auto-confirmed entries to unreviewed. The learning state survives the 90-day cleanup.
 - Entries are deleted automatically after **90 days** (daily cron job).
 - A system message on the back-end start page reports unreviewed entries.
 - **Daily digest** (settings, off by default): one mail per day with date, source, points, signals and subject of
-  the new entries, without the submission's content. Recipient is the configured address, otherwise the
+  the new entries, without the submission's content; automatically confirmed ones are flagged for control, manually
+  confirmed ones are only counted. No mail is sent when all new entries were already confirmed by hand. Recipient is the configured address, otherwise the
   administrator address.
 - If archiving fails (e.g. database error or a mail over 12 MB), the mail goes to the operators with `[Spam]` in
   the subject instead of to the address entered in the form; only without an administrator address does the original

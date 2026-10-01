@@ -6,14 +6,15 @@ namespace Mandrael\ContaoTurnstileBundle\Tests\Service;
 
 use Mandrael\ContaoTurnstileBundle\Service\AiSpamJudge;
 use Mandrael\ContaoTurnstileBundle\Service\SpamClassifier;
-use PHPUnit\Framework\TestCase;
+use Contao\Config;
+use Contao\TestCase\ContaoTestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class AiSpamJudgeTest extends TestCase
+class AiSpamJudgeTest extends ContaoTestCase
 {
     public function testWithoutKeyReturnsNullWithoutHttpCall(): void
     {
@@ -23,6 +24,25 @@ class AiSpamJudgeTest extends TestCase
         $judge = $this->createJudge($client, key: '');
 
         self::assertNull($judge->judge(['Text'], ['a@x.at'], ['link']));
+    }
+
+    public function testKeyFromSettingsIsUsedAndEnvWins(): void
+    {
+        $config = $this->createAdapterMock(['get']);
+        $config->method('get')->willReturnMap([['turnstileAiKey', ' settings-key ']]);
+        $framework = $this->createContaoFrameworkMock([Config::class => $config]);
+        $auth = [];
+        $client = new MockHttpClient(static function (string $method, string $url, array $options) use (&$auth): MockResponse {
+            $auth[] = implode(' ', array_filter($options['normalized_headers']['authorization'] ?? []));
+
+            return new MockResponse(json_encode(['choices' => [['message' => ['content' => '{"spam": false, "sicher": true}']]]]));
+        });
+
+        self::assertTrue((new AiSpamJudge($client, new ArrayAdapter(), new NullLogger(), '', '', null, $framework))->status()['active']);
+        (new AiSpamJudge($client, new ArrayAdapter(), new NullLogger(), '', '', null, $framework))->judge(['x'], [], []);
+        (new AiSpamJudge($client, new ArrayAdapter(), new NullLogger(), '', 'env-key', null, $framework))->judge(['x'], [], []);
+
+        self::assertSame(['Authorization: Bearer settings-key', 'Authorization: Bearer env-key'], $auth);
     }
 
     public function testUnknownProviderReturnsNullWithoutHttpCall(): void

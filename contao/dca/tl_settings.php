@@ -17,6 +17,7 @@ PaletteManipulator::create()
     ->addField('turnstileSendRemoteIp', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileSpamDigest', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileSpamDigestEmail', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
+    ->addField('turnstileAiKey', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileAiStatus', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->applyToPalette('default', 'tl_settings');
 
@@ -102,6 +103,19 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSpamDigest'] = [
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSpamDigestEmail'] = [
     'inputType' => 'text',
     'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'rgxp' => 'email', 'decodeEntities' => true],
+];
+
+// Maskiert und mit den letzten 4 Zeichen wie turnstileSecretKey; TURNSTILE_AI_KEY in .env.local hat Vorrang.
+$GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiKey'] = [
+    'inputType' => 'text',
+    'eval' => ['tl_class' => 'w50 clr', 'maxlength' => 255, 'decodeEntities' => true, 'autocomplete' => 'off', 'style' => '-webkit-text-security:disc'],
+    'xlabel' => [
+        static function (): string {
+            $key = (string) Config::get('turnstileAiKey');
+
+            return '' === $key ? '' : '<span class="tl_gray" style="margin-left:.5em;font-weight:400">(…' . StringUtil::specialchars(substr($key, -4)) . ')</span>';
+        },
+    ],
 ];
 
 // Reine Anzeige, nichts gespeichert: kein 'sql', kein Wert in localconfig.php.

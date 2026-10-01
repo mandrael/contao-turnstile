@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mandrael\ContaoTurnstileBundle\Service;
 
+use Contao\Config;
+use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
@@ -11,7 +13,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * Optionale KI-Einordnung für den Graubereich der Einstufung. Standard aus: aktiv nur, wenn die
- * Umgebungsvariable TURNSTILE_AI_KEY gesetzt ist. Jeder Fehler, jede Zeitüberschreitung und ein
+ * ein Schlüssel eingetragen ist (Einstellungen „Mistral-API-Schlüssel“ oder TURNSTILE_AI_KEY, die Variable hat Vorrang). Jeder Fehler, jede Zeitüberschreitung und ein
  * aufgebrauchtes Tagesbudget ergeben kein Urteil (null) – der Aufrufer behandelt die Einsendung dann als
  * sauber. Die KI darf nur dann zur Ablage führen, wenn sie sich ausdrücklich sicher ist.
  *
@@ -50,6 +52,7 @@ class AiSpamJudge
         ?string $provider = null,
         private readonly ?string $key = null,
         private readonly ?string $model = null,
+        private readonly ?ContaoFramework $framework = null,
     ) {
         $provider = strtolower(trim((string) $provider));
         $this->provider = '' === $provider ? 'mistral' : (isset(self::PROVIDERS[$provider]) ? $provider : '');
@@ -64,7 +67,7 @@ class AiSpamJudge
      */
     public function judge(array $texts, array $emails, array $reasons): ?array
     {
-        if ('' === trim((string) $this->key) || '' === $this->provider || !$this->budgetAvailable()) {
+        if ('' === $this->key() || '' === $this->provider || !$this->budgetAvailable()) {
             return null;
         }
 
@@ -104,7 +107,7 @@ class AiSpamJudge
      */
     public function status(): array
     {
-        $active = '' !== trim((string) $this->key) && '' !== $this->provider;
+        $active = '' !== $this->key() && '' !== $this->provider;
         $used = 0;
 
         try {
@@ -122,10 +125,30 @@ class AiSpamJudge
         ];
     }
 
+    /**
+     * TURNSTILE_AI_KEY vor dem Feld in den Einstellungen.
+     */
+    private function key(): string
+    {
+        $key = trim((string) $this->key);
+
+        if ('' !== $key || null === $this->framework) {
+            return $key;
+        }
+
+        try {
+            $this->framework->initialize();
+
+            return trim((string) $this->framework->getAdapter(Config::class)->get('turnstileAiKey'));
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
     private function askMistral(string $prompt): string
     {
         $data = $this->post([
-            'Authorization' => 'Bearer '.$this->key,
+            'Authorization' => 'Bearer '.$this->key(),
         ], [
             'model' => $this->modelName(),
             'temperature' => 0,
@@ -143,7 +166,7 @@ class AiSpamJudge
     private function askAnthropic(string $prompt): string
     {
         $data = $this->post([
-            'x-api-key' => (string) $this->key,
+            'x-api-key' => $this->key(),
             'anthropic-version' => '2023-06-01',
         ], [
             'model' => $this->modelName(),

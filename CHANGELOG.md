@@ -5,6 +5,22 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
+## [0.9.0] - unveröffentlicht
+
+### Hinzugefügt
+- **Lernende Auto-Bestätigung** in der Spam-Ablage: Nach 20 manuellen Bestätigungen eines Signalmusters ohne ein
+  „Kein Spam“ werden neue Einträge mit diesem Muster automatisch als Spam bestätigt. Ein „Kein Spam“ sperrt das
+  Muster dauerhaft und setzt dessen automatisch bestätigte Einträge zurück. Lernstand je Eintrag im Posteingang,
+  Log-Eintrag je automatischer Bestätigung. Neue Tabelle `tl_turnstile_spam_pattern`.
+- Feld **„Mistral-API-Schlüssel (KI-Spamerkennung)“** in den Turnstile-Einstellungen (maskiert, letzte 4 Zeichen sichtbar);
+  `TURNSTILE_AI_KEY` in `.env.local` hat weiter Vorrang. Die Statusanzeige heißt jetzt „Mistral-KI-Spamerkennung“.
+
+### Geändert
+- Tageszusammenfassung: von Hand bestätigter Spam wird nur gezählt; automatisch bestätigte Einträge stehen markiert mit Betreff drin (Kontrolle); ohne neue Einträge außer Handbestätigten keine Mail.
+
+### Behoben
+- Einstellungen: Die KI-Infobox rutschte unter die Felder, ihr (i) stand über „Site Key“.
+
 ## [0.8.1] - 2026-10-01
 
 ### Hinzugefügt

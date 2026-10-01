@@ -149,6 +149,37 @@ class SpamArchiveControllerTest extends ContaoTestCase
         self::assertStringContainsString('id="tsa-5"', $output);
     }
 
+    public function testFeedShowsLearningProgressAndAutoConfirmedBadge(): void
+    {
+        $this->pushRequest(Request::create('/', 'GET', ['filter' => 'all']));
+        $GLOBALS['TL_LANG']['tl_turnstile_spam']['patternProgress'] = 'Muster %d von %d';
+        $GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'Muster gesperrt';
+        $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpamAuto'] = 'automatisch %s';
+
+        $rows = [
+            ['id' => 1, 'reasons' => 'tor-exit, link'] + $this->headRow(),
+            ['id' => 2, 'reasons' => 'no-mx'] + $this->headRow(),
+            ['id' => 3, 'reasons' => 'tor-exit, link', 'label' => 'spam', 'label_by' => 0, 'label_at' => 1000] + $this->headRow(),
+        ];
+        $db = $this->createMock(Connection::class);
+        $db->method('fetchAllAssociative')->willReturn($rows);
+        $db->method('fetchOne')->willReturn(3);
+
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->method('countByLabel')->willReturn(['unreviewed' => 2, 'spam' => 1]);
+        $archive->method('patterns')->willReturn([
+            'tor-exit, link' => ['confirmed' => 12, 'rejected' => 0],
+            'no-mx' => ['confirmed' => 30, 'rejected' => 1],
+        ]);
+
+        $output = (string) $this->controller($db, $archive)->feed($this->dc(0));
+
+        self::assertStringContainsString('Muster 12 von '.SpamArchive::AUTO_CONFIRM_MIN, $output);
+        self::assertStringContainsString('Muster gesperrt', $output);
+        self::assertStringContainsString('automatisch ', $output);
+        self::assertSame(2, substr_count($output, 'tsa-learning'), 'kein Lernstand am bestätigten Eintrag');
+    }
+
     public function testFeedAjaxMarksSpamAndAnswersJson(): void
     {
         $request = Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'spam', 'ids' => '5,6,x']);
