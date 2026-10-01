@@ -50,7 +50,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
     'block' => 'Einsendung ablehnen (Standard)',
-    'altcha' => 'Ersatzprüfung mit ALTCHA und Spam-Einstufung (empfohlen)',
+    'altcha' => 'Ersatzprüfung mit ALTCHA, dann annehmen und einstufen (empfohlen)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [

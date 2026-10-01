@@ -50,7 +50,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileModeOptions'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureModeOptions'] = [
     'block' => 'Reject the submission (default)',
-    'altcha' => 'Fallback check with ALTCHA and spam classification (recommended)',
+    'altcha' => 'Fallback check with ALTCHA, then accept and classify (recommended)',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileThemeOptions'] = [
