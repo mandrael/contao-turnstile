@@ -2,13 +2,16 @@
 
 use Contao\Backend;
 use Contao\Database;
+use Contao\Input;
+use Contao\System;
 use Contao\DataContainer;
 use Contao\Date;
 use Contao\DC_Table;
 use Contao\StringUtil;
 
 /*
- * Liste der als „Spam sicher" eingestuften Einsendungen. Bearbeiten und Kopieren gibt es nicht – nur Ansehen
+ * Tabellenansicht der als „Spam sicher" eingestuften Einsendungen (nur mit mode=table, sonst Umleitung auf den
+ * Posteingang, siehe SpamArchiveController::feed()). Bearbeiten und Kopieren gibt es nicht – nur Ansehen
  * (eigene Seite über key=view, siehe SpamArchiveController) und Löschen. Löschen nimmt die Mails aus
  * tl_turnstile_spam_message mit (ctable-Kaskade in DC_Table::delete()).
  */
@@ -20,6 +23,7 @@ $GLOBALS['TL_DCA']['tl_turnstile_spam'] = [
         'notEditable' => true,
         'notCopyable' => true,
         'backendSearchIgnore' => true,
+        'onload_callback' => [[tl_turnstile_spam::class, 'redirectToFeed']],
         'ondelete_callback' => [[tl_turnstile_spam::class, 'dropUndo']],
         'sql' => [
             'keys' => [
@@ -40,6 +44,12 @@ $GLOBALS['TL_DCA']['tl_turnstile_spam'] = [
             'fields' => ['created', 'source', 'score', 'reasons', 'subject', 'label'],
             'showColumns' => true,
             'label_callback' => [tl_turnstile_spam::class, 'formatColumns'],
+        ],
+        'global_operations' => [
+            'feed' => [
+                'href' => 'key=feed',
+                'icon' => 'show.svg',
+            ],
         ],
         'operations' => [
             'view' => [
@@ -139,11 +149,25 @@ class tl_turnstile_spam extends Backend
 
         $args[5] = match (true) {
             (int) $row['delivered'] > 0 => \sprintf($GLOBALS['TL_LANG']['tl_turnstile_spam']['statusDelivered'] ?? '%s', Date::parse(Date::getNumericDateFormat(), (int) $row['delivered'])),
+            'spam' === $row['label'] => \sprintf($GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpam'] ?? '%s', Date::parse(Date::getNumericDateFormat(), (int) $row['label_at'])),
             'ham' === $row['label'] => $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusHam'] ?? 'ham',
             default => $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusUnreviewed'] ?? 'unreviewed',
         };
 
         return $args;
+    }
+
+    /**
+     * Der Posteingang ist die Standardansicht; die Tabelle bleibt unter mode=table erreichbar. Aktionen (act, key)
+     * laufen unverändert durch.
+     */
+    public function redirectToFeed(DataContainer|null $dc = null): void
+    {
+        if (Input::get('act') || Input::get('key') || 'table' === Input::get('mode')) {
+            return;
+        }
+
+        $this->redirect(System::getContainer()->get('router')->generate('contao_backend', ['do' => 'turnstile_spam', 'key' => 'feed']));
     }
 
     /**

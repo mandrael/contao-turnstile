@@ -6,6 +6,7 @@ namespace Mandrael\ContaoTurnstileBundle\Tests\Backend;
 
 use Contao\BackendUser;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
+use Contao\CoreBundle\Exception\ResponseException;
 use Contao\CoreBundle\Routing\ScopeMatcher;
 use Contao\DataContainer;
 use Contao\System;
@@ -122,6 +123,76 @@ class SpamArchiveControllerTest extends ContaoTestCase
 
         $controller = $this->controller($db, $archive);
         $controller->view($this->dc(5));
+    }
+
+    public function testFeedRendersEntriesOpenAndEscaped(): void
+    {
+        $this->pushRequest(Request::create('/', 'GET'));
+        $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasonLabels'] = ['tor-exit' => 'gesendet über Tor'];
+
+        $row = ['preview' => '<script>x</script> Hallo', 'reasons' => 'tor-exit, links'] + $this->headRow();
+        $db = $this->createMock(Connection::class);
+        $db->method('fetchAllAssociative')->willReturn([$row]);
+        $db->method('fetchOne')->willReturn(1);
+
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->method('countByLabel')->willReturn(['unreviewed' => 1]);
+        $archive->expects(self::never())->method('markSpam');
+
+        $output = $this->controller($db, $archive)->feed($this->dc(0));
+
+        self::assertIsString($output);
+        self::assertStringContainsString('&lt;script&gt;x&lt;/script&gt; Hallo', $output);
+        self::assertStringNotContainsString('<script>', $output);
+        self::assertStringContainsString('gesendet über Tor', $output);
+        self::assertStringContainsString('value="spam"', $output);
+        self::assertStringContainsString('id="tsa-5"', $output);
+    }
+
+    public function testFeedAjaxMarksSpamAndAnswersJson(): void
+    {
+        $request = Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'spam', 'ids' => '5,6,x']);
+        $request->headers->set('X-Requested-With', 'XMLHttpRequest');
+        $this->pushRequest($request);
+
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->expects(self::once())->method('markSpam')->with([5, 6], 42)->willReturn(2);
+        $archive->method('countByLabel')->willReturn(['spam' => 2]);
+
+        try {
+            $this->controller($this->createMock(Connection::class), $archive)->feed($this->dc(0));
+            self::fail('Erwartet: ResponseException mit JSON');
+        } catch (ResponseException $e) {
+            $data = json_decode((string) $e->getResponse()->getContent(), true);
+            self::assertTrue($data['ok']);
+            self::assertSame(['spam' => 2], $data['counts']);
+        }
+    }
+
+    public function testFeedDeliverOnlyFirstIdAndPlainPostRedirects(): void
+    {
+        $this->pushRequest(Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'deliver', 'ids' => '5,6']));
+
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->expects(self::once())->method('deliver')->with(5, 42)->willReturn(['sent' => 1, 'failed' => 0, 'unclear' => 0]);
+
+        $response = $this->controller($this->createMock(Connection::class), $archive)->feed($this->dc(0));
+
+        self::assertInstanceOf(RedirectResponse::class, $response);
+    }
+
+    public function testFeedGetNeverActs(): void
+    {
+        $this->pushRequest(Request::create('/?FORM_SUBMIT=turnstile_spam_feed&tsa_action=delete&ids=5', 'GET'));
+
+        $db = $this->createMock(Connection::class);
+        $db->method('fetchAllAssociative')->willReturn([]);
+
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->expects(self::never())->method('delete');
+        $archive->method('countByLabel')->willReturn([]);
+
+        self::assertIsString($this->controller($db, $archive)->feed($this->dc(0)));
     }
 
     private function controller(Connection $db, SpamArchive $archive): SpamArchiveController

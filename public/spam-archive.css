@@ -1,0 +1,25 @@
+/* Posteingang der Spam-Ablage (SpamArchiveController::feed). Farben über die Variablen des Contao-5-Themes,
+   mit Rückfallwerten für 4.13. */
+.tsa-feed { padding: 0 15px 15px; }
+.tsa-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 15px 0; }
+.tsa-tabs a { padding: 5px 12px; border: 1px solid var(--border, #ddd); border-radius: 15px; }
+.tsa-tabs a.active { background: var(--active-bg, #e8f0f7); border-color: var(--active-border, #9bc); font-weight: 600; }
+.tsa-tabs span { color: var(--gray, #999); }
+.tsa-bulk { margin: 0 0 15px; }
+.tsa-card { border: 1px solid var(--border, #ddd); border-left-width: 4px; border-radius: 3px; padding: 10px 14px; margin: 0 0 12px; background: var(--content-bg, #fff); }
+.tsa-card.tsa-unreviewed { border-left-color: var(--orange, #e68a00); }
+.tsa-card.tsa-spam { border-left-color: var(--red, #c33); }
+.tsa-card.tsa-ham, .tsa-card.tsa-delivered { border-left-color: var(--green, #589b0e); }
+.tsa-card header { margin-bottom: 6px; }
+.tsa-badge { float: right; color: var(--gray, #999); }
+.tsa-reasons { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; padding: 0; list-style: none; }
+.tsa-reasons li { padding: 1px 8px; border-radius: 10px; background: var(--error-bg, #fdecea); }
+.tsa-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 0 0 8px; }
+.tsa-card dt { color: var(--gray, #999); }
+.tsa-card dd { margin: 0; overflow-wrap: anywhere; }
+.tsa-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 10px; padding: 8px 10px; background: var(--code-bg, #f6f6f6); border-radius: 3px; font-size: .75rem; }
+.tsa-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tsa-actions a { margin-left: auto; }
+.tsa-card.tsa-done { padding: 6px 14px; color: var(--gray, #999); }
+.tsa-card .tsa-error { color: var(--red, #c33); }
+.tsa-pager { text-align: center; }

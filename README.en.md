@@ -150,8 +150,11 @@ integrator with a strict CSP of their own adds them manually.
 
 ### Spam archive
 
-Back end under **System → Spam archive**: list of submissions classified as "certain spam" with date, source,
-points, signals and subject. The detail view shows the text of the first mail as a preview and, per
+Back end under **System → Spam archive**: inbox of submissions classified as "certain spam", all entries open one
+below the other (date, source, points, signals in plain language, recipients, subject, text of the first mail).
+Right on each entry: **Confirm spam**, **Not spam – deliver** and **Delete**, without reloading the page; tabs for
+Unreviewed / Spam / Not spam / All at the top and "Confirm all shown as spam". Confirmed spam no longer counts as
+unreviewed. The previous table is available via "Table view". The detail view ("Details") shows the text of the first mail as a preview and, per
 withheld mail, its recipients and status; **"Deliver anyway"**
 sends them afterwards unchanged, including attachments. If the outcome of a delivery is unclear (e.g. after an
 abort), the view offers a resend only after 15 minutes, with a warning about possible duplicate delivery.

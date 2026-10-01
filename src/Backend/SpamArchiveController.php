@@ -5,26 +5,41 @@ declare(strict_types=1);
 namespace Mandrael\ContaoTurnstileBundle\Backend;
 
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
+use Contao\CoreBundle\Exception\ResponseException;
 use Contao\DataContainer;
 use Contao\Date;
 use Contao\Message;
 use Contao\StringUtil;
 use Doctrine\DBAL\Connection;
 use Mandrael\ContaoTurnstileBundle\Service\SpamArchive;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
- * Eigene Ansicht für einen Ablage-Eintrag (BE_MOD-Key „view", siehe contao/config/config.php) und die
- * „Doch zustellen"-Aktion. Kein Editieren/Kopieren – nur Ansehen, Zustellen, Löschen (Löschen läuft über die
- * normale DC_Table-Aktion der Liste). Liest die Kopf- und Mail-Daten selbst per DBAL, weil SpamArchive keine
+ * Posteingang der Ablage (BE_MOD-Key „feed", Standardansicht des Moduls): alle Einträge offen untereinander mit
+ * Spam bestätigen / Doch zustellen / Löschen direkt am Eintrag. Ohne JavaScript normale Formulare mit Redirect,
+ * mit JavaScript (public/spam-archive.js) per fetch und JSON, ohne Neuladen. Daneben die Einzelansicht
+ * (Key „view") mit Mailstatus und „Trotzdem erneut senden" für unklare Zustellungen. Liest die Kopf- und Mail-Daten selbst per DBAL, weil SpamArchive keine
  * Einzelabfrage anbietet und dafür nicht verändert werden soll.
  */
 class SpamArchiveController
 {
     private const MODULE = 'turnstile_spam';
+
+    private const PER_PAGE = 50;
+
+    /**
+     * Filter des Posteingangs → WHERE-Bedingung (nur feste Werte, nie Eingaben).
+     */
+    private const FILTERS = [
+        'unreviewed' => "label = 'unreviewed'",
+        'spam' => "label = 'spam'",
+        'ham' => "label = 'ham'",
+        'all' => '1 = 1',
+    ];
 
     public function __construct(
         private readonly Connection $db,
@@ -34,6 +49,209 @@ class SpamArchiveController
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly TokenStorageInterface $tokenStorage,
     ) {
+    }
+
+    public function feed(DataContainer $dc): string|RedirectResponse
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        $filter = (string) $request?->query->get('filter', 'unreviewed');
+        $filter = isset(self::FILTERS[$filter]) ? $filter : 'unreviewed';
+        $page = max(1, (int) $request?->query->get('page', 1));
+
+        if (null !== $request && $request->isMethod('POST') && 'turnstile_spam_feed' === $request->request->get('FORM_SUBMIT')) {
+            $ids = array_values(array_filter(array_map('intval', explode(',', (string) $request->request->get('ids')))));
+            $text = $this->act((string) $request->request->get('tsa_action'), $ids);
+
+            if ($request->isXmlHttpRequest()) {
+                throw new ResponseException(new JsonResponse(['ok' => null !== $text, 'text' => $text ?? '', 'counts' => $this->archive->countByLabel()], null !== $text ? 200 : 400));
+            }
+
+            if (null !== $text) {
+                Message::addConfirmation($text);
+            }
+
+            return new RedirectResponse($this->feedUrl($filter, $page));
+        }
+
+        $where = self::FILTERS[$filter];
+        $total = (int) $this->db->fetchOne('SELECT COUNT(*) FROM '.SpamArchive::TABLE.' WHERE '.$where);
+        // Nach Aktionen kann die letzte Seite leer werden: auf die tatsächlich letzte Seite zurückfallen.
+        $page = min($page, max(1, (int) ceil($total / self::PER_PAGE)));
+        $rows = $this->db->fetchAllAssociative(
+            'SELECT id, created, source, score, reasons, subject, recipients, preview, label, label_at, delivered FROM '.SpamArchive::TABLE
+            .' WHERE '.$where.' ORDER BY created DESC, id DESC LIMIT '.self::PER_PAGE.' OFFSET '.(($page - 1) * self::PER_PAGE),
+        );
+
+        return $this->renderFeed($filter, $page, $rows, $total, $this->archive->countByLabel());
+    }
+
+    /**
+     * Führt eine Aktion des Posteingangs aus; liefert den Rückmeldetext oder null bei unbekannter Aktion.
+     *
+     * @param list<int> $ids
+     */
+    private function act(string $action, array $ids): ?string
+    {
+        $lang = &$GLOBALS['TL_LANG']['tl_turnstile_spam'];
+
+        if ([] === $ids) {
+            return null;
+        }
+
+        switch ($action) {
+            case 'spam':
+                $count = $this->archive->markSpam($ids, $this->currentUserId());
+
+                return \sprintf($lang['markedSpam'] ?? '%d marked as spam.', $count);
+
+            case 'delete':
+                $count = $this->archive->delete($ids);
+
+                return \sprintf($lang['deleted'] ?? '%d deleted.', $count);
+
+            case 'deliver':
+                // Einzeln: Zustellen versendet echte Mails und ist nie eine Sammelaktion.
+                $result = $this->archive->deliver($ids[0], $this->currentUserId());
+
+                return \sprintf($lang['delivered'] ?? '%d sent, %d failed, %d unclear.', $result['sent'], $result['failed'], $result['unclear']);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @param array<string, int>          $counts
+     */
+    private function renderFeed(string $filter, int $page, array $rows, int $total, array $counts): string
+    {
+        $lang = &$GLOBALS['TL_LANG']['tl_turnstile_spam'];
+        $counts['all'] = array_sum($counts);
+
+        $tabs = '';
+
+        foreach (array_keys(self::FILTERS) as $key) {
+            $tabs .= '<a href="'.StringUtil::specialchars($this->feedUrl($key)).'"'.($key === $filter ? ' class="active"' : '').'>'
+                .($lang['filters'][$key] ?? $key).' <span data-count="'.$key.'">'.($counts[$key] ?? 0).'</span></a>';
+        }
+
+        $bulk = '';
+
+        if ('unreviewed' === $filter && [] !== $rows) {
+            $bulk = $this->actionForm(array_map(static fn (array $r): int => (int) $r['id'], $rows), ['spam' => \sprintf($lang['markAllSpam'] ?? 'Mark all %d as spam', \count($rows))], 'tsa-bulk');
+        }
+
+        $cards = '';
+
+        foreach ($rows as $row) {
+            $cards .= $this->renderCard($row);
+        }
+
+        if ('' === $cards) {
+            $cards = '<p class="tl_empty">'.($lang['feedEmpty'] ?? 'No entries.').'</p>';
+        }
+
+        $pager = '';
+
+        if ($total > self::PER_PAGE) {
+            $pager = '<p class="tsa-pager">'
+                .($page > 1 ? '<a href="'.StringUtil::specialchars($this->feedUrl($filter, $page - 1)).'">‹ '.($lang['prev'] ?? 'Previous').'</a> ' : '')
+                .\sprintf($lang['pageOf'] ?? 'Page %d of %d', $page, (int) ceil($total / self::PER_PAGE))
+                .($page * self::PER_PAGE < $total ? ' <a href="'.StringUtil::specialchars($this->feedUrl($filter, $page + 1)).'">'.($lang['next'] ?? 'Next').' ›</a>' : '')
+                .'</p>';
+        }
+
+        return '<div id="tl_buttons"><a href="'.StringUtil::specialchars($this->router->generate('contao_backend', ['do' => self::MODULE, 'mode' => 'table'])).'" class="header_back">'.($lang['tableView'] ?? 'Table view').'</a></div>'
+            .Message::generate()
+            .'<div class="tsa-feed">'
+            .'<nav class="tsa-tabs">'.$tabs.'</nav>'
+            .$bulk
+            .$cards
+            .$pager
+            .'</div>';
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function renderCard(array $row): string
+    {
+        $lang = &$GLOBALS['TL_LANG']['tl_turnstile_spam'];
+        $id = (int) $row['id'];
+        $delivered = (int) $row['delivered'];
+        $label = (string) $row['label'];
+        $date = static fn (int $t, string $f = ' H:i'): string => Date::parse(Date::getNumericDateFormat().$f, $t);
+
+        $status = match (true) {
+            $delivered > 0 => \sprintf($lang['statusDelivered'] ?? '%s', $date($delivered, '')),
+            'spam' === $label => \sprintf($lang['statusSpam'] ?? '%s', $date((int) $row['label_at'], '')),
+            'ham' === $label => $lang['statusHam'] ?? 'ham',
+            default => $lang['statusUnreviewed'] ?? 'unreviewed',
+        };
+
+        $reasons = '';
+
+        foreach (array_filter(array_map('trim', explode(',', (string) $row['reasons']))) as $reason) {
+            $reasons .= '<li>'.StringUtil::specialchars($lang['reasonLabels'][$reason] ?? $reason).'</li>';
+        }
+
+        $actions = [];
+
+        if ('unreviewed' === $label) {
+            $actions['spam'] = $lang['markSpam'] ?? 'Mark as spam';
+        }
+
+        if (0 === $delivered) {
+            $actions['deliver'] = $lang['deliverNotSpam'] ?? 'Not spam - deliver';
+        }
+
+        $actions['delete'] = $lang['delete'][0] ?? 'Delete';
+
+        // Betreff, Empfänger und Text stammen aus fremden Einsendungen: alles escapen.
+        return '<article class="tsa-card tsa-'.StringUtil::specialchars($delivered > 0 ? 'delivered' : $label).'" id="tsa-'.$id.'">'
+            .'<header><strong>'.$date((int) $row['created']).'</strong> · '
+            .StringUtil::specialchars((string) ($lang['sources'][$row['source']] ?? $row['source'])).' · '
+            .\sprintf($lang['points'] ?? '%d points', (int) $row['score'])
+            .' <span class="tsa-badge">'.StringUtil::specialchars($status).'</span></header>'
+            .('' !== $reasons ? '<ul class="tsa-reasons">'.$reasons.'</ul>' : '')
+            .'<dl><dt>'.($lang['recipients'] ?? 'To').'</dt><dd>'.StringUtil::specialchars((string) $row['recipients']).'</dd>'
+            .'<dt>'.($lang['subject'][0] ?? 'Subject').'</dt><dd>'.StringUtil::specialchars((string) $row['subject']).'</dd></dl>'
+            .'<pre class="tsa-text">'.StringUtil::specialchars((string) $row['preview']).'</pre>'
+            .$this->actionForm([$id], $actions, 'tsa-actions', '<a href="'.StringUtil::specialchars($this->viewUrl($id)).'">'.($lang['details'] ?? 'Details').'</a>')
+            .'</article>';
+    }
+
+    /**
+     * @param list<int>             $ids
+     * @param array<string, string> $actions Aktion → Beschriftung
+     */
+    private function actionForm(array $ids, array $actions, string $class, string $extra = ''): string
+    {
+        $lang = &$GLOBALS['TL_LANG']['tl_turnstile_spam'];
+        $request = $this->requestStack->getCurrentRequest();
+        $buttons = '';
+
+        foreach ($actions as $action => $text) {
+            $confirm = match ($action) {
+                'deliver' => $lang['confirmDeliver'] ?? 'Really send?',
+                'delete' => $lang['confirmDelete'] ?? 'Really delete?',
+                default => '',
+            };
+
+            // Kurztext für den eingeklappten Eintrag; beim Zustellen zeigt das Skript das Versandergebnis.
+            $done = $lang['done'][$action] ?? '';
+
+            $buttons .= '<button type="submit" name="tsa_action" value="'.$action.'" class="tl_submit tsa-'.$action.'"'
+                .('' !== $confirm ? ' data-confirm="'.StringUtil::specialchars($confirm).'"' : '')
+                .('' !== $done ? ' data-done="'.StringUtil::specialchars($done).'"' : '').'>'.StringUtil::specialchars($text).'</button> ';
+        }
+
+        return '<form class="'.$class.'" data-unclear="'.StringUtil::specialchars($lang['ajaxUnclear'] ?? 'Unclear result - please reload.').'" action="'.StringUtil::specialchars((string) $request?->getRequestUri()).'" method="post">'
+            .'<input type="hidden" name="FORM_SUBMIT" value="turnstile_spam_feed">'
+            .'<input type="hidden" name="REQUEST_TOKEN" value="'.StringUtil::specialchars($this->csrfTokenManager->getDefaultTokenValue()).'">'
+            .'<input type="hidden" name="ids" value="'.implode(',', $ids).'">'
+            .$buttons.$extra
+            .'</form>';
     }
 
     public function view(DataContainer $dc): string|RedirectResponse
@@ -149,7 +367,12 @@ class SpamArchiveController
 
     private function listUrl(): string
     {
-        return $this->router->generate('contao_backend', ['do' => self::MODULE]);
+        return $this->feedUrl('unreviewed');
+    }
+
+    private function feedUrl(string $filter, int $page = 1): string
+    {
+        return $this->router->generate('contao_backend', array_filter(['do' => self::MODULE, 'key' => 'feed', 'filter' => $filter, 'page' => $page > 1 ? $page : null]));
     }
 
     private function viewUrl(int $id): string

@@ -1,5 +1,18 @@
 # Upgrade
 
+## 0.8.0 → 0.8.1
+
+**Keine Datenbank-Migration nötig.** Neue Backend-Dateien (`spam-archive.css`, `spam-archive.js`) installiert
+Composer bzw. der Contao Manager wie üblich nach `public/bundles/mandraelcontaoturnstile/`; bei manueller
+Installation `contao:assets:install` ausführen.
+
+- **System → Spam-Ablage öffnet jetzt den Posteingang** statt der Tabelle. Die Tabelle bleibt über
+  „Tabellenansicht" erreichbar (`?do=turnstile_spam&mode=table`); Lesezeichen auf die alte Liste landen im Posteingang.
+- **Neuer Status `spam`** im Feld `label` (bisher `unreviewed`, `ham`). Eigene Abfragen auf `label = 'unreviewed'`
+  zählen bestätigten Spam nicht mehr mit.
+- Löschen im Posteingang entfernt Eintrag und Mails endgültig (wie bisher in der Liste, ohne Wiederherstellen) und
+  schreibt einen Eintrag ins System-Log.
+
 ## 0.7.1 → 0.8.0
 
 **Datenbank-Migration nötig:** `contao:migrate` (bzw. Contao Manager) legt die zwei Tabellen der Spam-Ablage

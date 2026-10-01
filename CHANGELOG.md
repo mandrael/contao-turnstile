@@ -5,6 +5,16 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Hinzugefügt
+- **Posteingang der Spam-Ablage** als Standardansicht: alle Einträge offen untereinander zum Durchscrollen,
+  Signale im Klartext, Aktionen direkt am Eintrag (Spam bestätigen, Kein Spam – zustellen, Löschen) per AJAX
+  ohne Neuladen, Reiter je Status mit Zählern und Sammelaktion „Alle angezeigten als Spam bestätigen". Ohne
+  JavaScript funktionieren dieselben Buttons als normale Formulare. Die Tabelle bleibt unter „Tabellenansicht".
+- Neuer Status **Spam (bestätigt)**: bestätigte Einträge zählen nicht mehr als ungeprüft, die Systemnachricht
+  verschwindet, sobald nichts mehr offen ist.
+
 ## [0.8.0] - 2026-09-25
 
 ### Hinzugefügt

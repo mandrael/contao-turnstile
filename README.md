@@ -152,8 +152,12 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
 
 ### Spam-Ablage
 
-Backend unter **System → Spam-Ablage**: Liste der als „Spam sicher" eingestuften Einsendungen mit Datum,
-Quelle, Punkten, Signalen und Betreff. Die Einzelansicht zeigt den Text der ersten Mail als Vorschau und je
+Backend unter **System → Spam-Ablage**: Posteingang der als „Spam sicher" eingestuften Einsendungen, alle
+Einträge offen untereinander (Datum, Quelle, Punkte, Signale im Klartext, Empfänger, Betreff, Text der ersten
+Mail). Direkt am Eintrag: **Spam bestätigen**, **Kein Spam – zustellen** und **Löschen**, ohne Neuladen der Seite;
+oben Reiter für Ungeprüft / Spam / Kein Spam / Alle und „Alle angezeigten als Spam bestätigen". Bestätigter Spam
+zählt nicht mehr als ungeprüft. Die bisherige Tabelle ist über „Tabellenansicht" erreichbar. Die Einzelansicht
+(„Details") zeigt den Text der ersten Mail als Vorschau und je
 zurückgehaltener Mail Empfänger und Status;
 **„Doch zustellen"** verschickt sie nachträglich unverändert, einschließlich Anhängen. Ist der Ausgang eines
 Versands unklar (etwa nach einem Abbruch), bietet die Ansicht erst nach 15 Minuten ein erneutes Senden an, mit

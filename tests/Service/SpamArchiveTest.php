@@ -234,6 +234,24 @@ class SpamArchiveTest extends TestCase
         self::assertSame(1, $archive->countUnreviewed());
     }
 
+    public function testMarkSpamOnlyTouchesUnreviewedAndDeleteRemovesMails(): void
+    {
+        $archive = $this->archive();
+        $a = $archive->store(null, [], self::email(), null);
+        $b = $archive->store(null, [], self::email(), null);
+        $archive->deliver($b, 1);
+
+        self::assertSame(1, $archive->markSpam([$a, $b], 7));
+        self::assertSame(['ham' => 1, 'spam' => 1], $archive->countByLabel());
+        self::assertSame(0, $archive->countUnreviewed());
+        self::assertSame(7, (int) $this->db->fetchOne('SELECT label_by FROM tl_turnstile_spam WHERE id = ?', [$a]));
+
+        self::assertSame(1, $archive->delete([$a]));
+        self::assertSame(0, (int) $this->db->fetchOne('SELECT COUNT(*) FROM tl_turnstile_spam_message WHERE pid = ?', [$a]));
+        self::assertSame(['ham' => 1], $archive->countByLabel());
+        self::assertSame(0, $archive->markSpam([], 7));
+    }
+
     private function archive(?TransportInterface $transport = null, ?object $storage = null): SpamArchive
     {
         return new SpamArchive($this->db, $transport ?? new RecordingTransport(), new NullLogger(), $storage);

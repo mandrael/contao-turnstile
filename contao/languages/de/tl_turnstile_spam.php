@@ -5,7 +5,7 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['source'] = ['Quelle', 'Formular, Komme
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['score'] = ['Punkte', 'Punktzahl der Einstufung.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['reasons'] = ['Signale', 'Verdachtssignale, die zur Einstufung geführt haben.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['subject'] = ['Betreff', 'Betreff der ersten abgelegten Mail.'];
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Status', 'Ungeprüft, kein Spam („Doch zustellen" ausgelöst) oder zugestellt.'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['label'] = ['Status', 'Ungeprüft, als Spam bestätigt, kein Spam („Doch zustellen" ausgelöst) oder zugestellt.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ruleVersion'] = ['Regelversion', 'Bundle-Version zum Zeitpunkt der Einstufung.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['preview'] = ['Vorschau', 'Text der ersten Mail, gekürzt.'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['recipients'] = 'Empfänger';
@@ -38,4 +38,36 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['view'] = ['Ansehen', 'Eintrag %s anseh
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['delete'] = ['Löschen', 'Eintrag %s löschen'];
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['sources'] = ['form' => 'Formular', 'comment' => 'Kommentar', 'registration' => 'Registrierung'];
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['labels'] = ['unreviewed' => 'ungeprüft', 'ham' => 'kein Spam'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['labels'] = ['unreviewed' => 'ungeprüft', 'ham' => 'kein Spam', 'spam' => 'Spam'];
+
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['feed'] = ['Posteingang', 'Posteingang'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['tableView'] = 'Tabellenansicht';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['filters'] = ['unreviewed' => 'Ungeprüft', 'spam' => 'Spam', 'ham' => 'Kein Spam', 'all' => 'Alle'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['points'] = '%d Punkte';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['details'] = 'Details';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['markSpam'] = 'Spam bestätigen';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['markAllSpam'] = 'Alle %d angezeigten als Spam bestätigen';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['deliverNotSpam'] = 'Kein Spam – zustellen';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['confirmDeliver'] = 'Die Mails dieser Einsendung jetzt wirklich zustellen?';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['confirmDelete'] = 'Diesen Eintrag endgültig löschen?';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['markedSpam'] = '%d als Spam bestätigt.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['deleted'] = '%d gelöscht.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['feedEmpty'] = 'Keine Einträge.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['prev'] = 'Zurück';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['next'] = 'Weiter';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['pageOf'] = 'Seite %d von %d';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpam'] = 'Spam, bestätigt am %s';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['reasonLabels'] = [
+    'gibberish-many' => 'Zeichensalat in mehreren Feldern',
+    'gibberish-one' => 'Zeichensalat in einem Feld',
+    'link' => 'Link im Text',
+    'repeat' => 'gleicher Text aus mehreren Netzen',
+    'dotted-address' => 'Mailadresse mit Punkten zerstückelt',
+    'no-mx' => 'Maildomain ohne Mailserver',
+    'tor-exit' => 'gesendet über Tor',
+    'net-burst' => 'viele Einsendungen aus einem Netz',
+    'ai-spam' => 'KI: Spam',
+    'ai-clean' => 'KI: unauffällig',
+];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['done'] = ['spam' => 'Als Spam bestätigt', 'delete' => 'Gelöscht'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['ajaxUnclear'] = 'Ergebnis unklar – bitte Seite neu laden.';

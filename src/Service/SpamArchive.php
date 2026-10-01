@@ -262,6 +262,60 @@ class SpamArchive
         );
     }
 
+    /**
+     * Bestätigt ungeprüfte Einträge als Spam. Bereits zugestellte oder anders eingestufte bleiben unverändert.
+     *
+     * @param list<int> $ids
+     */
+    public function markSpam(array $ids, int $userId): int
+    {
+        if ([] === $ids) {
+            return 0;
+        }
+
+        $now = time();
+        $count = $this->db->executeStatement(
+            'UPDATE '.self::TABLE.' SET label = ?, label_by = ?, label_at = ?, tstamp = ? WHERE label = ? AND delivered = 0 AND id IN ('.implode(',', array_fill(0, \count($ids), '?')).')',
+            ['spam', $userId, $now, $now, 'unreviewed', ...$ids],
+        );
+
+        $this->log('info', 'Spam-Ablage: '.$count.' Eintrag/Einträge als Spam bestätigt.');
+
+        return $count;
+    }
+
+    /**
+     * Löscht Einträge samt Mails endgültig (ohne tl_undo, wie das Löschen in der Liste).
+     *
+     * @param list<int> $ids
+     */
+    public function delete(array $ids): int
+    {
+        if ([] === $ids) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, \count($ids), '?'));
+
+        $count = $this->db->transactional(function () use ($ids, $placeholders): int {
+            $this->db->executeStatement('DELETE FROM '.self::MESSAGE_TABLE.' WHERE pid IN ('.$placeholders.')', $ids);
+
+            return $this->db->executeStatement('DELETE FROM '.self::TABLE.' WHERE id IN ('.$placeholders.')', $ids);
+        });
+
+        $this->log('info', 'Spam-Ablage: '.$count.' Eintrag/Einträge gelöscht.');
+
+        return $count;
+    }
+
+    /**
+     * @return array<string, int> Anzahl je Etikett (unreviewed, spam, ham)
+     */
+    public function countByLabel(): array
+    {
+        return array_map('intval', $this->db->fetchAllKeyValue('SELECT label, COUNT(*) FROM '.self::TABLE.' GROUP BY label'));
+    }
+
     public function countUnreviewed(): int
     {
         return (int) $this->db->fetchOne('SELECT COUNT(*) FROM '.self::TABLE.' WHERE label = ?', ['unreviewed']);
