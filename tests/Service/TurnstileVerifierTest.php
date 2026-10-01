@@ -27,6 +27,15 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertTrue($verifier->validate('a-token'));
     }
 
+    public function testValidTokenLogsInfoPass(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('log')->with('info', $this->stringContains('Token bestätigt'));
+
+        $client = new MockHttpClient(new MockResponse((string) json_encode(['success' => true])));
+        $this->assertTrue($this->createVerifier($client, logger: $logger)->validate('a-token'));
+    }
+
     public function testInvalidTokenIsBlocked(): void
     {
         $verifier = $this->createVerifier(new MockHttpClient(new MockResponse((string) json_encode(['success' => false]))));
@@ -42,12 +51,11 @@ class TurnstileVerifierTest extends ContaoTestCase
         $this->assertFalse($verifier->validate(null));
     }
 
-    public function testEmptyTokenLogsWarning(): void
+    public function testEmptyTokenLogsInfo(): void
     {
-        // Fehlendes Token (kaputter Feldname/Template, JS aus) -> genau eine diagnostische Warnung,
-        // damit ein flächiger Ausfall im Prod-Log auffällt.
+        // Fehlendes Token (Bot ohne JS, kaputter Feldname/Template) -> genau ein info-Eintrag, keine Warnung.
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('log')->with('warning');
+        $logger->expects($this->once())->method('log')->with('info');
 
         $this->assertFalse($this->createVerifier(new MockHttpClient(), logger: $logger)->validate(''));
     }

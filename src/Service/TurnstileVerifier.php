@@ -168,11 +168,11 @@ class TurnstileVerifier
     public function validate(?string $token): bool
     {
         if (null === $token || '' === $token) {
-            // Hier wird ein stiller Totalausfall sichtbar: kommt gar kein Token an (kaputter
-            // Template-Override/Feldname, JS aus), genau EINE Warnung – bewusst warning (nicht info),
-            // damit ein flächiger Ausfall im Prod-Log auffällt. Abgelehnte Tokens (Bot-Replays)
-            // bleiben weiter still, um keine Log-Flut zu erzeugen. Nie das Secret loggen.
-            $this->safeLog('warning', 'Cloudflare Turnstile: kein Token im Request – Template/Feldname prüfen.', ContaoContext::FORMS, __METHOD__);
+            // Kommt gar kein Token an (Bot ohne JS, JS aus, kaputter Template-Override/Feldname), genau
+            // EIN Eintrag. Seit 0.8.1 info statt warning: Bots ohne Token sind Alltag und füllten das
+            // Prod-Log mit Warnungen. Ein flächiger Ausfall bleibt sichtbar, weil dann die Einträge
+            // „Token bestätigt" fehlen. Abgelehnte Tokens (Bot-Replays) bleiben still. Nie das Secret loggen.
+            $this->safeLog('info', 'Cloudflare Turnstile: kein Token im Request (Bot ohne JS oder Template/Feldname prüfen).', ContaoContext::FORMS, __METHOD__);
 
             return false;
         }
@@ -206,7 +206,13 @@ class TurnstileVerifier
         $data = $result[1];
 
         if (true === ($data['success'] ?? false)) {
-            return $this->hostnameMatches($data);
+            if (!$this->hostnameMatches($data)) {
+                return false;
+            }
+
+            $this->safeLog('info', 'Cloudflare Turnstile: Token bestätigt, Absenden erlaubt.', ContaoContext::FORMS, __METHOD__);
+
+            return true;
         }
 
         $this->warnOnConfigError($data);

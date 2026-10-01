@@ -5,7 +5,7 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [0.8.1] - 2026-10-01
 
 ### Hinzugefügt
 - **Posteingang der Spam-Ablage** als Standardansicht: alle Einträge offen untereinander zum Durchscrollen,
@@ -14,6 +14,12 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   JavaScript funktionieren dieselben Buttons als normale Formulare. Die Tabelle bleibt unter „Tabellenansicht".
 - Neuer Status **Spam (bestätigt)**: bestätigte Einträge zählen nicht mehr als ungeprüft, die Systemnachricht
   verschwindet, sobald nichts mehr offen ist.
+- System-Log: bestandene Turnstile-Prüfungen („Token bestätigt"), Blocks durch Honeypot (`honeypot`) und
+  Mindest-Ausfüllzeit (`too-fast`) werden jetzt protokolliert (Bereich FORMS, info).
+
+### Geändert
+- „Kein Token im Request" wird als info statt warning protokolliert: Bots ohne JavaScript sind Alltag und
+  füllten das Log mit Warnungen. Ein flächiger Ausfall zeigt sich am Fehlen der „Token bestätigt"-Einträge.
 
 ## [0.8.0] - 2026-09-25
 

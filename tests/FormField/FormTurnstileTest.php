@@ -222,7 +222,7 @@ class FormTurnstileTest extends ContaoTestCase
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
         $verifier->expects(self::never())->method('logAltchaPass');
-        $verifier->expects(self::never())->method('logAltchaBlock');
+        $verifier->expects(self::once())->method('logAltchaBlock')->with('honeypot');
 
         $altcha = $this->createMock(AltchaVerifier::class);
         $altcha->expects(self::never())->method('validate');
@@ -362,14 +362,14 @@ class FormTurnstileTest extends ContaoTestCase
         self::assertFalse($widget->hasErrors());
     }
 
-    public function testAltchaModeTooFastBlocksWithoutLogAndNeverCallsListener(): void
+    public function testAltchaModeTooFastBlocksWithLogAndNeverCallsListener(): void
     {
-        // "Zu schnell" blockt, aber ohne eigenes Log (kein altcha-timing-invalid).
+        // "Zu schnell" blockt mit eigener Kategorie too-fast (nicht altcha-timing-invalid).
         $GLOBALS['TL_CONFIG']['turnstileFailureMode'] = 'altcha';
 
         $verifier = $this->createMock(TurnstileVerifier::class);
         $verifier->method('validate')->willReturn(false);
-        $verifier->expects(self::never())->method('logAltchaBlock');
+        $verifier->expects(self::once())->method('logAltchaBlock')->with('too-fast');
         $verifier->expects(self::never())->method('logAltchaPass');
 
         $altcha = $this->createMock(AltchaVerifier::class);

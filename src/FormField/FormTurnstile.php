@@ -214,6 +214,7 @@ class FormTurnstile extends FormCaptcha
         }
 
         if ($this->honeypotTripped($post)) {
+            $this->getVerifier()->logAltchaBlock('honeypot');
             $this->blockWithError();
 
             return;
@@ -232,7 +233,7 @@ class FormTurnstile extends FormCaptcha
         }
 
         if (time() - $time < self::MIN_FILL_SECONDS) {
-            // „Zu schnell" blockt wie bisher ohne eigenes Log.
+            $this->getVerifier()->logAltchaBlock('too-fast');
             $this->blockWithError();
 
             return;
