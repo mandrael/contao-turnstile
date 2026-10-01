@@ -217,6 +217,22 @@ class AiSpamJudgeTest extends ContaoTestCase
         self::assertNull($judge->judge(['Text'], ['a@x.at'], []));
     }
 
+    public function testDailyBudgetFromSettings(): void
+    {
+        $config = $this->createAdapterMock(['get']);
+        $config->method('get')->willReturnMap([['turnstileAiKey', 'a-key'], ['turnstileAiBudget', '2']]);
+        $framework = $this->createContaoFrameworkMock([Config::class => $config]);
+        $client = new MockHttpClient(static fn (): MockResponse => new MockResponse((string) json_encode([
+            'choices' => [['message' => ['content' => '{"spam":false,"sicher":false}']]],
+        ])));
+        $judge = new AiSpamJudge($client, new ArrayAdapter(), new NullLogger(), '', '', null, $framework);
+
+        self::assertSame(2, $judge->status()['budget']);
+        self::assertNotNull($judge->judge(['Text'], [], []));
+        self::assertNotNull($judge->judge(['Text'], [], []));
+        self::assertNull($judge->judge(['Text'], [], []));
+    }
+
     private function createJudge(
         HttpClientInterface $client,
         string $provider = 'mistral',

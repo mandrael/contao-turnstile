@@ -18,6 +18,7 @@ PaletteManipulator::create()
     ->addField('turnstileSpamDigest', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileSpamDigestEmail', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileAiKey', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
+    ->addField('turnstileAiBudget', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->addField('turnstileAiStatus', 'turnstile_legend', PaletteManipulator::POSITION_APPEND)
     ->applyToPalette('default', 'tl_settings');
 
@@ -116,6 +117,11 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiKey'] = [
             return '' === $key ? '' : '<span class="tl_gray" style="margin-left:.5em;font-weight:400">(…' . StringUtil::specialchars(substr($key, -4)) . ')</span>';
         },
     ],
+];
+
+$GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiBudget'] = [
+    'inputType' => 'text',
+    'eval' => ['tl_class' => 'w50', 'rgxp' => 'natural', 'maxlength' => 6],
 ];
 
 // Reine Anzeige, nichts gespeichert: kein 'sql', kein Wert in localconfig.php.

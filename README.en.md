@@ -146,7 +146,7 @@ integrator with a strict CSP of their own adds them manually.
   in `.env.local` (takes precedence), `TURNSTILE_AI_PROVIDER` (`mistral` or `anthropic`), optionally
   `TURNSTILE_AI_MODEL`. If configured, a certain AI spam verdict also leads to "certain spam" there; any
   other verdict leads to normal processing; errors, timeouts (5 s)
-  and the daily budget (150) lead to normal processing. Only text fields and the e-mail address are
+  and the daily limit (setting "AI requests per day", default 150) lead to normal processing. Only text fields and the e-mail address are
   sent, never the IP; the provider is a data processor and belongs in the privacy policy.
 
 ### Spam archive

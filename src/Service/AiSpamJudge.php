@@ -121,7 +121,7 @@ class AiSpamJudge
             'provider' => $this->provider,
             'model' => '' !== $this->provider ? $this->modelName() : '',
             'used' => $used,
-            'budget' => self::DAILY_BUDGET,
+            'budget' => $this->budget(),
         ];
     }
 
@@ -143,6 +143,25 @@ class AiSpamJudge
         } catch (\Throwable) {
             return '';
         }
+    }
+
+    /**
+     * Tageslimit aus den Einstellungen (turnstileAiBudget), leer oder ungültig = DAILY_BUDGET.
+     */
+    private function budget(): int
+    {
+        if (null === $this->framework) {
+            return self::DAILY_BUDGET;
+        }
+
+        try {
+            $this->framework->initialize();
+            $budget = (int) $this->framework->getAdapter(Config::class)->get('turnstileAiBudget');
+        } catch (\Throwable) {
+            return self::DAILY_BUDGET;
+        }
+
+        return $budget > 0 ? $budget : self::DAILY_BUDGET;
     }
 
     private function askMistral(string $prompt): string
@@ -215,7 +234,7 @@ class AiSpamJudge
             $item = $this->cache->getItem('mandrael_turnstile.ai_budget.'.date('Ymd'));
             $used = $item->isHit() ? (int) $item->get() : 0;
 
-            if ($used >= self::DAILY_BUDGET) {
+            if ($used >= $this->budget()) {
                 $this->warn('KI-Einordnung: Tagesbudget aufgebraucht, Einsendungen gelten als sauber.');
 
                 return false;

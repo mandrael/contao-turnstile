@@ -147,7 +147,7 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
   sicher“): Schlüssel im Feld „Mistral-API-Schlüssel“ der Turnstile-Einstellungen
   oder `TURNSTILE_AI_KEY` in `.env.local` (hat Vorrang), `TURNSTILE_AI_PROVIDER` (`mistral` oder
   `anthropic`), wahlweise `TURNSTILE_AI_MODEL`. Ist sie eingerichtet, führt dort auch ein sicheres
-  KI-Urteil zu „Spam sicher"; jedes andere Urteil zur normalen Verarbeitung; Fehler, Zeitüberschreitung (5 s) und das Tagesbudget (150) führen zur normalen
+  KI-Urteil zu „Spam sicher"; jedes andere Urteil zur normalen Verarbeitung; Fehler, Zeitüberschreitung (5 s) und das Tageslimit (Einstellung „KI-Anfragen pro Tag“, Standard 150) führen zur normalen
   Verarbeitung. Übermittelt werden nur Textfelder und Mailadresse, nie die IP; der Anbieter gehört als
   Auftragsverarbeiter in die Datenschutzerklärung.
 

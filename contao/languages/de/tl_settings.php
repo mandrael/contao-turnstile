@@ -86,11 +86,16 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiKey'] = [
     'Optional, von console.mistral.ai. Mistral dann in die Datenschutzerklärung aufnehmen.',
 ];
 
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiBudget'] = [
+    'KI-Anfragen pro Tag',
+    'Obergrenze gegen Kosten bei Bot-Wellen. Leer = 150.',
+];
+
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
     'KI-Spamerkennung',
     'Status der KI-Einordnung.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'An: %s, Modell %s, heute %d von %d Anfragen genutzt.';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Ergänzt die Prüfung, ersetzt nichts: Turnstile, ALTCHA und die Punktwertung laufen immer. Mistral wird nur bei Grenzfällen gefragt (verdächtig, aber nicht sicher Spam). Urteilt Mistral „sicher Spam“, kommt die Einsendung in die Spam-Ablage, sonst läuft sie normal weiter, auch bei Fehler oder Zeitüberschreitung. Übermittelt werden Textfelder und Mailadresse, nie die IP. Höchstens %d Anfragen am Tag.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Hilft nur in Zweifelsfällen der Ersatzprüfung: Mistral (Modell %1$s) entscheidet dann, ob die Einsendung in die Spam-Ablage kommt. Gesendet werden Text und Mailadresse, nie die IP. Nach %2$d Anfragen am Tag laufen Zweifelsfälle ohne Mistral normal weiter.';
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Aus: kein Schlüssel eingetragen. TURNSTILE_AI_KEY in .env.local hat Vorrang vor dem Feld.';

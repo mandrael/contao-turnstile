@@ -13,7 +13,8 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
   Muster dauerhaft und setzt dessen automatisch bestätigte Einträge zurück. Lernstand je Eintrag im Posteingang,
   Log-Eintrag je automatischer Bestätigung. Neue Tabelle `tl_turnstile_spam_pattern`.
 - Feld **„Mistral-API-Schlüssel (KI-Spamerkennung)“** in den Turnstile-Einstellungen (maskiert, letzte 4 Zeichen sichtbar);
-  `TURNSTILE_AI_KEY` in `.env.local` hat weiter Vorrang. Die Statusanzeige heißt jetzt „Mistral-KI-Spamerkennung“.
+  `TURNSTILE_AI_KEY` in `.env.local` hat weiter Vorrang. Dazu „KI-Anfragen pro Tag“ (Tageslimit, Standard 150) und eine
+  Erklärung samt Modell in der Statusanzeige „KI-Spamerkennung“.
 
 ### Geändert
 - Einstellungen und Spam-Ablage: Beschriftungen und Hilfetexte gekürzt und präzisiert, etwa „Wenn Turnstile scheitert“ mit „Einsendung ablehnen“ oder „Ersatzprüfung mit ALTCHA, dann annehmen und einstufen“.
