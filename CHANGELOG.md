@@ -5,7 +5,7 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
-## [0.9.0] - unveröffentlicht
+## [0.9.0] - 2026-10-02
 
 ### Hinzugefügt
 - **Lernende Auto-Bestätigung** in der Spam-Ablage: Nach 20 Bestätigungen eines Lernmusters (Quelle und stabile
