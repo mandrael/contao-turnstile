@@ -9,7 +9,8 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 
 ### Geändert
 - KI-Spamerkennung nutzt `mistral-small-latest` und damit immer das aktuelle Mistral-Small-Modell.
-- Einstellungen und Doku: verständlichere Texte, Modell mit Klarnamen („Mistral Small“).
+- Einstellungen: verständlichere Erklärung der KI-Spamerkennung, Modell mit Klarnamen („Mistral Small“).
+- Präzisere Begriffe in Beschreibungen und Doku.
 
 ## [0.9.0] - 2026-10-02
 
