@@ -284,7 +284,7 @@ class SpamArchiveTest extends TestCase
             self::assertSame(1, $archive->markSpam([$id], 7));
         }
 
-        self::assertSame([$key => ['confirmed' => SpamArchive::AUTO_CONFIRM_MIN - 1, 'rejected' => 0, 'reset_at' => 0]], $archive->patterns());
+        self::assertSame([$key => ['confirmed' => SpamArchive::AUTO_CONFIRM_MIN - 1, 'rejected' => 0, 'reset_at' => 0, 'blocked' => false]], $archive->patterns());
         self::assertSame('unreviewed', $this->label($archive->store(null, $meta, self::email(), null)), 'eine Bestätigung zu wenig');
 
         // Erneutes Bestätigen derselben Einträge zählt nicht doppelt.
@@ -320,7 +320,7 @@ class SpamArchiveTest extends TestCase
         self::assertSame(3, $archive->markSpam(\array_slice($ids, 0, 3), 7));
         self::assertSame(1, $archive->patterns()[SpamArchive::patternKey('form', $meta['reasons'])]['confirmed']);
 
-        self::assertSame(3, $archive->markSpam(\array_slice($ids, 3), 0));
+        self::assertSame(0, $archive->markSpam(\array_slice($ids, 3), 0), 'ohne Benutzer nichts etikettieren');
         self::assertSame(1, $archive->patterns()[SpamArchive::patternKey('form', $meta['reasons'])]['confirmed'], 'ohne Benutzer kein Lernen');
     }
 
@@ -370,6 +370,12 @@ class SpamArchiveTest extends TestCase
         $this->db->executeStatement('UPDATE tl_turnstile_spam SET label_at = label_at - 10 WHERE label = ?', ['ham']);
         $this->db->executeStatement('UPDATE tl_turnstile_spam_pattern SET confirmed = ? WHERE pattern = ?', [SpamArchive::AUTO_CONFIRM_MIN, $key]);
         self::assertSame('spam', $this->label($archive->store(null, $meta, self::email(), null)));
+
+        // Eine spätere Zustellwiederholung des alten Ham-Eintrags darf das freigegebene Muster nicht wieder sperren.
+        $hamId = (int) $this->db->fetchOne('SELECT id FROM tl_turnstile_spam WHERE label = ?', ['ham']);
+        $this->db->executeStatement('UPDATE tl_turnstile_spam_pattern SET reset_at = reset_at - 5');
+        $archive->deliver($hamId, 7, true);
+        self::assertSame('spam', $this->label($archive->store(null, $meta, self::email(), null)));
     }
 
     public function testRevertedEntryReturnsToDigestAndLostRejectionStillBlocks(): void
@@ -387,9 +393,10 @@ class SpamArchiveTest extends TestCase
         self::assertSame([$b], array_column($archive->undigested(), 'id'), 'zurückgesetzt -> wieder in der Zusammenfassung');
         self::assertFalse($archive->undigested()[0]['auto']);
 
-        // Zähler verloren (z. B. Fehler beim Schreiben): der Ham-Eintrag sperrt trotzdem.
+        // Zähler verloren (z. B. Fehler beim Schreiben): der Ham-Eintrag sperrt trotzdem, und die Anzeige weiß es.
         $this->db->executeStatement('UPDATE tl_turnstile_spam_pattern SET rejected = 0');
         self::assertSame('unreviewed', $this->label($archive->store(null, $meta, self::email(), null)));
+        self::assertTrue($archive->patterns()[SpamArchive::patternKey('form', $meta['reasons'])]['blocked']);
     }
 
     public function testMissingPatternTableNeverBreaksArchive(): void

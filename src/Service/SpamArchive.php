@@ -168,9 +168,11 @@ class SpamArchive
         $result = ['sent' => 0, 'failed' => 0, 'unclear' => 0];
         $head = $this->db->fetchAssociative('SELECT label, pattern FROM '.self::TABLE.' WHERE id = ?', [$id]);
 
+        // Nur der erste Wechsel auf Ham setzt label_at: Eine Zustellwiederholung darf den Zeitpunkt nicht
+        // verschieben, sonst sperrte der alte Ham-Eintrag ein inzwischen wieder freigegebenes Muster (reset_at).
         $this->db->executeStatement(
-            'UPDATE '.self::TABLE.' SET label = ?, label_by = ?, label_at = ?, tstamp = ? WHERE id = ?',
-            ['ham', $userId, $now, $now, $id],
+            'UPDATE '.self::TABLE.' SET label = ?, label_by = ?, label_at = ?, tstamp = ? WHERE id = ? AND label <> ?',
+            ['ham', $userId, $now, $now, $id, 'ham'],
         );
 
         // ponytail: Scheitert das Speichern der Sperre, bleibt nur die zweite Sperre über diesen Ham-Eintrag (bis zur
@@ -328,6 +330,11 @@ class SpamArchive
      */
     public function markSpam(array $ids, int $userId): int
     {
+        // label_by = 0 bedeutet „automatisch bestätigt“; ohne Benutzer wird deshalb nichts etikettiert.
+        if ($userId < 1) {
+            return 0;
+        }
+
         $now = time();
         $count = 0;
         $learned = [];
@@ -352,12 +359,9 @@ class SpamArchive
             }
         }
 
-        // Je Aufruf zählt ein Muster höchstens einmal: „Alle als Spam bestätigen" ist eine Entscheidung, keine
-        // zwanzig. Ohne angemeldeten Benutzer wird nichts gelernt.
-        if ($userId > 0) {
-            foreach (array_keys($learned) as $pattern) {
-                $this->learn((string) $pattern, 'confirmed', 1);
-            }
+        // Je Aufruf zählt ein Muster höchstens einmal: „Alle als Spam bestätigen" ist eine Entscheidung, keine zwanzig.
+        foreach (array_keys($learned) as $pattern) {
+            $this->learn((string) $pattern, 'confirmed', 1);
         }
 
         $this->log('info', 'Spam-Ablage: '.$count.' Eintrag/Einträge als Spam bestätigt.');
@@ -400,12 +404,19 @@ class SpamArchive
     /**
      * Lernstand je Muster.
      *
-     * @return array<string, array{confirmed: int, rejected: int, reset_at: int}>
+     * blocked: gesperrt durch „Kein Spam“-Zähler oder – falls der Zähler verloren ging – durch einen Ham-Eintrag des
+     * Musters seit der letzten Freigabe. Anzeige und Automatik nutzen dieselbe Bedingung.
+     *
+     * @return array<string, array{confirmed: int, rejected: int, reset_at: int, blocked: bool}>
      */
     public function patterns(): array
     {
         try {
             $rows = $this->db->fetchAllAssociative('SELECT pattern, confirmed, rejected, reset_at FROM '.self::PATTERN_TABLE);
+            $lastHam = array_map('intval', $this->db->fetchAllKeyValue(
+                'SELECT pattern, MAX(label_at) FROM '.self::TABLE.' WHERE label = ? AND pattern <> ? GROUP BY pattern',
+                ['ham', ''],
+            ));
         } catch (\Throwable) {
             return [];
         }
@@ -413,7 +424,13 @@ class SpamArchive
         $patterns = [];
 
         foreach ($rows as $row) {
-            $patterns[(string) $row['pattern']] = ['confirmed' => (int) $row['confirmed'], 'rejected' => (int) $row['rejected'], 'reset_at' => (int) $row['reset_at']];
+            $key = (string) $row['pattern'];
+            $patterns[$key] = [
+                'confirmed' => (int) $row['confirmed'],
+                'rejected' => (int) $row['rejected'],
+                'reset_at' => (int) $row['reset_at'],
+                'blocked' => (int) $row['rejected'] > 0 || ($lastHam[$key] ?? 0) > (int) $row['reset_at'],
+            ];
         }
 
         return $patterns;
@@ -470,17 +487,7 @@ class SpamArchive
 
         $stats = $this->patterns()[$pattern] ?? null;
 
-        if (null === $stats || 0 !== $stats['rejected'] || $stats['confirmed'] < self::AUTO_CONFIRM_MIN) {
-            return null;
-        }
-
-        // Zweite Sperre, falls ein „Kein Spam"-Zähler verloren ging: Ham-Einträge des Musters seit der letzten Freigabe.
-        $ham = (int) $this->db->fetchOne(
-            'SELECT COUNT(*) FROM '.self::TABLE.' WHERE label = ? AND pattern = ? AND label_at > ?',
-            ['ham', $pattern, $stats['reset_at']],
-        );
-
-        return 0 === $ham ? $stats['confirmed'] : null;
+        return null === $stats || $stats['blocked'] || $stats['confirmed'] < self::AUTO_CONFIRM_MIN ? null : $stats['confirmed'];
     }
 
     /**

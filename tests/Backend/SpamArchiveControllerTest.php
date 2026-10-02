@@ -170,8 +170,8 @@ class SpamArchiveControllerTest extends ContaoTestCase
         $archive = $this->createMock(SpamArchive::class);
         $archive->method('countByLabel')->willReturn(['unreviewed' => 2, 'spam' => 1]);
         $archive->method('patterns')->willReturn([
-            'form|r1|link,tor-exit' => ['confirmed' => 12, 'rejected' => 0, 'reset_at' => 0],
-            'form|r1|no-mx' => ['confirmed' => 30, 'rejected' => 1, 'reset_at' => 0],
+            'form|r1|link,tor-exit' => ['confirmed' => 12, 'rejected' => 0, 'reset_at' => 0, 'blocked' => false],
+            'form|r1|no-mx' => ['confirmed' => 30, 'rejected' => 1, 'reset_at' => 0, 'blocked' => true],
         ]);
 
         $output = (string) $this->controller($db, $archive)->feed($this->dc(0));

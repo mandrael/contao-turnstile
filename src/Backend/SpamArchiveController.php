@@ -193,7 +193,7 @@ class SpamArchiveController
      * @param array<string, mixed> $row
      */
     /**
-     * @param array<string, array{confirmed: int, rejected: int}> $patterns Lernstand je Muster
+     * @param array<string, array{confirmed: int, rejected: int, reset_at: int, blocked: bool}> $patterns Lernstand je Muster
      */
     private function renderCard(array $row, array $patterns = []): string
     {
@@ -219,8 +219,8 @@ class SpamArchiveController
 
         // Lernstand des Musters, damit sichtbar ist, wann die Automatik greift. Leeres Muster: wird nie gelernt.
         $pattern = (string) ($row['pattern'] ?? '');
-        $stats = $patterns[$pattern] ?? ['confirmed' => 0, 'rejected' => 0];
-        $blocked = '' !== $pattern && $stats['rejected'] > 0;
+        $stats = $patterns[$pattern] ?? ['confirmed' => 0, 'rejected' => 0, 'reset_at' => 0, 'blocked' => false];
+        $blocked = '' !== $pattern && $stats['blocked'];
         $learning = match (true) {
             $blocked => $lang['patternBlocked'] ?? 'pattern blocked',
             '' !== $pattern && 'unreviewed' === $label && 0 === $delivered => \sprintf($lang['patternProgress'] ?? '%d of %d', min($stats['confirmed'], SpamArchive::AUTO_CONFIRM_MIN), SpamArchive::AUTO_CONFIRM_MIN),

@@ -29,6 +29,18 @@ class SpamArchiveSystemMessageListenerTest extends ContaoTestCase
         self::assertStringContainsString('tl_info', $message);
     }
 
+    public function testAutoConfirmedEntriesGetOwnMessage(): void
+    {
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->method('countUnreviewed')->willReturn(0);
+        $archive->method('countAutoConfirmed')->willReturn(2);
+        $GLOBALS['TL_LANG']['MSC']['turnstileSpamAutoMessage'] = '%d automatisch';
+
+        $message = (new SpamArchiveSystemMessageListener($archive))->onGetSystemMessages();
+
+        self::assertSame('<p class="tl_info">2 automatisch</p>', $message);
+    }
+
     public function testExceptionYieldsEmptyStringInsteadOfThrowing(): void
     {
         // Vor der Migration existiert die Tabelle noch nicht; countUnreviewed() wirft dann eine DB-Exception.
