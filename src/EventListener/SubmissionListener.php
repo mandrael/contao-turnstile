@@ -93,9 +93,10 @@ class SubmissionListener
             }
         }
 
-        // Wie der Core (Form::processFormData): Kommaliste, auch „Name <adresse>".
+        // Wie der Core (Form::processFormData): Kommaliste, auch „Name <adresse>". splitFriendlyEmail() liefert bei
+        // „Name<adresse>" (ohne Leerzeichen) nur ein Element, deshalb auffüllen statt direkt auf [1] zugreifen.
         $protected = array_map(
-            static fn (string $r): string => (string) StringUtil::splitFriendlyEmail($r)[1],
+            static fn (string $r): string => (string) array_pad(StringUtil::splitFriendlyEmail($r), 2, '')[1],
             self::strings(StringUtil::splitCsv((string) $form->recipient))
         );
 

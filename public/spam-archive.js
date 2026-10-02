@@ -25,7 +25,7 @@ document.addEventListener('submit', async (event) => {
     let rejected = false;
 
     try {
-        const response = await fetch(form.action, { method: 'POST', body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const response = await fetch(form.action, { method: 'POST', body, headers: { 'X-Tsa-Fetch': '1' } });
         rejected = response.status >= 400;
         data = await response.json();
     } catch (e) {

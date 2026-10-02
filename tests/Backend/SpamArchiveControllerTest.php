@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
@@ -92,7 +93,7 @@ class SpamArchiveControllerTest extends ContaoTestCase
 
     public function testPostDeliverCallsArchiveWithIdAndUser(): void
     {
-        $request = Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_deliver', 'retryUnclear' => '1']);
+        $request = Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_deliver', 'retryUnclear' => '1', 'REQUEST_TOKEN' => 'token']);
         $this->pushRequest($request);
 
         $db = $this->createMock(Connection::class);
@@ -182,8 +183,8 @@ class SpamArchiveControllerTest extends ContaoTestCase
 
     public function testFeedAjaxMarksSpamAndAnswersJson(): void
     {
-        $request = Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'spam', 'ids' => '5,6,x']);
-        $request->headers->set('X-Requested-With', 'XMLHttpRequest');
+        $request = Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'spam', 'ids' => '5,6,x', 'REQUEST_TOKEN' => 'token']);
+        $request->headers->set('X-Tsa-Fetch', '1');
         $this->pushRequest($request);
 
         $archive = $this->createMock(SpamArchive::class);
@@ -202,7 +203,7 @@ class SpamArchiveControllerTest extends ContaoTestCase
 
     public function testFeedDeliverOnlyFirstIdAndPlainPostRedirects(): void
     {
-        $this->pushRequest(Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'deliver', 'ids' => '5,6']));
+        $this->pushRequest(Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'deliver', 'ids' => '5,6', 'REQUEST_TOKEN' => 'token']));
 
         $archive = $this->createMock(SpamArchive::class);
         $archive->expects(self::once())->method('deliver')->with(5, 42)->willReturn(['sent' => 1, 'failed' => 0, 'unclear' => 0]);
@@ -210,6 +211,38 @@ class SpamArchiveControllerTest extends ContaoTestCase
         $response = $this->controller($this->createMock(Connection::class), $archive)->feed($this->dc(0));
 
         self::assertInstanceOf(RedirectResponse::class, $response);
+    }
+
+    public function testFeedAjaxWithoutValidTokenNeverActs(): void
+    {
+        foreach ([[], ['REQUEST_TOKEN' => 'falsch']] as $token) {
+            $request = Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'spam', 'ids' => '5'] + $token);
+            $request->headers->set('X-Tsa-Fetch', '1');
+            $this->pushRequest($request);
+
+            $archive = $this->createMock(SpamArchive::class);
+            $archive->expects(self::never())->method('markSpam');
+
+            try {
+                $this->controller($this->createMock(Connection::class), $archive)->feed($this->dc(0));
+                self::fail('Erwartet: ResponseException mit 400');
+            } catch (ResponseException $e) {
+                self::assertSame(400, $e->getResponse()->getStatusCode());
+            }
+        }
+    }
+
+    public function testDeliverWithoutValidTokenNeverDelivers(): void
+    {
+        $this->pushRequest(Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_deliver', 'REQUEST_TOKEN' => 'falsch']));
+
+        $db = $this->createMock(Connection::class);
+        $db->method('fetchAssociative')->willReturn(['id' => 7]);
+
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->expects(self::never())->method('deliver');
+
+        self::assertInstanceOf(RedirectResponse::class, $this->controller($db, $archive)->view($this->dc(7)));
     }
 
     public function testFeedGetNeverActs(): void
@@ -233,6 +266,7 @@ class SpamArchiveControllerTest extends ContaoTestCase
 
         $csrf = $this->createMock(ContaoCsrfTokenManager::class);
         $csrf->method('getDefaultTokenValue')->willReturn('token');
+        $csrf->method('isTokenValid')->willReturnCallback(static fn (CsrfToken $t): bool => 'contao_csrf_token' === $t->getId() && 'token' === $t->getValue());
 
         $user = $this->createClassWithPropertiesMock(BackendUser::class, ['id' => 42]);
         $token = $this->createStub(TokenInterface::class);

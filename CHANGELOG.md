@@ -20,6 +20,15 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 - Einstellungen und Spam-Ablage: Beschriftungen und Hilfetexte gekürzt und präzisiert, etwa „Wenn Turnstile scheitert“ mit „Einsendung ablehnen“ oder „Ersatzprüfung mit ALTCHA, dann annehmen und einstufen“.
 - Tageszusammenfassung: von Hand bestätigter Spam wird nur gezählt; automatisch bestätigte Einträge stehen markiert mit Betreff drin (Kontrolle); ohne neue Einträge außer Handbestätigten keine Mail.
 
+## [0.8.3] - 2026-10-02
+
+### Behoben
+- Formulare: Steht als Empfänger eine Adresse mit spitzer Klammer ohne Leerzeichen davor (`Info<info@example.org>`),
+  brach die Einsendung seit 0.8.2 mit einem Fehler ab.
+- Spam-Ablage: Die Aktionen im Posteingang schlugen auf Contao 4.13 fehl.
+- Spam-Ablage: Die Aktionen im Posteingang prüfen das Request-Token jetzt selbst; bisher lief die Prüfung bei
+  Aktionen ohne Neuladen nicht.
+
 ## [0.8.2] - 2026-10-01
 
 ### Behoben

@@ -82,6 +82,7 @@ services:
             $router: '@router'
             $csrfTokenManager: '@contao.csrf.token_manager'
             $tokenStorage: '@security.token_storage'
+            $csrfTokenName: '%contao.csrf_token_name%'
 
     # Public: der input_field_callback in tl_settings holt ihn über System::importStatic().
     Mandrael\ContaoTurnstileBundle\Backend\AiStatusField:
