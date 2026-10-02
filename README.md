@@ -134,7 +134,7 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
     `check.torproject.org` (ohne Nutzerdaten, 6 Stunden gecacht; bei Fehler kein Treffer).
   - Nur Zusatzpunkte, nie allein ausreichend: mehr als fünf tokenlose Einsendungen aus einem Netz
     binnen einer Stunde (hinter einem Reverse-Proxy nur mit korrekt gesetzten `trusted_proxies`).
-  - **„Spam sicher"** bei mindestens 7 Punkten **und** Signalen aus mindestens zwei der drei Gruppen
+  - **„Spam-Verdacht"** bei mindestens 7 Punkten **und** Signalen aus mindestens zwei der drei Gruppen
     Inhalt, Adresse, Tor. Tor wiegt schwer: Dazu genügt ein deutliches Signal aus Inhalt oder Adresse (Zeichensalat in
     mehreren Feldern, punktzerstückelte Adresse, Wiederholung); Tor mit nur einem Link oder fehlendem MX-Eintrag bleibt
     Graubereich. Dann geht keine Mail der Einsendung hinaus; alle landen in der **Spam-Ablage** (siehe unten).
@@ -143,17 +143,17 @@ ergänzt sie ein Integrator mit eigener strikter CSP selbst.
     Mail an Abonnenten.
   - Sonst läuft alles normal, einschließlich Bestätigung an den Absender. Im Formulargenerator und bei
     Kommentaren gehen höchstens drei Mails je eingetragener Adresse und Tag hinaus.
-- **Optionale KI-Einordnung** für den Graubereich (zwei Gruppen vertreten, aber nicht „Spam
-  sicher“): Schlüssel im Feld „Mistral-API-Schlüssel“ der Turnstile-Einstellungen
+- **Optionale KI-Einordnung** für den Graubereich (zwei Gruppen vertreten, aber kein
+  „Spam-Verdacht“): Schlüssel im Feld „Mistral-API-Schlüssel“ der Turnstile-Einstellungen
   oder `TURNSTILE_AI_KEY` in `.env.local` (hat Vorrang), `TURNSTILE_AI_PROVIDER` (`mistral` oder
-  `anthropic`), wahlweise `TURNSTILE_AI_MODEL`. Ist sie eingerichtet, führt dort auch ein sicheres
-  KI-Urteil zu „Spam sicher"; jedes andere Urteil zur normalen Verarbeitung; Fehler, Zeitüberschreitung (5 s) und das Tageslimit (Einstellung „KI-Anfragen pro Tag“, Standard 150) führen zur normalen
+  `anthropic`), wahlweise `TURNSTILE_AI_MODEL`. Ist sie eingerichtet, führt dort auch ein
+  klares KI-Urteil „Spam“ zu „Spam-Verdacht"; jedes andere Urteil zur normalen Verarbeitung; Fehler, Zeitüberschreitung (5 s) und das Tageslimit (Einstellung „KI-Anfragen pro Tag“, Standard 150) führen zur normalen
   Verarbeitung. Übermittelt werden nur Textfelder und Mailadresse, nie die IP; der Anbieter gehört als
   Auftragsverarbeiter in die Datenschutzerklärung.
 
 ### Spam-Ablage
 
-Backend unter **System → Spam-Ablage**: Posteingang der als „Spam sicher" eingestuften Einsendungen, alle
+Backend unter **System → Spam-Ablage**: Posteingang der als „Spam-Verdacht" eingestuften Einsendungen, alle
 Einträge offen untereinander (Datum, Quelle, Punkte, Signale im Klartext, Empfänger, Betreff, Text der ersten
 Mail). Direkt am Eintrag: **Spam bestätigen**, **Kein Spam – zustellen** und **Löschen**, ohne Neuladen der Seite;
 oben Reiter für Ungeprüft / Spam / Kein Spam / Alle und „Alle angezeigten als Spam bestätigen". Bestätigter Spam

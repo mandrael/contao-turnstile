@@ -17,7 +17,7 @@ use Symfony\Component\Mime\RawMessage;
 /**
  * Dekoriert mailer.mailer innerhalb von Contaos Mailer (höhere decoration_priority), sieht also jede Mail mit
  * gesetztem Absender und „X-Transport", und setzt die Einstufung einer tokenlosen Einsendung beim Versand um:
- * Mails einer als „Spam sicher" eingestuften Einsendung gehen nicht hinaus, sondern in die Spam-Ablage. Greift vor
+ * Mails einer als „Spam-Verdacht" eingestuften Einsendung gehen nicht hinaus, sondern in die Spam-Ablage. Greift vor
  * dem Einreihen in die Messenger-Warteschlange, deshalb synchron wie asynchron.
  *
  * Zustand im Attribut ATTRIBUTE des Haupt-Requests:

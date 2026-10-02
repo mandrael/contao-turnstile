@@ -19,7 +19,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
     'If Turnstile fails',
-    'Without a valid token: check via ALTCHA, certain spam goes to the spam archive.',
+    'Without a valid token: check via ALTCHA, suspected spam goes to the spam archive.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -96,6 +96,6 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
     'Status of the AI classification.',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'On: %s, model %s, %d of %d requests used today.';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Only helps with doubtful cases of the fallback check: %3$s (model %1$s) then decides whether the submission goes to the spam archive. Text and e-mail address are sent, never the IP; add the provider to your privacy policy. After %2$d requests a day, doubtful cases are processed normally without AI.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'On: %s, %d of %d requests used today.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'If Turnstile fails, fixed rules check for spam. If a case remains unclear, %3$s decides whether the submission goes to the spam archive or is processed normally. Any submission there can be delivered later. Without a key or once the daily limit is reached, unclear cases are processed normally. Mistral only receives the text and e-mail address.';
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Off: no key set. TURNSTILE_AI_KEY in .env.local takes precedence over the field.';

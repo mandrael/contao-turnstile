@@ -133,7 +133,7 @@ integrator with a strict CSP of their own adds them manually.
     `check.torproject.org` (no user data, cached for 6 hours; on error no match).
   - Extra points only, never sufficient on their own: more than five token-less submissions from one
     network within an hour (behind a reverse proxy only with correct `trusted_proxies`).
-  - **"Certain spam"** with at least 7 points **and** signals from at least two of the three groups
+  - **"Suspected spam"** with at least 7 points **and** signals from at least two of the three groups
     content, address, Tor. Tor weighs heavily: one clear content or address signal on top suffices (gibberish in several
     fields, dot-stuffed address, repetition); Tor with only a link or a missing MX record stays in the grey zone. Then no
     mail of the submission is sent; all of them go to the **spam archive** (see below). Registration: the mail to
@@ -141,17 +141,17 @@ integrator with a strict CSP of their own adds them manually.
     other mails go to the archive. Comments: unpublished, no mail to subscribers.
   - Otherwise everything runs normally, including the confirmation to the sender. In the form generator
     and for comments, at most three mails per entered address and day are sent.
-- **Optional AI classification** for the grey zone (two groups present but not "certain spam"):
+- **Optional AI classification** for the grey zone (two groups present but not "suspected spam"):
   key in the "Mistral API key" field of the Turnstile settings or `TURNSTILE_AI_KEY`
   in `.env.local` (takes precedence), `TURNSTILE_AI_PROVIDER` (`mistral` or `anthropic`), optionally
-  `TURNSTILE_AI_MODEL`. If configured, a certain AI spam verdict also leads to "certain spam" there; any
+  `TURNSTILE_AI_MODEL`. If configured, an AI spam verdict also leads to "suspected spam" there; any
   other verdict leads to normal processing; errors, timeouts (5 s)
   and the daily limit (setting "AI requests per day", default 150) lead to normal processing. Only text fields and the e-mail address are
   sent, never the IP; the provider is a data processor and belongs in the privacy policy.
 
 ### Spam archive
 
-Back end under **System → Spam archive**: inbox of submissions classified as "certain spam", all entries open one
+Back end under **System → Spam archive**: inbox of submissions classified as "suspected spam", all entries open one
 below the other (date, source, points, signals in plain language, recipients, subject, text of the first mail).
 Right on each entry: **Confirm spam**, **Not spam – deliver** and **Delete**, without reloading the page; tabs for
 Unreviewed / Spam / Not spam / All at the top and "Confirm all shown as spam". Confirmed spam no longer counts as

@@ -23,14 +23,16 @@ class AiStatusField
         $status = $this->judge->status();
         $lang = &$GLOBALS['TL_LANG']['tl_settings'];
 
+        $name = ['mistral' => 'Mistral Small', 'anthropic' => 'Claude Sonnet'][$status['provider']] ?? 'KI';
+
         $text = $status['active']
-            ? \sprintf($lang['turnstileAiStatusActive'] ?? 'On: %s, model %s, %d of %d requests used today.', $status['provider'], $status['model'], $status['used'], $status['budget'])
+            ? \sprintf($lang['turnstileAiStatusActive'] ?? 'On: %s, %d of %d requests used today.', $name, $status['used'], $status['budget'])
             : ($lang['turnstileAiStatusOff'] ?? 'Off: no key set.');
 
         // input_field_callback übernimmt kein tl_class: Widget-Hülle mit clr selbst setzen, sonst rutscht die
         // Infobox unter die gefloateten w50-Felder und ihr (i) landet oben links im Abschnitt.
         return '<div class="widget clr"><h3><label>'.($lang['turnstileAiStatus'][0] ?? 'AI spam detection').'</label></h3>'
             .'<p class="tl_info">'.StringUtil::specialchars($text).'<br>'
-            .StringUtil::specialchars(\sprintf($lang['turnstileAiExplain'] ?? 'Only borderline cases are sent to %3$s (model %1$s); at most %2$d requests per day.', $status['model'], $status['budget'], ['mistral' => 'Mistral', 'anthropic' => 'Anthropic'][$status['provider']] ?? 'KI')).'</p></div>';
+            .StringUtil::specialchars(\sprintf($lang['turnstileAiExplain'] ?? 'Only borderline cases are sent to %3$s; at most %2$d requests per day.', $status['model'], $status['budget'], $name)).'</p></div>';
     }
 }

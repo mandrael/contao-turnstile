@@ -11,10 +11,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * Stuft eine Einsendung ohne gültiges Turnstile-Token ein, nachdem sie die mechanische Stufe (Honeypot,
- * Zeitstempel, Mindestzeit, Proof-of-Work) bestanden hat. Ergebnis ist nur „Spam sicher" oder „sauber":
+ * Zeitstempel, Mindestzeit, Proof-of-Work) bestanden hat. Ergebnis ist nur „Spam-Verdacht" oder „sauber":
  * Es gibt keine Prüfwarteschlange, und „sauber" heißt vollständig normale Verarbeitung samt Bestätigung.
  *
- * Keine Einzelregel entscheidet. „Spam sicher" verlangt eine Punktsumme ab SURE UND Signale aus mindestens
+ * Keine Einzelregel entscheidet. „Spam-Verdacht" verlangt eine Punktsumme ab SURE UND Signale aus mindestens
  * zwei von drei unabhängigen Gruppen: Inhalt (was geschrieben wurde), Adresse (wohin die Bestätigung ginge) und
  * Tor (woher die Einsendung kommt). Tor wiegt schwer: Über Tor meldet sich praktisch niemand zu einem Kurs an
  * (Vorgabe Michael, 23.09.2026); zusammen mit einem deutlichen weiteren Signal (ab 3 Punkten) reicht es. Der

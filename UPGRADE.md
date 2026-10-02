@@ -32,9 +32,9 @@ der Ersatzstufe, eine neue optionale Umgebungsvariable.
 
 **Einsendungen ohne Token werden angenommen und eingestuft.** Im Modus `altcha` greift nach einem
 gescheiterten Turnstile-Versuch wie bisher die mechanische Prüfung (Honeypot, signierter Zeitstempel,
-Mindestzeit, Rechenaufgabe). Wer sie besteht, wird jetzt zusätzlich eingestuft. Nur bei „Spam sicher"
+Mindestzeit, Rechenaufgabe). Wer sie besteht, wird jetzt zusätzlich eingestuft. Nur bei „Spam-Verdacht"
 (mindestens 7 Punkte aus mindestens zwei der Gruppen Inhalt, Adresse und Tor, über Tor mit einem
-Signal ab 3 Punkten, oder mit eingerichteter KI deren sicheres Urteil im Graubereich) geht keine Mail
+Signal ab 3 Punkten, oder mit eingerichteter KI deren Urteil „Spam“ im Graubereich) geht keine Mail
 der Einsendung hinaus; alle landen in der Spam-Ablage (Backend: System → Spam-Ablage) und lassen sich dort mit
 „Doch zustellen" nachträglich versenden. Die Ablage löscht Einträge nach 90 Tagen; sie ist die einzige
 vollständige Kopie der Einsendung, sofern das Formular nicht speichert. Ungeprüfte Einträge meldet eine
@@ -57,8 +57,8 @@ Folgen für Betreiber:
   Notification-Center-Empfängeradresse auf einer fremden Domain kennt das Bundle nicht: Trägt ein Bot genau diese
   Adresse ein, entfällt auf dem Rückfallweg die Mail dorthin. Abhilfe: eine Empfängeradresse auf der Domain der
   Website oder die Admin-Adresse verwenden. Dieselbe Regel gilt für die Mailbegrenzung unten.
-- **Registrierung:** Die Mail an die registrierte Adresse (Aktivierung) geht bei „Spam sicher" trotzdem hinaus;
-  die übrigen Mails, etwa die Admin-Benachrichtigung, landen in der Ablage. **Kommentare:** bei „Spam sicher" unveröffentlicht, ohne
+- **Registrierung:** Die Mail an die registrierte Adresse (Aktivierung) geht bei „Spam-Verdacht" trotzdem hinaus;
+  die übrigen Mails, etwa die Admin-Benachrichtigung, landen in der Ablage. **Kommentare:** bei „Spam-Verdacht" unveröffentlicht, ohne
   Benachrichtigung der Abonnenten.
 - **Mailbegrenzung:** Bei Einsendungen ohne Token gehen im Formulargenerator und bei Kommentaren
   höchstens drei Mails je eingetragener Adresse und Tag hinaus; die Mail an den Betreiber bleibt immer.
@@ -69,7 +69,7 @@ Folgen für Betreiber:
   keine Nutzerdaten übertragen. Ohne ausgehende Verbindung fehlt nur dieses Signal.
 - **Optionale KI-Einordnung** (Standard aus): `TURNSTILE_AI_KEY` in `.env.local` aktiviert sie,
   `TURNSTILE_AI_PROVIDER` wählt `mistral` (Standard) oder `anthropic`, `TURNSTILE_AI_MODEL`
-  überschreibt das Modell (Standard `mistral-small-2603` bzw. `claude-sonnet-5`). Übermittelt werden
+  überschreibt das Modell (Standard `mistral-small-latest` bzw. `claude-sonnet-5`). Übermittelt werden
   nur Textfelder und Mailadresse einer tokenlosen Einsendung im Graubereich, nie die IP. Der Anbieter
   ist Auftragsverarbeiter und gehört in die Datenschutzerklärung. Ob sie aktiv ist, zeigen die Einstellungen.
 - **Datenschutz:** Die Spam-Ablage speichert die zurückgehaltenen Mails 90 Tage lang in der Datenbank; das gehört

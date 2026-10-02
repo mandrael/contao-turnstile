@@ -10,7 +10,7 @@ use Contao\DC_Table;
 use Contao\StringUtil;
 
 /*
- * Tabellenansicht der als „Spam sicher" eingestuften Einsendungen (nur mit mode=table, sonst Umleitung auf den
+ * Tabellenansicht der als „Spam-Verdacht" eingestuften Einsendungen (nur mit mode=table, sonst Umleitung auf den
  * Posteingang, siehe SpamArchiveController::feed()). Bearbeiten und Kopieren gibt es nicht – nur Ansehen
  * (eigene Seite über key=view, siehe SpamArchiveController) und Löschen. Löschen nimmt die Mails aus
  * tl_turnstile_spam_message mit (ctable-Kaskade in DC_Table::delete()).

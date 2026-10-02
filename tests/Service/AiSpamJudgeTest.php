@@ -93,7 +93,7 @@ class AiSpamJudgeTest extends ContaoTestCase
         self::assertNotNull($captured);
         self::assertSame('https://api.mistral.ai/v1/chat/completions', $captured['url']);
         self::assertContains('Authorization: Bearer a-key', $captured['options']['headers']);
-        self::assertStringContainsString('mistral-small-2603', (string) $captured['options']['body']);
+        self::assertStringContainsString('mistral-small-latest', (string) $captured['options']['body']);
     }
 
     public function testAnthropicProviderUsesApiKeyHeaderAndClaudeModel(): void

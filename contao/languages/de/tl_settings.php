@@ -19,7 +19,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileMode'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileFailureMode'] = [
     'Wenn Turnstile scheitert',
-    'Ohne gültiges Token: Prüfung per ALTCHA, sicherer Spam geht in die Spam-Ablage.',
+    'Ohne gültiges Token: Prüfung per ALTCHA, bei Spam-Verdacht in die Spam-Ablage.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileTheme'] = [
@@ -96,6 +96,6 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
     'Status der KI-Einordnung.',
 ];
 
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'An: %s, Modell %s, heute %d von %d Anfragen genutzt.';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Hilft nur in Zweifelsfällen der Ersatzprüfung: %3$s (Modell %1$s) entscheidet dann, ob die Einsendung in die Spam-Ablage kommt. Gesendet werden Text und Mailadresse, nie die IP; den Anbieter in die Datenschutzerklärung aufnehmen. Nach %2$d Anfragen am Tag laufen Zweifelsfälle ohne KI normal weiter.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'An: %s, heute %d von %d Anfragen genutzt.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Scheitert Turnstile, prüfen feste Regeln auf Spam. Bleibt ein Fall unklar, entscheidet %3$s, ob die Einsendung in die Spam-Ablage kommt oder normal verarbeitet wird. Dort kann jede Einsendung nachträglich zugestellt werden. Ohne Schlüssel oder wenn das Tageslimit erreicht ist, werden unklare Fälle normal verarbeitet. An Mistral gehen nur Text und Mailadresse.';
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Aus: kein Schlüssel eingetragen. TURNSTILE_AI_KEY in .env.local hat Vorrang vor dem Feld.';

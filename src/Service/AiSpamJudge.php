@@ -26,11 +26,11 @@ class AiSpamJudge
     private const TEXT_MAX = 2000;
     private const DAILY_BUDGET = 150;
 
-    // Gepinnte Modelle, überschreibbar per TURNSTILE_AI_MODEL. Stand 23.09.2026 laut Anbieter-Doku:
-    // Mistral Small 4 (docs.mistral.ai, Models Overview), Claude Sonnet 5 (platform.claude.com, Models
-    // Overview; Haiku 4.5 wird frühestens am 15.10.2026 abgeschaltet und scheidet deshalb aus).
+    // Standardmodelle, überschreibbar per TURNSTILE_AI_MODEL. Mistral über den Alias -latest: Versionen mit Datum
+    // schaltet Mistral nach einigen Monaten ab (mistral-small-2506 am 31.07.2026), danach liefe jede Anfrage ins
+    // Leere. Claude Sonnet 5 laut platform.claude.com (Haiku 4.5 wird frühestens am 15.10.2026 abgeschaltet).
     private const PROVIDERS = [
-        'mistral' => ['https://api.mistral.ai/v1/chat/completions', 'mistral-small-2603'],
+        'mistral' => ['https://api.mistral.ai/v1/chat/completions', 'mistral-small-latest'],
         'anthropic' => ['https://api.anthropic.com/v1/messages', 'claude-sonnet-5'],
     ];
 

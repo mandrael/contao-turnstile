@@ -17,7 +17,7 @@ use Symfony\Component\Mime\Message;
 use Symfony\Component\Mime\RawMessage;
 
 /**
- * Spam-Ablage: Mails einer als „Spam sicher" eingestuften Einsendung werden hier abgelegt statt versendet und
+ * Spam-Ablage: Mails einer als „Spam-Verdacht" eingestuften Einsendung werden hier abgelegt statt versendet und
  * lassen sich im Backend nachträglich zustellen. Gespeichert wird der fertige Mailtext (kein PHP-Objekt), damit
  * ein Eintrag Bundle- und Symfony-Updates übersteht und kein unserialize() auf Datenbankinhalte nötig ist.
  *
