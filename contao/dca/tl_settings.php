@@ -107,7 +107,8 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSpamDigestEmail'] = [
 ];
 
 // Der gespeicherte Schlüssel kommt nie ins HTML: Das Feld bleibt leer, leer speichern behält ihn, „-“ löscht ihn.
-// Die letzten 4 Zeichen stehen im Label. TURNSTILE_AI_KEY in .env.local hat Vorrang.
+// Die letzten 4 Zeichen stehen im Label. TURNSTILE_AI_KEY in .env.local hat Vorrang. Der save_callback speichert
+// selbst und gibt '' zurück: Sonst schriebe DC_File den Schlüssel mit „changed from … to …“ ins System-Log.
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiKey'] = [
     'inputType' => 'text',
     'eval' => ['tl_class' => 'w50 clr', 'maxlength' => 255, 'decodeEntities' => true, 'autocomplete' => 'off', 'style' => '-webkit-text-security:disc'],
@@ -115,10 +116,16 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiKey'] = [
         static fn (): string => '',
     ],
     'save_callback' => [
-        static fn (mixed $value): string => match (trim((string) $value)) {
-            '' => (string) Config::get('turnstileAiKey'),
-            '-' => '',
-            default => trim((string) $value),
+        static function (mixed $value): string {
+            $value = trim((string) $value);
+
+            if ('' !== $value) {
+                $value = '-' === $value ? '' : $value;
+                Config::persist('turnstileAiKey', $value);
+                Config::set('turnstileAiKey', $value);
+            }
+
+            return '';
         },
     ],
     'xlabel' => [
