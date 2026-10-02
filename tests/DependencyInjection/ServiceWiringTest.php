@@ -112,6 +112,7 @@ class ServiceWiringTest extends TestCase
     {
         $container = new ContainerBuilder();
         $container->setParameter('kernel.secret', 'test-secret');
+        $container->setParameter('contao.csrf_token_name', 'contao_csrf_token');
 
         $container->register('mailer.mailer', StubMailer::class)->setPublic(true);
         $container->set('request_stack', new RequestStack());

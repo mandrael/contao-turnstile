@@ -159,13 +159,21 @@ class SubmissionListenerTest extends ContaoTestCase
         $requestStack = $this->stack('203.0.113.9');
         SpamAwareMailer::setState($requestStack, ['mode' => 'pending', 'ip' => '203.0.113.9']);
 
-        $form = $this->createClassWithPropertiesStub(Form::class, ['recipient' => 'Institut <institut@example.org>, office@example.org']);
+        $form = $this->createClassWithPropertiesStub(Form::class, ['recipient' => 'Institut <institut@example.org>, office@example.org, Info<info@example.org>']);
 
         $listener = new SubmissionListener($requestStack, $classifier);
-        $listener->onPrepareFormData([], [], [], $form);
+
+        // Wie in Contao: Warnungen werden zu Ausnahmen und brächen die Einsendung ab.
+        set_error_handler(static fn (int $no, string $msg): never => throw new \ErrorException($msg, 0, $no));
+
+        try {
+            $listener->onPrepareFormData([], [], [], $form);
+        } finally {
+            restore_error_handler();
+        }
 
         self::assertSame(
-            ['institut@example.org', 'office@example.org'],
+            ['institut@example.org', 'office@example.org', ''],
             SpamAwareMailer::state($requestStack)['protected']
         );
     }

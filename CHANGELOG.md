@@ -5,6 +5,15 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
+## [0.8.3] - 2026-10-02
+
+### Behoben
+- Formulare: Steht als Empfänger eine Adresse mit spitzer Klammer ohne Leerzeichen davor (`Info<info@example.org>`),
+  brach die Einsendung seit 0.8.2 mit einem Fehler ab.
+- Spam-Ablage: Die Aktionen im Posteingang schlugen auf Contao 4.13 fehl.
+- Spam-Ablage: Die Aktionen im Posteingang prüfen das Request-Token jetzt selbst; bisher lief die Prüfung bei
+  Aktionen ohne Neuladen nicht.
+
 ## [0.8.2] - 2026-10-01
 
 ### Behoben

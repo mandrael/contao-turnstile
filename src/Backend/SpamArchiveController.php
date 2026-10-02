@@ -13,9 +13,11 @@ use Contao\StringUtil;
 use Doctrine\DBAL\Connection;
 use Mandrael\ContaoTurnstileBundle\Service\SpamArchive;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
@@ -48,6 +50,7 @@ class SpamArchiveController
         private readonly RouterInterface $router,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly TokenStorageInterface $tokenStorage,
+        private readonly string $csrfTokenName = 'contao_csrf_token',
     ) {
     }
 
@@ -59,10 +62,18 @@ class SpamArchiveController
         $page = max(1, (int) $request?->query->get('page', 1));
 
         if (null !== $request && $request->isMethod('POST') && 'turnstile_spam_feed' === $request->request->get('FORM_SUBMIT')) {
+            if (!$this->hasValidToken($request)) {
+                if (self::isFetch($request)) {
+                    throw new ResponseException(new JsonResponse(['ok' => false, 'text' => '', 'counts' => []], 400));
+                }
+
+                return new RedirectResponse($this->feedUrl($filter, $page));
+            }
+
             $ids = array_values(array_filter(array_map('intval', explode(',', (string) $request->request->get('ids')))));
             $text = $this->act((string) $request->request->get('tsa_action'), $ids);
 
-            if ($request->isXmlHttpRequest()) {
+            if (self::isFetch($request)) {
                 throw new ResponseException(new JsonResponse(['ok' => null !== $text, 'text' => $text ?? '', 'counts' => $this->archive->countByLabel()], null !== $text ? 200 : 400));
             }
 
@@ -268,6 +279,10 @@ class SpamArchiveController
         $request = $this->requestStack->getCurrentRequest();
 
         if (null !== $request && $request->isMethod('POST') && 'turnstile_spam_deliver' === $request->request->get('FORM_SUBMIT')) {
+            if (!$this->hasValidToken($request)) {
+                return new RedirectResponse($this->viewUrl($id));
+            }
+
             $result = $this->archive->deliver($id, $this->currentUserId(), (bool) $request->request->get('retryUnclear'));
 
             Message::addConfirmation(\sprintf(
@@ -379,4 +394,23 @@ class SpamArchiveController
     {
         return $this->router->generate('contao_backend', ['do' => self::MODULE, 'key' => 'view', 'id' => $id]);
     }
+
+    /**
+     * Eigener Header statt X-Requested-With: Contao behandelt X-Requested-With als Backend-Ajax (4.13 leitet die
+     * Anfrage dann an Ajax::executePostActions statt an den Modul-Key, der RequestTokenListener prüft kein Token).
+     */
+    private static function isFetch(Request $request): bool
+    {
+        return '1' === $request->headers->get('X-Tsa-Fetch');
+    }
+
+    /**
+     * Zusätzlich zum RequestTokenListener, damit keine Aktion ohne gültiges Token läuft, auch wenn der Listener eine
+     * Anfrage überspringt. Symfony randomisiert den Tokenwert je Ausgabe, deshalb isTokenValid statt Vergleich.
+     */
+    private function hasValidToken(Request $request): bool
+    {
+        return $this->csrfTokenManager->isTokenValid(new CsrfToken($this->csrfTokenName, (string) $request->request->get('REQUEST_TOKEN')));
+    }
+
 }
