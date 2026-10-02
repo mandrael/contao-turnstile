@@ -164,7 +164,9 @@ class SubmissionListenerTest extends ContaoTestCase
         $listener = new SubmissionListener($requestStack, $classifier);
 
         // Wie in Contao: Warnungen werden zu Ausnahmen und brächen die Einsendung ab.
-        set_error_handler(static fn (int $no, string $msg): never => throw new \ErrorException($msg, 0, $no));
+        set_error_handler(static function (int $no, string $msg): bool {
+            throw new \ErrorException($msg, 0, $no);
+        });
 
         try {
             $listener->onPrepareFormData([], [], [], $form);
