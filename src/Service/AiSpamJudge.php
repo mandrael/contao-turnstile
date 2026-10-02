@@ -156,12 +156,12 @@ class AiSpamJudge
 
         try {
             $this->framework->initialize();
-            $budget = (int) $this->framework->getAdapter(Config::class)->get('turnstileAiBudget');
+            $budget = trim((string) $this->framework->getAdapter(Config::class)->get('turnstileAiBudget'));
         } catch (\Throwable) {
             return self::DAILY_BUDGET;
         }
 
-        return $budget > 0 ? $budget : self::DAILY_BUDGET;
+        return ctype_digit($budget) && (int) $budget > 0 ? (int) $budget : self::DAILY_BUDGET;
     }
 
     private function askMistral(string $prompt): string
@@ -240,9 +240,9 @@ class AiSpamJudge
                 return false;
             }
 
-            $this->cache->save($item->set($used + 1)->expiresAfter(86400));
-
-            return true;
+            // ponytail: Lesen und Speichern sind nicht atomar; parallele Anfragen können das Limit um wenige
+            // überschreiten. Für eine Kostenbremse genügt das, eine Sperre lohnt bei diesem Volumen nicht.
+            return $this->cache->save($item->set($used + 1)->expiresAfter(86400));
         } catch (\Throwable) {
             return false;
         }

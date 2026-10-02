@@ -228,9 +228,32 @@ class AiSpamJudgeTest extends ContaoTestCase
         $judge = new AiSpamJudge($client, new ArrayAdapter(), new NullLogger(), '', '', null, $framework);
 
         self::assertSame(2, $judge->status()['budget']);
+
+        foreach (['12abc', '1.5', '0', ''] as $invalid) {
+            $c = $this->createAdapterMock(['get']);
+            $c->method('get')->willReturnMap([['turnstileAiKey', 'a-key'], ['turnstileAiBudget', $invalid]]);
+            $j = new AiSpamJudge($client, new ArrayAdapter(), new NullLogger(), '', '', null, $this->createContaoFrameworkMock([Config::class => $c]));
+            self::assertSame(150, $j->status()['budget'], 'ungültig: '.$invalid);
+        }
         self::assertNotNull($judge->judge(['Text'], [], []));
         self::assertNotNull($judge->judge(['Text'], [], []));
         self::assertNull($judge->judge(['Text'], [], []));
+    }
+
+    public function testFailedBudgetSaveMeansNoAiCall(): void
+    {
+        $calls = 0;
+        $client = new MockHttpClient(static function () use (&$calls): MockResponse {
+            ++$calls;
+
+            return new MockResponse((string) json_encode(['choices' => [['message' => ['content' => '{"spam":true,"sicher":true}']]]]));
+        });
+        $cache = $this->createMock(\Psr\Cache\CacheItemPoolInterface::class);
+        $cache->method('getItem')->willReturn((new ArrayAdapter())->getItem('x'));
+        $cache->method('save')->willReturn(false);
+
+        self::assertNull((new AiSpamJudge($client, $cache, new NullLogger(), 'mistral', 'a-key'))->judge(['Text'], [], []));
+        self::assertSame(0, $calls);
     }
 
     private function createJudge(

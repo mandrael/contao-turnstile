@@ -42,7 +42,7 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['labels'] = ['unreviewed' => 'unreviewe
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['feed'] = ['Inbox', 'Inbox'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['tableView'] = 'Table view';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['filters'] = ['unreviewed' => 'Unreviewed', 'spam' => 'Spam', 'ham' => 'Not spam', 'all' => 'All'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['filters'] = ['unreviewed' => 'Unreviewed', 'auto' => 'Automatic', 'spam' => 'Spam', 'ham' => 'Not spam', 'all' => 'All'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['points'] = '%d points';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['details'] = 'Details';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['markSpam'] = 'Confirm spam';
@@ -73,4 +73,8 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['done'] = ['spam' => 'Confirmed as spam
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ajaxUnclear'] = 'Unclear result – please reload the page.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpamAuto'] = 'spam, auto-confirmed on %s';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['patternProgress'] = 'pattern %d/%d confirmed, then automatically spam';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'never confirmed automatically (marked not spam once)';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'pattern blocked (marked not spam)';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['unblock'] = 'Allow automatic confirmation for this pattern again';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['confirmUnblock'] = 'Lift the block? The pattern then needs 20 confirmations again.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['unblocked'] = 'Automatic confirmation allowed again, counter starts at 0.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['confirmMarkAll'] = 'Confirm all %d shown entries as spam?';

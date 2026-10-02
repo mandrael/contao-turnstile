@@ -7,3 +7,4 @@ $GLOBALS['TL_LANG']['MSC']['turnstileNoscript'] = 'JavaScript must be enabled fo
 
 // System message on the back-end start page; lives here because only default.php is loaded there.
 $GLOBALS['TL_LANG']['MSC']['turnstileSpamSystemMessage'] = '%d unreviewed entries in the spam archive (deleted after 90 days).';
+$GLOBALS['TL_LANG']['MSC']['turnstileSpamAutoMessage'] = '%d entries automatically confirmed as spam in the last 14 days (spam archive → Automatic).';

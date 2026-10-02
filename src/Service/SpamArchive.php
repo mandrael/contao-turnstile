@@ -32,10 +32,16 @@ class SpamArchive
     public const RETENTION_DAYS = 90;
     public const RULE_VERSION = '0.8.0';
 
-    // Lernende Auto-Bestätigung: Ein Signalmuster (die gespeicherten reasons) gilt ab so vielen manuellen
-    // Bestätigungen ohne ein einziges „Kein Spam" als sicher, neue Einträge damit werden automatisch als Spam
-    // bestätigt (label_by = 0). Ein einziges „Kein Spam" sperrt das Muster dauerhaft.
+    // Lernende Auto-Bestätigung: Ein Lernmuster (patternKey) gilt ab so vielen manuellen Bestätigungen ohne ein
+    // „Kein Spam" als sicher, neue Einträge damit werden automatisch als Spam bestätigt (label_by = 0). Ein „Kein
+    // Spam" sperrt das Muster, bis jemand die Automatik dafür im Posteingang wieder erlaubt.
     public const AUTO_CONFIRM_MIN = 20;
+
+    // Hochzählen, sobald sich Signale oder Punkte der Einstufung ändern: alte Bestätigungen gelten dann nicht weiter.
+    public const RULE_REVISION = 1;
+
+    // Hängen von Uhrzeit, Netz oder KI ab und würden dieselbe Spamsorte in mehrere Muster zerlegen.
+    private const LEARN_IGNORE = ['repeat', 'net-burst', 'ai-clean'];
 
     // Größer: Rückfall statt Ablage. Contao-Uploads liegen standardmäßig weit darunter; die Grenze hält den
     // Mailtext unter üblichen max_allowed_packet-Werten (16 MB).
@@ -60,6 +66,25 @@ class SpamArchive
     }
 
     /**
+     * Lernmuster einer Einsendung: Quelle, Regelrevision und die stabilen Signale, sortiert. Leer heißt: wird nie
+     * gelernt und nie automatisch bestätigt – Registrierungen (dahinter steht eine echte Anmeldung) und Einträge mit
+     * KI-Urteil (das Muster belegt dann das Urteil des Modells, nicht die Regeln).
+     *
+     * @param list<string> $reasons
+     */
+    public static function patternKey(string $source, array $reasons): string
+    {
+        if ('registration' === $source || \in_array('ai-spam', $reasons, true)) {
+            return '';
+        }
+
+        $signals = array_values(array_unique(array_diff($reasons, self::LEARN_IGNORE)));
+        sort($signals);
+
+        return [] === $signals ? '' : substr($source.'|r'.self::RULE_REVISION.'|'.implode(',', $signals), 0, 255);
+    }
+
+    /**
      * Legt eine Mail ab. Ohne $archiveId entsteht ein neuer Eintrag, sonst wird die Mail an ihn angehängt.
      *
      * @param array{source?: string, score?: int, reasons?: list<string>} $meta
@@ -76,18 +101,22 @@ class SpamArchive
             }
 
             $now = time();
-            $pattern = substr(implode(', ', $meta['reasons'] ?? []), 0, 255);
+            $reasons = substr(implode(', ', $meta['reasons'] ?? []), 0, 255);
+            $pattern = self::patternKey((string) ($meta['source'] ?? ''), $meta['reasons'] ?? []);
+            // ponytail: Die Freigabe wird vor dem INSERT gelesen; ein „Kein Spam" in genau dieser Zeitspanne lässt
+            // diesen einen Eintrag noch automatisch bestätigt. Er bleibt unter „Automatisch" sichtbar und zustellbar.
             $auto = null === $archiveId ? $this->autoConfirmCount($pattern) : null;
 
             // Kopf- und Mailzeile gemeinsam, damit ein Fehler beim zweiten INSERT keinen leeren Eintrag hinterlässt.
-            $id = $this->db->transactional(function () use ($archiveId, $meta, $prepared, $now, $pattern, $auto): int {
+            $id = $this->db->transactional(function () use ($archiveId, $meta, $prepared, $now, $reasons, $pattern, $auto): int {
                 if (null === $archiveId) {
                     $this->db->insert(self::TABLE, [
                         'tstamp' => $now,
                         'created' => $now,
                         'source' => substr((string) ($meta['source'] ?? ''), 0, 16),
                         'score' => (int) ($meta['score'] ?? 0),
-                        'reasons' => $pattern,
+                        'reasons' => $reasons,
+                        'pattern' => $pattern,
                         'subject' => mb_substr($prepared['subject'], 0, 255),
                         'recipients' => implode(', ', $prepared['recipients']),
                         'preview' => $prepared['preview'],
@@ -137,16 +166,18 @@ class SpamArchive
     {
         $now = time();
         $result = ['sent' => 0, 'failed' => 0, 'unclear' => 0];
-        $head = $this->db->fetchAssociative('SELECT label, reasons FROM '.self::TABLE.' WHERE id = ?', [$id]);
+        $head = $this->db->fetchAssociative('SELECT label, pattern FROM '.self::TABLE.' WHERE id = ?', [$id]);
 
         $this->db->executeStatement(
             'UPDATE '.self::TABLE.' SET label = ?, label_by = ?, label_at = ?, tstamp = ? WHERE id = ?',
             ['ham', $userId, $now, $now, $id],
         );
 
+        // ponytail: Scheitert das Speichern der Sperre, bleibt nur die zweite Sperre über diesen Ham-Eintrag (bis zur
+        // Löschung nach RETENTION_DAYS); ein erneutes Zustellen holt die Sperre nicht nach. Fehler steht im Log.
         if (false !== $head && 'ham' !== $head['label']) {
             try {
-                $this->rejectPattern((string) $head['reasons'], $id);
+                $this->rejectPattern((string) $head['pattern'], $id);
             } catch (\Throwable $e) {
                 $this->log('error', 'Spam-Ablage: Muster nicht zurückgesetzt ('.$e::class.'), Zustellung läuft trotzdem.');
             }
@@ -297,22 +328,36 @@ class SpamArchive
      */
     public function markSpam(array $ids, int $userId): int
     {
-        if ([] === $ids) {
-            return 0;
+        $now = time();
+        $count = 0;
+        $learned = [];
+
+        // Einzeln: Nur was dieser Aufruf tatsächlich von „ungeprüft" auf Spam umstellt, zählt; ein paralleler Klick
+        // auf denselben Eintrag ändert nichts und zählt deshalb auch nicht.
+        foreach (array_unique($ids) as $id) {
+            $pattern = $this->db->fetchOne('SELECT pattern FROM '.self::TABLE.' WHERE id = ? AND label = ? AND delivered = 0', [$id, 'unreviewed']);
+
+            if (false === $pattern) {
+                continue;
+            }
+
+            $changed = $this->db->executeStatement(
+                'UPDATE '.self::TABLE.' SET label = ?, label_by = ?, label_at = ?, tstamp = ? WHERE id = ? AND label = ? AND delivered = 0',
+                ['spam', $userId, $now, $now, $id, 'unreviewed'],
+            );
+
+            if (1 === $changed) {
+                ++$count;
+                $learned[(string) $pattern] = true;
+            }
         }
 
-        $now = time();
-        $where = 'label = ? AND delivered = 0 AND id IN ('.implode(',', array_fill(0, \count($ids), '?')).')';
-        $patterns = $this->db->fetchFirstColumn('SELECT reasons FROM '.self::TABLE.' WHERE '.$where, ['unreviewed', ...$ids]);
-        $count = $this->db->executeStatement(
-            'UPDATE '.self::TABLE.' SET label = ?, label_by = ?, label_at = ?, tstamp = ? WHERE '.$where,
-            ['spam', $userId, $now, $now, 'unreviewed', ...$ids],
-        );
-
-        // ponytail: Muster werden vor dem UPDATE gelesen; ein paralleler Klick kann einmal doppelt zählen, das
-        // verschiebt nur den Zeitpunkt der Automatik um eine Bestätigung.
-        foreach (array_count_values(array_map('strval', $patterns)) as $pattern => $n) {
-            $this->learn((string) $pattern, 'confirmed', $n);
+        // Je Aufruf zählt ein Muster höchstens einmal: „Alle als Spam bestätigen" ist eine Entscheidung, keine
+        // zwanzig. Ohne angemeldeten Benutzer wird nichts gelernt.
+        if ($userId > 0) {
+            foreach (array_keys($learned) as $pattern) {
+                $this->learn((string) $pattern, 'confirmed', 1);
+            }
         }
 
         $this->log('info', 'Spam-Ablage: '.$count.' Eintrag/Einträge als Spam bestätigt.');
@@ -355,12 +400,12 @@ class SpamArchive
     /**
      * Lernstand je Muster.
      *
-     * @return array<string, array{confirmed: int, rejected: int}>
+     * @return array<string, array{confirmed: int, rejected: int, reset_at: int}>
      */
     public function patterns(): array
     {
         try {
-            $rows = $this->db->fetchAllAssociative('SELECT pattern, confirmed, rejected FROM '.self::PATTERN_TABLE);
+            $rows = $this->db->fetchAllAssociative('SELECT pattern, confirmed, rejected, reset_at FROM '.self::PATTERN_TABLE);
         } catch (\Throwable) {
             return [];
         }
@@ -368,7 +413,7 @@ class SpamArchive
         $patterns = [];
 
         foreach ($rows as $row) {
-            $patterns[(string) $row['pattern']] = ['confirmed' => (int) $row['confirmed'], 'rejected' => (int) $row['rejected']];
+            $patterns[(string) $row['pattern']] = ['confirmed' => (int) $row['confirmed'], 'rejected' => (int) $row['rejected'], 'reset_at' => (int) $row['reset_at']];
         }
 
         return $patterns;
@@ -377,6 +422,40 @@ class SpamArchive
     public function countUnreviewed(): int
     {
         return (int) $this->db->fetchOne('SELECT COUNT(*) FROM '.self::TABLE.' WHERE label = ?', ['unreviewed']);
+    }
+
+    /**
+     * Automatisch bestätigte Einträge der letzten $days Tage, die noch nicht zugestellt sind. Für die Systemnachricht,
+     * damit eine automatisch bestätigte echte Einsendung nicht unbemerkt bis zur Löschung liegen bleibt.
+     */
+    public function countAutoConfirmed(int $days = 14): int
+    {
+        return (int) $this->db->fetchOne(
+            'SELECT COUNT(*) FROM '.self::TABLE.' WHERE label = ? AND label_by = 0 AND delivered = 0 AND label_at > ?',
+            ['spam', time() - $days * 86400],
+        );
+    }
+
+    /**
+     * Hebt die Sperre eines Musters auf (Fehlklick auf „Kein Spam"). Der Zähler beginnt bei 0; frühere
+     * „Kein Spam"-Einträge des Musters sperren danach nicht mehr.
+     */
+    public function unblock(string $pattern, int $userId): bool
+    {
+        if ('' === $pattern) {
+            return false;
+        }
+
+        $changed = $this->db->executeStatement(
+            'UPDATE '.self::PATTERN_TABLE.' SET confirmed = 0, rejected = 0, reset_at = ?, tstamp = ? WHERE pattern = ?',
+            [time(), time(), $pattern],
+        );
+
+        if ($changed > 0) {
+            $this->log('info', \sprintf('Spam-Ablage: Automatik für Muster „%s“ wieder erlaubt (Benutzer %d), Zähler beginnt bei 0.', $pattern, $userId));
+        }
+
+        return $changed > 0;
     }
 
     /**
@@ -395,8 +474,11 @@ class SpamArchive
             return null;
         }
 
-        // Zweite Sperre, falls ein „Kein Spam"-Zähler verloren ging: noch vorhandene Ham-Einträge des Musters.
-        $ham = (int) $this->db->fetchOne('SELECT COUNT(*) FROM '.self::TABLE.' WHERE label = ? AND reasons = ?', ['ham', $pattern]);
+        // Zweite Sperre, falls ein „Kein Spam"-Zähler verloren ging: Ham-Einträge des Musters seit der letzten Freigabe.
+        $ham = (int) $this->db->fetchOne(
+            'SELECT COUNT(*) FROM '.self::TABLE.' WHERE label = ? AND pattern = ? AND label_at > ?',
+            ['ham', $pattern, $stats['reset_at']],
+        );
 
         return 0 === $ham ? $stats['confirmed'] : null;
     }
@@ -413,11 +495,11 @@ class SpamArchive
         $this->learn($pattern, 'rejected', 1);
 
         $reverted = $this->db->executeStatement(
-            'UPDATE '.self::TABLE.' SET label = ?, label_at = 0, digested = 0, tstamp = ? WHERE label = ? AND label_by = 0 AND delivered = 0 AND reasons = ? AND id <> ?',
+            'UPDATE '.self::TABLE.' SET label = ?, label_at = 0, digested = 0, tstamp = ? WHERE label = ? AND label_by = 0 AND delivered = 0 AND pattern = ? AND id <> ?',
             ['unreviewed', time(), 'spam', $pattern, $id],
         );
 
-        $this->log('info', \sprintf('Spam-Ablage: Muster „%s“ als Kein Spam markiert, automatische Bestätigung dafür gesperrt (%d Einträge zurück auf ungeprüft).', $pattern, $reverted));
+        $this->log('info', \sprintf('Spam-Ablage: Muster „%s“ als Kein Spam markiert, automatische Bestätigung dafür gesperrt, bis sie im Posteingang wieder erlaubt wird (%d Einträge zurück auf ungeprüft).', $pattern, $reverted));
     }
 
     /**

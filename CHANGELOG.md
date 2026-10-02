@@ -8,17 +8,23 @@ und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lan
 ## [0.9.0] - unveröffentlicht
 
 ### Hinzugefügt
-- **Lernende Auto-Bestätigung** in der Spam-Ablage: Nach 20 manuellen Bestätigungen eines Signalmusters ohne ein
-  „Kein Spam“ werden neue Einträge mit diesem Muster automatisch als Spam bestätigt. Ein „Kein Spam“ sperrt das
-  Muster dauerhaft und setzt dessen automatisch bestätigte Einträge zurück. Lernstand je Eintrag im Posteingang,
-  Log-Eintrag je automatischer Bestätigung. Neue Tabelle `tl_turnstile_spam_pattern`.
-- Feld **„Mistral-API-Schlüssel (KI-Spamerkennung)“** in den Turnstile-Einstellungen (maskiert, letzte 4 Zeichen sichtbar);
-  `TURNSTILE_AI_KEY` in `.env.local` hat weiter Vorrang. Dazu „KI-Anfragen pro Tag“ (Tageslimit, Standard 150) und eine
-  Erklärung samt Modell in der Statusanzeige „KI-Spamerkennung“.
+- **Lernende Auto-Bestätigung** in der Spam-Ablage: Nach 20 Bestätigungen eines Lernmusters (Quelle und stabile
+  Signale) ohne ein „Kein Spam“ werden neue Einträge damit automatisch als Spam bestätigt. Jede Bestätigungsaktion
+  zählt einmal, auch die Sammelaktion; Registrierungen und Einträge mit KI-Urteil werden nie automatisch bestätigt.
+  Ein „Kein Spam“ sperrt das Muster und setzt dessen automatisch bestätigte Einträge zurück; „Automatik für dieses
+  Muster wieder erlauben“ hebt eine versehentliche Sperre auf. Reiter „Automatisch“ im Posteingang, Hinweis auf der
+  Backend-Startseite, Lernstand je Eintrag. Neue Tabelle `tl_turnstile_spam_pattern`, neue Spalte `pattern`.
+- KI-Spamerkennung in den Einstellungen: Feld „Mistral-API-Schlüssel“ (der gespeicherte Schlüssel erscheint nie im
+  HTML, leer speichern behält ihn, „-“ löscht ihn; `TURNSTILE_AI_KEY` in `.env.local` hat weiter Vorrang),
+  „KI-Anfragen pro Tag“ (Standard 150) und eine Statusanzeige, die Einsatz, Anbieter und Modell erklärt.
+- „Alle angezeigten als Spam bestätigen“ fragt vorher nach.
 
 ### Geändert
 - Einstellungen und Spam-Ablage: Beschriftungen und Hilfetexte gekürzt und präzisiert, etwa „Wenn Turnstile scheitert“ mit „Einsendung ablehnen“ oder „Ersatzprüfung mit ALTCHA, dann annehmen und einstufen“.
 - Tageszusammenfassung: von Hand bestätigter Spam wird nur gezählt; automatisch bestätigte Einträge stehen markiert mit Betreff drin (Kontrolle); ohne neue Einträge außer Handbestätigten keine Mail.
+
+### Behoben
+- KI-Spamerkennung: Scheitert das Speichern des Tageszählers, wird die KI nicht mehr gefragt.
 
 ## [0.8.3] - 2026-10-02
 

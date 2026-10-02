@@ -71,6 +71,6 @@ document.addEventListener('submit', async (event) => {
     }
 
     const counts = data.counts ?? {};
-    counts.all = Object.values(counts).reduce((a, b) => a + b, 0);
+    counts.all = (counts.unreviewed ?? 0) + (counts.spam ?? 0) + (counts.ham ?? 0);
     document.querySelectorAll('.tsa-tabs [data-count]').forEach((el) => (el.textContent = counts[el.dataset.count] ?? 0));
 });

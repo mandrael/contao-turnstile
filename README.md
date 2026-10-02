@@ -164,14 +164,18 @@ zurückgehaltener Mail Empfänger und Status;
 Versands unklar (etwa nach einem Abbruch), bietet die Ansicht erst nach 15 Minuten ein erneutes Senden an, mit
 Hinweis auf mögliche Doppelzustellung.
 
-- **Lernende Auto-Bestätigung:** Jeder Eintrag hat ein Signalmuster (z. B. „Zeichensalat, Link, Tor“). Nach
-  **20 manuellen Bestätigungen** eines Musters ohne ein einziges „Kein Spam“ werden neue Einträge mit diesem Muster
-  automatisch als Spam bestätigt („Spam, automatisch bestätigt“), bleiben aber 90 Tage zustellbar. Der Lernstand
-  steht am ungeprüften Eintrag („Muster 12/20 bestätigt, danach automatisch Spam“). Ein einziges „Kein Spam“ sperrt das Muster
-  dauerhaft und setzt dessen automatisch bestätigte Einträge zurück auf ungeprüft. Der Lernstand überdauert das
-  Löschen nach 90 Tagen.
+- **Lernende Auto-Bestätigung:** Jeder Eintrag hat ein Lernmuster aus Quelle (Formular, Kommentar) und den stabilen
+  Signalen (z. B. „Zeichensalat, Tor“); Signale, die von Uhrzeit oder Netz abhängen, zählen nicht mit. Nach
+  **20 Bestätigungen** eines Musters ohne ein „Kein Spam“ werden neue Einträge damit automatisch als Spam bestätigt
+  (Reiter „Automatisch“), bleiben aber 90 Tage zustellbar. Jede Bestätigungsaktion zählt einmal, auch „Alle als Spam
+  bestätigen“; nur angemeldete Benutzer trainieren. **Nie automatisch:** Registrierungen und Einträge mit KI-Urteil.
+  Der Lernstand steht am ungeprüften Eintrag („Muster 12/20 bestätigt, danach automatisch Spam“). Ein „Kein Spam“
+  sperrt das Muster und setzt dessen automatisch bestätigte Einträge zurück auf ungeprüft; „Automatik für dieses
+  Muster wieder erlauben“ hebt eine versehentliche Sperre auf, der Zähler beginnt dann bei 0. Der Lernstand überdauert
+  das Löschen nach 90 Tagen; ändern sich die Regeln der Einstufung, beginnt er neu.
 - Einträge werden nach **90 Tagen** automatisch gelöscht (täglicher Cronjob).
-- Ungeprüfte Einträge meldet eine Systemnachricht auf der Backend-Startseite.
+- Ungeprüfte und in den letzten 14 Tagen automatisch bestätigte Einträge meldet eine Systemnachricht auf der
+  Backend-Startseite.
 - **Tageszusammenfassung** (Einstellungen, Standard aus): eine Mail je Tag mit Datum, Quelle, Punkten,
   Signalen und Betreff der neuen Einträge, ohne Inhalt der Einsendung; automatisch bestätigte sind zur Kontrolle
   markiert, von Hand bestätigte werden nur gezählt. Sind alle neuen schon von Hand bestätigt, geht keine Mail hinaus. Empfänger ist die eingetragene Adresse,

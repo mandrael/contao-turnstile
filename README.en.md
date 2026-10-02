@@ -160,13 +160,17 @@ withheld mail, its recipients and status; **"Deliver anyway"**
 sends them afterwards unchanged, including attachments. If the outcome of a delivery is unclear (e.g. after an
 abort), the view offers a resend only after 15 minutes, with a warning about possible duplicate delivery.
 
-- **Learning auto-confirmation:** every entry has a signal pattern (e.g. "gibberish, link, Tor"). After **20 manual
-  confirmations** of a pattern without a single "Not spam", new entries with that pattern are confirmed as spam
-  automatically ("spam, auto-confirmed") and remain deliverable for 90 days. The learning progress is shown on the
-  unreviewed entry ("pattern 12/20 confirmed, then automatically spam"). A single "Not spam" blocks the pattern for good and returns its
-  auto-confirmed entries to unreviewed. The learning state survives the 90-day cleanup.
+- **Learning auto-confirmation:** every entry has a learning pattern made of its source (form, comment) and its stable
+  signals (e.g. "gibberish, Tor"); signals that depend on time or network do not count. After **20 confirmations** of
+  a pattern without a "Not spam", new entries with it are confirmed as spam automatically (tab "Automatic") and remain
+  deliverable for 90 days. Every confirm action counts once, including "Confirm all as spam"; only logged-in users
+  train. **Never automatic:** registrations and entries with an AI verdict. The progress is shown on the unreviewed
+  entry ("pattern 12/20 confirmed, then automatically spam"). A "Not spam" blocks the pattern and returns its
+  auto-confirmed entries to unreviewed; "Allow automatic confirmation for this pattern again" lifts an accidental
+  block, the counter then starts at 0. The learning state survives the 90-day cleanup and restarts when the
+  classification rules change.
 - Entries are deleted automatically after **90 days** (daily cron job).
-- A system message on the back-end start page reports unreviewed entries.
+- A system message on the back-end start page reports unreviewed entries and entries auto-confirmed in the last 14 days.
 - **Daily digest** (settings, off by default): one mail per day with date, source, points, signals and subject of
   the new entries, without the submission's content; automatically confirmed ones are flagged for control, manually
   confirmed ones are only counted. No mail is sent when all new entries were already confirmed by hand. Recipient is the configured address, otherwise the

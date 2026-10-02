@@ -7,3 +7,4 @@ $GLOBALS['TL_LANG']['MSC']['turnstileNoscript'] = 'Für die Sicherheitsprüfung 
 
 // Systemnachricht auf der Backend-Startseite; steht hier, weil dort nur default.php geladen ist.
 $GLOBALS['TL_LANG']['MSC']['turnstileSpamSystemMessage'] = '%d ungeprüfte Einträge in der Spam-Ablage (werden nach 90 Tagen gelöscht).';
+$GLOBALS['TL_LANG']['MSC']['turnstileSpamAutoMessage'] = '%d Einträge in den letzten 14 Tagen automatisch als Spam bestätigt (Spam-Ablage → Automatisch).';

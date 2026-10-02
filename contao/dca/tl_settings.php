@@ -106,10 +106,21 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileSpamDigestEmail'] = [
     'eval' => ['tl_class' => 'w50', 'maxlength' => 255, 'rgxp' => 'email', 'decodeEntities' => true],
 ];
 
-// Maskiert und mit den letzten 4 Zeichen wie turnstileSecretKey; TURNSTILE_AI_KEY in .env.local hat Vorrang.
+// Der gespeicherte Schlüssel kommt nie ins HTML: Das Feld bleibt leer, leer speichern behält ihn, „-“ löscht ihn.
+// Die letzten 4 Zeichen stehen im Label. TURNSTILE_AI_KEY in .env.local hat Vorrang.
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiKey'] = [
     'inputType' => 'text',
     'eval' => ['tl_class' => 'w50 clr', 'maxlength' => 255, 'decodeEntities' => true, 'autocomplete' => 'off', 'style' => '-webkit-text-security:disc'],
+    'load_callback' => [
+        static fn (): string => '',
+    ],
+    'save_callback' => [
+        static fn (mixed $value): string => match (trim((string) $value)) {
+            '' => (string) Config::get('turnstileAiKey'),
+            '-' => '',
+            default => trim((string) $value),
+        },
+    ],
     'xlabel' => [
         static function (): string {
             $key = (string) Config::get('turnstileAiKey');
@@ -121,7 +132,7 @@ $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiKey'] = [
 
 $GLOBALS['TL_DCA']['tl_settings']['fields']['turnstileAiBudget'] = [
     'inputType' => 'text',
-    'eval' => ['tl_class' => 'w50', 'rgxp' => 'natural', 'maxlength' => 6],
+    'eval' => ['tl_class' => 'w50', 'rgxp' => 'natural', 'minval' => 1, 'maxlength' => 6],
 ];
 
 // Reine Anzeige, nichts gespeichert: kein 'sql', kein Wert in localconfig.php.

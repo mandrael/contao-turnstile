@@ -158,9 +158,10 @@ class SpamArchiveControllerTest extends ContaoTestCase
         $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpamAuto'] = 'automatisch %s';
 
         $rows = [
-            ['id' => 1, 'reasons' => 'tor-exit, link'] + $this->headRow(),
-            ['id' => 2, 'reasons' => 'no-mx'] + $this->headRow(),
-            ['id' => 3, 'reasons' => 'tor-exit, link', 'label' => 'spam', 'label_by' => 0, 'label_at' => 1000] + $this->headRow(),
+            ['id' => 1, 'reasons' => 'tor-exit, link', 'pattern' => 'form|r1|link,tor-exit'] + $this->headRow(),
+            ['id' => 2, 'reasons' => 'no-mx', 'pattern' => 'form|r1|no-mx'] + $this->headRow(),
+            ['id' => 3, 'reasons' => 'tor-exit, link', 'pattern' => 'form|r1|link,tor-exit', 'label' => 'spam', 'label_by' => 0, 'label_at' => 1000] + $this->headRow(),
+            ['id' => 4, 'reasons' => 'tor-exit, ai-spam', 'pattern' => ''] + $this->headRow(),
         ];
         $db = $this->createMock(Connection::class);
         $db->method('fetchAllAssociative')->willReturn($rows);
@@ -169,8 +170,8 @@ class SpamArchiveControllerTest extends ContaoTestCase
         $archive = $this->createMock(SpamArchive::class);
         $archive->method('countByLabel')->willReturn(['unreviewed' => 2, 'spam' => 1]);
         $archive->method('patterns')->willReturn([
-            'tor-exit, link' => ['confirmed' => 12, 'rejected' => 0],
-            'no-mx' => ['confirmed' => 30, 'rejected' => 1],
+            'form|r1|link,tor-exit' => ['confirmed' => 12, 'rejected' => 0, 'reset_at' => 0],
+            'form|r1|no-mx' => ['confirmed' => 30, 'rejected' => 1, 'reset_at' => 0],
         ]);
 
         $output = (string) $this->controller($db, $archive)->feed($this->dc(0));
@@ -178,7 +179,10 @@ class SpamArchiveControllerTest extends ContaoTestCase
         self::assertStringContainsString('Muster 12 von '.SpamArchive::AUTO_CONFIRM_MIN, $output);
         self::assertStringContainsString('Muster gesperrt', $output);
         self::assertStringContainsString('automatisch ', $output);
-        self::assertSame(2, substr_count($output, 'tsa-learning'), 'kein Lernstand am bestätigten Eintrag');
+        self::assertSame(2, substr_count($output, 'tsa-learning'), 'kein Lernstand am bestätigten Eintrag und ohne Muster');
+        // Gesperrtes Muster: eigenes Formular ohne Skript zum Aufheben, mit Rückfrage.
+        self::assertSame(1, substr_count($output, 'class="tsa-unblock"'));
+        self::assertStringContainsString('value="unblock"', $output);
     }
 
     public function testFeedAjaxMarksSpamAndAnswersJson(): void
@@ -197,7 +201,7 @@ class SpamArchiveControllerTest extends ContaoTestCase
         } catch (ResponseException $e) {
             $data = json_decode((string) $e->getResponse()->getContent(), true);
             self::assertTrue($data['ok']);
-            self::assertSame(['spam' => 2], $data['counts']);
+            self::assertSame(['spam' => 2, 'auto' => 0], $data['counts']);
         }
     }
 
@@ -243,6 +247,27 @@ class SpamArchiveControllerTest extends ContaoTestCase
         $archive->expects(self::never())->method('deliver');
 
         self::assertInstanceOf(RedirectResponse::class, $this->controller($db, $archive)->view($this->dc(7)));
+    }
+
+    public function testUnblockLiftsPatternOfEntryAndBulkAsksFirst(): void
+    {
+        $this->pushRequest(Request::create('/', 'POST', ['FORM_SUBMIT' => 'turnstile_spam_feed', 'tsa_action' => 'unblock', 'ids' => '4', 'REQUEST_TOKEN' => 'token']));
+
+        $db = $this->createMock(Connection::class);
+        $db->method('fetchOne')->willReturn('form|r1|no-mx');
+
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->expects(self::once())->method('unblock')->with('form|r1|no-mx', 42)->willReturn(true);
+
+        self::assertInstanceOf(RedirectResponse::class, $this->controller($db, $archive)->feed($this->dc(0)));
+
+        $this->pushRequest(Request::create('/', 'GET'));
+        $db = $this->createMock(Connection::class);
+        $db->method('fetchAllAssociative')->willReturn([['id' => 1] + $this->headRow()]);
+        $archive = $this->createMock(SpamArchive::class);
+        $archive->method('countByLabel')->willReturn([]);
+
+        self::assertMatchesRegularExpression('/class="tsa-bulk".*value="spam"[^>]*data-confirm=/s', (string) $this->controller($db, $archive)->feed($this->dc(0)));
     }
 
     public function testFeedGetNeverActs(): void

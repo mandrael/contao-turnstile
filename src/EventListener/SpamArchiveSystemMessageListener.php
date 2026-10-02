@@ -21,14 +21,23 @@ class SpamArchiveSystemMessageListener
     {
         try {
             $count = $this->archive->countUnreviewed();
+            $auto = $this->archive->countAutoConfirmed();
         } catch (\Throwable) {
             return '';
         }
 
-        if ($count < 1) {
-            return '';
+        $html = '';
+
+        if ($count > 0) {
+            $html .= '<p class="tl_info">'.\sprintf($GLOBALS['TL_LANG']['MSC']['turnstileSpamSystemMessage'] ?? '%d unreviewed entries in the spam archive (deleted after 90 days).', $count).'</p>';
         }
 
-        return '<p class="tl_info">'.\sprintf($GLOBALS['TL_LANG']['MSC']['turnstileSpamSystemMessage'] ?? '%d unreviewed entries in the spam archive (deleted after 90 days).', $count).'</p>';
+        // Automatisch bestätigte Einträge stehen nicht unter „Ungeprüft"; ohne diesen Hinweis bliebe eine fälschlich
+        // bestätigte echte Einsendung bis zur Löschung unbemerkt.
+        if ($auto > 0) {
+            $html .= '<p class="tl_info">'.\sprintf($GLOBALS['TL_LANG']['MSC']['turnstileSpamAutoMessage'] ?? '%d entries automatically confirmed as spam in the last 14 days.', $auto).'</p>';
+        }
+
+        return $html;
     }
 }

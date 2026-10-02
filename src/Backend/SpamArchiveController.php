@@ -38,6 +38,7 @@ class SpamArchiveController
      */
     private const FILTERS = [
         'unreviewed' => "label = 'unreviewed'",
+        'auto' => "label = 'spam' AND label_by = 0",
         'spam' => "label = 'spam'",
         'ham' => "label = 'ham'",
         'all' => '1 = 1',
@@ -74,7 +75,7 @@ class SpamArchiveController
             $text = $this->act((string) $request->request->get('tsa_action'), $ids);
 
             if (self::isFetch($request)) {
-                throw new ResponseException(new JsonResponse(['ok' => null !== $text, 'text' => $text ?? '', 'counts' => $this->archive->countByLabel()], null !== $text ? 200 : 400));
+                throw new ResponseException(new JsonResponse(['ok' => null !== $text, 'text' => $text ?? '', 'counts' => $this->counts()], null !== $text ? 200 : 400));
             }
 
             if (null !== $text) {
@@ -89,11 +90,11 @@ class SpamArchiveController
         // Nach Aktionen kann die letzte Seite leer werden: auf die tatsächlich letzte Seite zurückfallen.
         $page = min($page, max(1, (int) ceil($total / self::PER_PAGE)));
         $rows = $this->db->fetchAllAssociative(
-            'SELECT id, created, source, score, reasons, subject, recipients, preview, label, label_by, label_at, delivered FROM '.SpamArchive::TABLE
+            'SELECT id, created, source, score, reasons, pattern, subject, recipients, preview, label, label_by, label_at, delivered FROM '.SpamArchive::TABLE
             .' WHERE '.$where.' ORDER BY created DESC, id DESC LIMIT '.self::PER_PAGE.' OFFSET '.(($page - 1) * self::PER_PAGE),
         );
 
-        return $this->renderFeed($filter, $page, $rows, $total, $this->archive->countByLabel());
+        return $this->renderFeed($filter, $page, $rows, $total, $this->counts());
     }
 
     /**
@@ -120,6 +121,11 @@ class SpamArchiveController
 
                 return \sprintf($lang['deleted'] ?? '%d deleted.', $count);
 
+            case 'unblock':
+                $pattern = (string) $this->db->fetchOne('SELECT pattern FROM '.SpamArchive::TABLE.' WHERE id = ?', [$ids[0]]);
+
+                return $this->archive->unblock($pattern, $this->currentUserId()) ? ($lang['unblocked'] ?? 'Automatic confirmation allowed again.') : null;
+
             case 'deliver':
                 // Einzeln: Zustellen versendet echte Mails und ist nie eine Sammelaktion.
                 $result = $this->archive->deliver($ids[0], $this->currentUserId());
@@ -137,7 +143,7 @@ class SpamArchiveController
     private function renderFeed(string $filter, int $page, array $rows, int $total, array $counts): string
     {
         $lang = &$GLOBALS['TL_LANG']['tl_turnstile_spam'];
-        $counts['all'] = array_sum($counts);
+        $counts['all'] = ($counts['unreviewed'] ?? 0) + ($counts['spam'] ?? 0) + ($counts['ham'] ?? 0);
 
         $tabs = '';
 
@@ -211,13 +217,18 @@ class SpamArchiveController
             $reasons .= '<li>'.StringUtil::specialchars($lang['reasonLabels'][$reason] ?? $reason).'</li>';
         }
 
-        // Lernstand des Musters, damit sichtbar ist, wann die Automatik greift.
-        $stats = $patterns[(string) $row['reasons']] ?? ['confirmed' => 0, 'rejected' => 0];
-        $learning = 'unreviewed' === $label && 0 === $delivered
-            ? ($stats['rejected'] > 0
-                ? ($lang['patternBlocked'] ?? 'pattern blocked')
-                : \sprintf($lang['patternProgress'] ?? '%d of %d', min($stats['confirmed'], SpamArchive::AUTO_CONFIRM_MIN), SpamArchive::AUTO_CONFIRM_MIN))
-            : '';
+        // Lernstand des Musters, damit sichtbar ist, wann die Automatik greift. Leeres Muster: wird nie gelernt.
+        $pattern = (string) ($row['pattern'] ?? '');
+        $stats = $patterns[$pattern] ?? ['confirmed' => 0, 'rejected' => 0];
+        $blocked = '' !== $pattern && $stats['rejected'] > 0;
+        $learning = match (true) {
+            $blocked => $lang['patternBlocked'] ?? 'pattern blocked',
+            '' !== $pattern && 'unreviewed' === $label && 0 === $delivered => \sprintf($lang['patternProgress'] ?? '%d of %d', min($stats['confirmed'], SpamArchive::AUTO_CONFIRM_MIN), SpamArchive::AUTO_CONFIRM_MIN),
+            default => '',
+        };
+
+        // Eigenes Formular ohne Skript: Nach dem Aufheben lädt die Seite neu und zeigt den neuen Lernstand.
+        $unblock = $blocked ? $this->actionForm([$id], ['unblock' => $lang['unblock'] ?? 'Allow automatic confirmation again'], 'tsa-unblock') : '';
 
         $actions = [];
 
@@ -241,6 +252,7 @@ class SpamArchiveController
             .'<dl><dt>'.($lang['recipients'] ?? 'To').'</dt><dd>'.StringUtil::specialchars((string) $row['recipients']).'</dd>'
             .'<dt>'.($lang['subject'][0] ?? 'Subject').'</dt><dd>'.StringUtil::specialchars((string) $row['subject']).'</dd></dl>'
             .'<pre class="tsa-text">'.StringUtil::specialchars((string) $row['preview']).'</pre>'
+            .$unblock
             .$this->actionForm([$id], $actions, 'tsa-actions', '<a href="'.StringUtil::specialchars($this->viewUrl($id)).'">'.($lang['details'] ?? 'Details').'</a>')
             .'</article>';
     }
@@ -256,9 +268,11 @@ class SpamArchiveController
         $buttons = '';
 
         foreach ($actions as $action => $text) {
-            $confirm = match ($action) {
-                'deliver' => $lang['confirmDeliver'] ?? 'Really send?',
-                'delete' => $lang['confirmDelete'] ?? 'Really delete?',
+            $confirm = match (true) {
+                'deliver' === $action => $lang['confirmDeliver'] ?? 'Really send?',
+                'delete' === $action => $lang['confirmDelete'] ?? 'Really delete?',
+                'unblock' === $action => $lang['confirmUnblock'] ?? 'Allow again?',
+                'spam' === $action && 'tsa-bulk' === $class => \sprintf($lang['confirmMarkAll'] ?? 'Mark all %d as spam?', \count($ids)),
                 default => '',
             };
 
@@ -424,6 +438,17 @@ class SpamArchiveController
     private function hasValidToken(Request $request): bool
     {
         return $this->csrfTokenManager->isTokenValid(new CsrfToken($this->csrfTokenName, (string) $request->request->get('REQUEST_TOKEN')));
+    }
+
+
+    /**
+     * Zähler der Reiter; „auto" ist eine Teilmenge von „spam".
+     *
+     * @return array<string, int>
+     */
+    private function counts(): array
+    {
+        return $this->archive->countByLabel() + ['auto' => (int) $this->db->fetchOne('SELECT COUNT(*) FROM '.SpamArchive::TABLE.' WHERE '.self::FILTERS['auto'])];
     }
 
 }

@@ -95,6 +95,10 @@ $GLOBALS['TL_DCA']['tl_turnstile_spam'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_turnstile_spam']['reasons'],
             'sql' => "varchar(255) NOT NULL default ''",
         ],
+        // Lernmuster (SpamArchive::patternKey), leer = wird nicht gelernt. Ältere Einträge bleiben leer.
+        'pattern' => [
+            'sql' => "varchar(255) NOT NULL default ''",
+        ],
         'subject' => [
             'label' => &$GLOBALS['TL_LANG']['tl_turnstile_spam']['subject'],
             'search' => true,

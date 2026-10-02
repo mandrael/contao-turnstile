@@ -42,7 +42,7 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['labels'] = ['unreviewed' => 'ungeprüf
 
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['feed'] = ['Posteingang', 'Posteingang'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['tableView'] = 'Tabellenansicht';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['filters'] = ['unreviewed' => 'Ungeprüft', 'spam' => 'Spam', 'ham' => 'Kein Spam', 'all' => 'Alle'];
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['filters'] = ['unreviewed' => 'Ungeprüft', 'auto' => 'Automatisch', 'spam' => 'Spam', 'ham' => 'Kein Spam', 'all' => 'Alle'];
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['points'] = '%d Punkte';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['details'] = 'Details';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['markSpam'] = 'Spam bestätigen';
@@ -73,4 +73,8 @@ $GLOBALS['TL_LANG']['tl_turnstile_spam']['done'] = ['spam' => 'Als Spam bestäti
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['ajaxUnclear'] = 'Ergebnis unklar – bitte Seite neu laden.';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['statusSpamAuto'] = 'Spam, automatisch bestätigt am %s';
 $GLOBALS['TL_LANG']['tl_turnstile_spam']['patternProgress'] = 'Muster %d/%d bestätigt, danach automatisch Spam';
-$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'Wird nie automatisch bestätigt (einmal als Kein Spam markiert)';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['patternBlocked'] = 'Muster gesperrt (als Kein Spam markiert)';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['unblock'] = 'Automatik für dieses Muster wieder erlauben';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['confirmUnblock'] = 'Sperre aufheben? Das Muster braucht danach wieder 20 Bestätigungen.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['unblocked'] = 'Automatik wieder erlaubt, Zähler beginnt bei 0.';
+$GLOBALS['TL_LANG']['tl_turnstile_spam']['confirmMarkAll'] = 'Alle %d angezeigten Einträge als Spam bestätigen?';

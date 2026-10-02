@@ -83,7 +83,7 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileSpamDigestEmail'] = [
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiKey'] = [
     'Mistral-API-Schlüssel',
-    'Optional, von console.mistral.ai. Mistral dann in die Datenschutzerklärung aufnehmen.',
+    'Optional, von console.mistral.ai. Leer lassen behält den gespeicherten, „-“ löscht ihn.',
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiBudget'] = [
@@ -97,5 +97,5 @@ $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatus'] = [
 ];
 
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusActive'] = 'An: %s, Modell %s, heute %d von %d Anfragen genutzt.';
-$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Hilft nur in Zweifelsfällen der Ersatzprüfung: Mistral (Modell %1$s) entscheidet dann, ob die Einsendung in die Spam-Ablage kommt. Gesendet werden Text und Mailadresse, nie die IP. Nach %2$d Anfragen am Tag laufen Zweifelsfälle ohne Mistral normal weiter.';
+$GLOBALS['TL_LANG']['tl_settings']['turnstileAiExplain'] = 'Hilft nur in Zweifelsfällen der Ersatzprüfung: %3$s (Modell %1$s) entscheidet dann, ob die Einsendung in die Spam-Ablage kommt. Gesendet werden Text und Mailadresse, nie die IP; den Anbieter in die Datenschutzerklärung aufnehmen. Nach %2$d Anfragen am Tag laufen Zweifelsfälle ohne KI normal weiter.';
 $GLOBALS['TL_LANG']['tl_settings']['turnstileAiStatusOff'] = 'Aus: kein Schlüssel eingetragen. TURNSTILE_AI_KEY in .env.local hat Vorrang vor dem Feld.';
