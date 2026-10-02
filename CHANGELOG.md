@@ -5,14 +5,12 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 und dieses Projekt folgt der [Semantischen Versionierung](https://semver.org/lang/de/).
 
-## [0.9.1] - unveröffentlicht
+## [0.9.1] - 2026-10-02
 
 ### Geändert
-- KI-Spamerkennung: Mistral wird über `mistral-small-latest` angesprochen. Feste Versionen schaltet Mistral nach einigen
-  Monaten ab; danach liefe die KI-Prüfung ins Leere. `TURNSTILE_AI_MODEL` legt weiter ein bestimmtes Modell fest.
-- Einstellungen: Die KI-Statusanzeige nennt das Modell mit Klarnamen („Mistral Small“) und erklärt verständlicher,
-  wann die KI entscheidet und was ohne Schlüssel gilt.
-- Beschreibungen und Doku sprechen von „Spam-Verdacht“ statt „Spam sicher“.
+- KI-Spamerkennung nutzt `mistral-small-latest` und damit immer das aktuelle Mistral-Small-Modell.
+- Einstellungen: verständlichere Erklärung der KI-Spamerkennung, Modell mit Klarnamen („Mistral Small“).
+- „Spam-Verdacht“ statt „Spam sicher“ in Beschreibungen und Doku.
 
 ## [0.9.0] - 2026-10-02
 
